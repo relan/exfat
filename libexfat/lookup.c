@@ -43,6 +43,7 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 	const struct exfat_file_info* file_info;
 	const struct exfat_file_name* file_name;
 	const struct exfat_upcase* upcase;
+	const struct exfat_bitmap* bitmap;
 	uint8_t continuations = 0;
 	le16_t* namep = NULL;
 
@@ -157,6 +158,23 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 
 			exfat_read_raw(ef->upcase, le64_to_cpu(upcase->size),
 					exfat_c2o(ef, le32_to_cpu(upcase->start_cluster)), ef->fd);
+			break;
+
+		case EXFAT_ENTRY_BITMAP:
+			bitmap = (const struct exfat_bitmap*) entry;
+			if (CLUSTER_INVALID(le32_to_cpu(bitmap->start_cluster)))
+			{
+				exfat_error("invalid cluster in clusters bitmap");
+ 				return -EIO;
+			}
+			if (le64_to_cpu(bitmap->size) !=
+					((le32_to_cpu(ef->sb->cluster_count) + 7) / 8))
+			{
+				exfat_error("invalid bitmap size: %"PRIu64" (expected %u)",
+						le64_to_cpu(bitmap->size),
+						(le32_to_cpu(ef->sb->cluster_count) + 7) / 8);
+				return -EIO;
+			}
 			break;
 		}
 
