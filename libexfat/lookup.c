@@ -155,13 +155,8 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			}
 			ef->upcase_chars = le64_to_cpu(upcase->size) / sizeof(le16_t);
 
-			/* set up a few fields in node just to satisfy exfat_read() */
-			memset(node, 0, sizeof(struct exfat_node));
-			node->start_cluster = le32_to_cpu(upcase->start_cluster);
-			node->flags = EXFAT_ATTRIB_CONTIGUOUS;
-			node->size = le64_to_cpu(upcase->size);
-			if (exfat_read(ef, node, ef->upcase, node->size, 0) != node->size)
-				return -EIO;
+			exfat_read_raw(ef->upcase, le64_to_cpu(upcase->size),
+					exfat_c2o(ef, le32_to_cpu(upcase->start_cluster)), ef->fd);
 			break;
 		}
 
