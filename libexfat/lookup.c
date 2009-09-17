@@ -44,6 +44,7 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 	const struct exfat_file_name* file_name;
 	const struct exfat_upcase* upcase;
 	const struct exfat_bitmap* bitmap;
+	const struct exfat_label* label;
 	uint8_t continuations = 0;
 	le16_t* namep = NULL;
 
@@ -173,6 +174,15 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 				exfat_error("invalid bitmap size: %"PRIu64" (expected %u)",
 						le64_to_cpu(bitmap->size),
 						(le32_to_cpu(ef->sb->cluster_count) + 7) / 8);
+				return -EIO;
+			}
+			break;
+
+		case EXFAT_ENTRY_LABEL:
+			label = (const struct exfat_label*) entry;
+			if (label->length > EXFAT_ENAME_MAX)
+			{
+				exfat_error("too long label (%hhu chars)", label->length);
 				return -EIO;
 			}
 			break;
