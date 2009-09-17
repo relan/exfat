@@ -147,6 +147,12 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 				return -EIO;
 			}
 			ef->upcase = malloc(le64_to_cpu(upcase->size));
+			if (ef->upcase == NULL)
+			{
+				exfat_error("failed to allocate upcase table (%"PRIu64" bytes)",
+						le64_to_cpu(upcase->size));
+				return -ENOMEM;
+			}
 			ef->upcase_chars = le64_to_cpu(upcase->size) / sizeof(le16_t);
 
 			/* set up a few fields in node just to satisfy exfat_read() */
