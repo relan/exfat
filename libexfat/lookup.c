@@ -186,6 +186,14 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 				return -EIO;
 			}
 			break;
+
+		default:
+			if (entry->type & EXFAT_ENTRY_VALID)
+			{
+				exfat_error("unknown entry type 0x%hhu", entry->type);
+				return -EIO;
+			}
+			break;
 		}
 
 		/* fetch the next cluster if needed */
