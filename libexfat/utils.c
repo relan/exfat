@@ -57,7 +57,6 @@ int exfat_mount(struct exfat* ef, const char* spec)
 		return -EIO;
 	}
 
-	ef->mount_time = time(NULL);
 	ef->upcase = NULL;
 	ef->upcase_chars = 0;
 	ef->rootdir_size = rootdir_size(ef);
