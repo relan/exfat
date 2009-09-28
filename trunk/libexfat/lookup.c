@@ -234,14 +234,20 @@ static int compare_name(struct exfat* ef, const le16_t* a, const le16_t* b)
 }
 
 static int lookup_name(struct exfat* ef, struct exfat_node* node,
-		const le16_t* name)
+		const char* name, size_t n)
 {
 	struct exfat_iterator it;
+	le16_t buffer[EXFAT_NAME_MAX + 1];
+	int rc;
+
+	rc = utf8_to_utf16(buffer, name, EXFAT_NAME_MAX, n);
+	if (rc != 0)
+		return rc;
 
 	exfat_opendir(node, &it);
 	while (exfat_readdir(ef, node, &it) == 0)
 	{
-		if (compare_name(ef, name, node->name) == 0)
+		if (compare_name(ef, buffer, node->name) == 0)
 		{
 			exfat_closedir(&it);
 			return 0;
@@ -251,23 +257,23 @@ static int lookup_name(struct exfat* ef, struct exfat_node* node,
 	return -ENOENT;
 }
 
+size_t get_comp(const char* path, const char** comp)
+{
+	const char* end;
+
+	*comp = path + strspn(path, "/");				/* skip leading slashes */
+	end = strchr(*comp, '/');
+	if (end == NULL)
+		return strlen(*comp);
+	else
+		return end - *comp;
+}
+
 int exfat_lookup(struct exfat* ef, struct exfat_node* node,
 		const char* path)
 {
-	le16_t buffer[EXFAT_NAME_MAX + 1];
-	int rc;
-	le16_t* p;
-	le16_t* subpath;
-
-	if (strlen(path) > EXFAT_NAME_MAX)
-	{
-		exfat_error("file name `%s' is too long", path);
-		return -ENAMETOOLONG;
-	}
-
-	rc = utf8_to_utf16(buffer, path, EXFAT_NAME_MAX, strlen(path));
-	if (rc != 0)
-		return rc;
+	const char* p;
+	size_t n;
 
 	/* start from the root directory */
 	node->flags = EXFAT_ATTRIB_DIR;
@@ -278,28 +284,11 @@ int exfat_lookup(struct exfat* ef, struct exfat_node* node,
 	node->mtime = ef->mount_time;
 	node->atime = ef->mount_time;
 
-	for (subpath = p = buffer; p; subpath = p + 1)
+	for (p = path; (n = get_comp(p, &p)); p += n)
 	{
-		while (le16_to_cpu(*subpath) == '/')
-			subpath++;		/* skip leading slashes */
-		for (p = subpath; ; p++)
-		{
-			if (le16_to_cpu(*p) == '\0')
-			{
-				p = NULL;
-				break;
-			}
-			if (le16_to_cpu(*p) == '/')
-			{
-				*p = cpu_to_le16('\0');
-				break;
-			}
-		}
-		if (le16_to_cpu(*subpath) == '\0')
-			break;			/* skip trailing slashes */
-		if (le16_to_cpu(subpath[0]) == '.' && le16_to_cpu(subpath[1]) == '\0')
-			continue;		/* skip "." component */
-		if (lookup_name(ef, node, subpath) != 0)
+		if (n == 1 && *p == '.')				/* skip "." component */
+			continue;
+		if (lookup_name(ef, node, p, n) != 0)
 			return -ENOENT;
 	}
 	return 0;
