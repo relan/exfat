@@ -224,12 +224,13 @@ static int compare_name(struct exfat* ef, const le16_t* a, const le16_t* b)
 {
 	while (le16_to_cpu(*a) && le16_to_cpu(*b))
 	{
-		if (compare_char(ef, le16_to_cpu(*a), le16_to_cpu(*b)) != 0)
-			break;
+		int rc = compare_char(ef, le16_to_cpu(*a), le16_to_cpu(*b));
+		if (rc != 0)
+			return rc;
 		a++;
 		b++;
 	}
-	return le16_to_cpu(*a) - le16_to_cpu(*b);
+	return compare_char(ef, le16_to_cpu(*a), le16_to_cpu(*b));
 }
 
 static int lookup_name(struct exfat* ef, struct exfat_node* node,
