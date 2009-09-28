@@ -281,8 +281,8 @@ int exfat_lookup(struct exfat* ef, struct exfat_node* node,
 	node->start_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
 	node->name[0] = cpu_to_le16('\0');
 	/* exFAT does not have time attributes for the root directory */
-	node->mtime = ef->mount_time;
-	node->atime = ef->mount_time;
+	node->mtime = 0;
+	node->atime = 0;
 
 	for (p = path; (n = get_comp(p, &p)); p += n)
 	{
