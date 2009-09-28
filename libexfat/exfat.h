@@ -33,6 +33,7 @@ struct exfat
 	struct exfat_super_block* sb;
 	int fd;
 	time_t mount_time;
+	uint64_t rootdir_size;
 	le16_t* upcase;
 	size_t upcase_chars;
 };

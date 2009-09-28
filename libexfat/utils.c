@@ -16,6 +16,21 @@
 #include <time.h>
 #include <sys/time.h>
 
+static uint64_t rootdir_size(const struct exfat* ef)
+{
+	uint64_t clusters = 0;
+	cluster_t rootdir_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
+
+	while (!CLUSTER_INVALID(rootdir_cluster))
+	{
+		clusters++;
+		/* root directory cannot be contiguous because there is no flag
+		   to indicate this */
+		rootdir_cluster = exfat_next_cluster(ef, rootdir_cluster, 0);
+	}
+	return clusters * CLUSTER_SIZE(*ef->sb);
+}
+
 int exfat_mount(struct exfat* ef, const char* spec)
 {
 	ef->sb = malloc(sizeof(struct exfat_super_block));
@@ -45,6 +60,7 @@ int exfat_mount(struct exfat* ef, const char* spec)
 	ef->mount_time = time(NULL);
 	ef->upcase = NULL;
 	ef->upcase_chars = 0;
+	ef->rootdir_size = rootdir_size(ef);
 
 	return 0;
 }
