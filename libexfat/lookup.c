@@ -215,9 +215,9 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 static int compare_char(struct exfat* ef, uint16_t a, uint16_t b)
 {
 	if (a >= ef->upcase_chars || b >= ef->upcase_chars)
-		return a - b;
-	else
-		return le16_to_cpu(ef->upcase[a]) - le16_to_cpu(ef->upcase[b]);
+		return (int) a - (int) b;
+
+	return (int) le16_to_cpu(ef->upcase[a]) - (int) le16_to_cpu(ef->upcase[b]);
 }
 
 static int compare_name(struct exfat* ef, const le16_t* a, const le16_t* b)
