@@ -174,7 +174,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	/* if it's leap year and February has passed we should add 1 day */
 	if (edate.year % 4 == 0 && edate.month > 2)
 		unix_time += SEC_IN_DAY;
-	unix_time += edate.day * SEC_IN_DAY;
+	unix_time += (edate.day - 1) * SEC_IN_DAY;
 
 	unix_time += etime.hour * SEC_IN_HOUR;
 	unix_time += etime.min * SEC_IN_MIN;
