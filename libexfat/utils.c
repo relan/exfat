@@ -137,7 +137,7 @@ static time_t get_time_shift(void)
 
 	if (gettimeofday(&tv, &tz) != 0)
 		return 0;
-	return -tz.tz_minuteswest * SEC_IN_MIN;
+	return tz.tz_minuteswest * SEC_IN_MIN;
 }
 
 time_t exfat_exfat2unix(le16_t date, le16_t time)
@@ -182,7 +182,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	unix_time += etime.twosec * 2;
 
 	/* exFAT stores timestamps in local time, so we correct it to UTC */
-	unix_time -= get_time_shift();
+	unix_time += get_time_shift();
 
 	return unix_time;
 }
