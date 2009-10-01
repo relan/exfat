@@ -162,10 +162,12 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	}
 
 	/* every 4th year between 1904 and 2096 is leap */
-	unix_time += edate.year * SEC_IN_YEAR + edate.year / 4 * SEC_IN_DAY;
+	unix_time += edate.year * SEC_IN_YEAR
+		+ ((EXFAT_EPOCH_YEAR + edate.year - 1) / 4 - (EXFAT_EPOCH_YEAR - 1) / 4)
+		* SEC_IN_DAY;
 	unix_time += days_in_year[edate.month] * SEC_IN_DAY;
 	/* if it's leap year and February has passed we should add 1 day */
-	if (edate.year % 4 == 0 && edate.month > 2)
+	if ((EXFAT_EPOCH_YEAR + edate.year) % 4 == 0 && edate.month > 2)
 		unix_time += SEC_IN_DAY;
 	unix_time += (edate.day - 1) * SEC_IN_DAY;
 
