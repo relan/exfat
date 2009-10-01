@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#define _XOPEN_SOURCE /* for timezone in Linux */
 #include <time.h>
 #include <sys/time.h>
 
@@ -33,6 +34,8 @@ static uint64_t rootdir_size(const struct exfat* ef)
 
 int exfat_mount(struct exfat* ef, const char* spec)
 {
+	tzset();
+
 	ef->sb = malloc(sizeof(struct exfat_super_block));
 	if (ef->sb == NULL)
 	{
@@ -130,16 +133,6 @@ union exfat_time
 	};
 };
 
-static time_t get_time_shift(void)
-{
-	struct timeval tv;
-	struct timezone tz;
-
-	if (gettimeofday(&tv, &tz) != 0)
-		return 0;
-	return tz.tz_minuteswest * SEC_IN_MIN;
-}
-
 time_t exfat_exfat2unix(le16_t date, le16_t time)
 {
 	union exfat_date edate;
@@ -182,7 +175,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	unix_time += etime.twosec * 2;
 
 	/* exFAT stores timestamps in local time, so we correct it to UTC */
-	unix_time += get_time_shift();
+	unix_time += timezone;
 
 	return unix_time;
 }
