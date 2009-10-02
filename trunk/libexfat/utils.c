@@ -106,6 +106,10 @@ void exfat_stat(const struct exfat_node* node, struct stat *stbuf)
 #define EPOCH_DIFF_DAYS (EPOCH_DIFF_YEAR * 365 + EPOCH_DIFF_YEAR / 4)
 /* number of seconds from Unix epoch to exFAT epoch (considering leap days) */
 #define EPOCH_DIFF_SEC (EPOCH_DIFF_DAYS * SEC_IN_DAY)
+/* number of leap years passed from exFAT epoch to the specified year
+   (excluding the specified year itself) */
+#define LEAP_YEARS(year) ((EXFAT_EPOCH_YEAR + (year) - 1) / 4 \
+		- (EXFAT_EPOCH_YEAR - 1) / 4)
 
 static const time_t days_in_year[] =
 {
@@ -158,9 +162,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	}
 
 	/* every 4th year between 1904 and 2096 is leap */
-	unix_time += edate.year * SEC_IN_YEAR
-		+ ((EXFAT_EPOCH_YEAR + edate.year - 1) / 4 - (EXFAT_EPOCH_YEAR - 1) / 4)
-		* SEC_IN_DAY;
+	unix_time += edate.year * SEC_IN_YEAR + LEAP_YEARS(edate.year) * SEC_IN_DAY;
 	unix_time += days_in_year[edate.month] * SEC_IN_DAY;
 	/* if it's leap year and February has passed we should add 1 day */
 	if ((EXFAT_EPOCH_YEAR + edate.year) % 4 == 0 && edate.month > 2)
