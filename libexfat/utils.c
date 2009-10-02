@@ -144,12 +144,6 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	edate.raw = le16_to_cpu(date);
 	etime.raw = le16_to_cpu(time);
 
-	/*
-	exfat_debug("%hu-%02hu-%02hu %hu:%02hu:%02hu",
-			edate.year + 1980, edate.month, edate.day,
-			etime.hour, etime.min, etime.twosec * 2);
-	*/
-
 	if (edate.day == 0 || edate.month == 0 || edate.month > 12)
 	{
 		exfat_error("bad date %hu-%02hu-%02hu",
