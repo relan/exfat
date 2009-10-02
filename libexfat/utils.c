@@ -110,6 +110,8 @@ void exfat_stat(const struct exfat_node* node, struct stat *stbuf)
    (excluding the specified year itself) */
 #define LEAP_YEARS(year) ((EXFAT_EPOCH_YEAR + (year) - 1) / 4 \
 		- (EXFAT_EPOCH_YEAR - 1) / 4)
+/* checks whether the specified year is leap */
+#define IS_LEAP_YEAR(year) ((EXFAT_EPOCH_YEAR + (year)) % 4 == 0)
 
 static const time_t days_in_year[] =
 {
