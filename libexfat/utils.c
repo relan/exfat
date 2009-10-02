@@ -182,6 +182,45 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	return unix_time;
 }
 
+void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time)
+{
+	union exfat_date edate;
+	union exfat_time etime;
+	time_t shift = EPOCH_DIFF_SEC + timezone;
+	int days;
+	int i;
+
+	/* time before exFAT epoch cannot be represented */
+	if (unix_time < shift)
+		unix_time = shift;
+
+	unix_time -= shift;
+
+	days = unix_time / SEC_IN_DAY;
+	edate.year = (4 * days) / (4 * 365 + 1);
+	days -= edate.year * 365 + LEAP_YEARS(edate.year);
+	for (i = 1; i <= 12; i++)
+	{
+		int leap_day = (IS_LEAP_YEAR(edate.year) && i == 2);
+		int leap_sub = (IS_LEAP_YEAR(edate.year) && i >= 3);
+
+		if (i == 12 || days - leap_sub < days_in_year[i + 1] + leap_day)
+		{
+			edate.month = i;
+			days -= days_in_year[i] + leap_sub;
+			break;
+		}
+	}
+	edate.day = days + 1;
+
+	etime.hour = (unix_time % SEC_IN_DAY) / SEC_IN_HOUR;
+	etime.min = (unix_time % SEC_IN_HOUR) / SEC_IN_MIN;
+	etime.twosec = (unix_time % SEC_IN_MIN) / 2;
+
+	*date = cpu_to_le16(edate.raw);
+	*time = cpu_to_le16(etime.raw);
+}
+
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
 {
 	if (utf16_to_utf8(buffer, node->name, n, EXFAT_NAME_MAX) != 0)
