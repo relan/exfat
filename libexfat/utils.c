@@ -102,8 +102,10 @@ void exfat_stat(const struct exfat_node* node, struct stat *stbuf)
 #define EXFAT_EPOCH_YEAR 1980
 /* number of years from Unix epoch to exFAT epoch */
 #define EPOCH_DIFF_YEAR (EXFAT_EPOCH_YEAR - UNIX_EPOCH_YEAR)
-/* number of seconds from Unix epoch to exFAT epoch (considering leap years) */
-#define EPOCH_DIFF_SEC ((EPOCH_DIFF_YEAR*365 + EPOCH_DIFF_YEAR/4) * SEC_IN_DAY)
+/* number of days from Unix epoch to exFAT epoch (considering leap days) */
+#define EPOCH_DIFF_DAYS (EPOCH_DIFF_YEAR * 365 + EPOCH_DIFF_YEAR / 4)
+/* number of seconds from Unix epoch to exFAT epoch (considering leap days) */
+#define EPOCH_DIFF_SEC (EPOCH_DIFF_DAYS * SEC_IN_DAY)
 
 static const time_t days_in_year[] =
 {
