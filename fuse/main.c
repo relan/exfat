@@ -70,7 +70,7 @@ static int fuse_exfat_readdir(const char *path, void *buffer,
 	exfat_opendir(&parent, &it);
 	while (exfat_readdir(&ef, &node, &it) == 0)
 	{
-		utf16_to_utf8(name, node.name, EXFAT_NAME_MAX, EXFAT_NAME_MAX);
+		exfat_get_name(&node, name, EXFAT_NAME_MAX);
 		exfat_debug("[fuse_exfat_readdir] %s: %s, %llu bytes, cluster %u",
 				name, IS_CONTIGUOUS(node) ? "contiguous" : "fragmented",
 				node.size, node.start_cluster);
