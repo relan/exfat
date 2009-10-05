@@ -35,7 +35,7 @@ static void set_node(struct fuse_file_info *fi, struct exfat_node* node)
 
 static int fuse_exfat_getattr(const char *path, struct stat *stbuf)
 {
-	struct exfat_node node;
+	struct exfat_node* node;
 	int rc;
 
 	exfat_debug("[fuse_exfat_getattr] %s", path);
@@ -44,14 +44,16 @@ static int fuse_exfat_getattr(const char *path, struct stat *stbuf)
 	if (rc != 0)
 		return rc;
 
-	exfat_stat(&node, stbuf);
+	exfat_stat(node, stbuf);
+	exfat_put_node(node);
 	return 0;
 }
 
 static int fuse_exfat_readdir(const char *path, void *buffer,
 		fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
-	struct exfat_node parent, node;
+	struct exfat_node* parent;
+	struct exfat_node* node;
 	struct exfat_iterator it;
 	int rc;
 	char name[EXFAT_NAME_MAX + 1];
@@ -61,46 +63,47 @@ static int fuse_exfat_readdir(const char *path, void *buffer,
 	rc = exfat_lookup(&ef, &parent, path);
 	if (rc != 0)
 		return rc;
-	if (!(parent.flags & EXFAT_ATTRIB_DIR))
+	if (!(parent->flags & EXFAT_ATTRIB_DIR))
+	{
+		exfat_put_node(parent);
 		return -ENOTDIR;
+	}
 
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
 
-	exfat_opendir(&parent, &it);
-	while (exfat_readdir(&ef, &node, &it) == 0)
+	exfat_opendir(parent, &it);
+	while (exfat_readdir(&ef, parent, &node, &it) == 0)
 	{
-		exfat_get_name(&node, name, EXFAT_NAME_MAX);
+		exfat_get_name(node, name, EXFAT_NAME_MAX);
 		exfat_debug("[fuse_exfat_readdir] %s: %s, %llu bytes, cluster %u",
 				name, IS_CONTIGUOUS(node) ? "contiguous" : "fragmented",
-				node.size, node.start_cluster);
+				node->size, node->start_cluster);
 		filler(buffer, name, NULL, 0);
+		exfat_put_node(node);
 	}
 	exfat_closedir(&it);
+	exfat_put_node(parent);
 	return 0;
 }
 
 static int fuse_exfat_open(const char *path, struct fuse_file_info *fi)
 {
 	struct exfat_node* node;
+	int rc;
 
 	exfat_debug("[fuse_exfat_open] %s", path);
 
-	node = malloc(sizeof(struct exfat_node));
-	if (node == NULL)
-		return -ENOMEM;
-	if (exfat_lookup(&ef, node, path) != 0)
-	{
-		free(node);
-		return -ENOENT;
-	}
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
 	set_node(fi, node);
 	return 0;
 }
 
 static int fuse_exfat_release(const char *path, struct fuse_file_info *fi)
 {
-	free(get_node(fi));
+	exfat_put_node(get_node(fi));
 	return 0;
 }
 

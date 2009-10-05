@@ -12,7 +12,12 @@
 #include <errno.h>
 #include <inttypes.h>
 
-void exfat_opendir(struct exfat_node* node, struct exfat_iterator* it)
+void exfat_put_node(struct exfat_node* node)
+{
+	free(node);
+}
+
+void exfat_opendir(const struct exfat_node* node, struct exfat_iterator* it)
 {
 	if (!(node->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("`%s' is not a directory", node->name);
@@ -35,8 +40,8 @@ void exfat_closedir(struct exfat_iterator* it)
  * Reads one entry in directory at position pointed by iterator and fills
  * node structure.
  */
-int exfat_readdir(struct exfat* ef, struct exfat_node* node,
-		struct exfat_iterator* it)
+int exfat_readdir(struct exfat* ef, const struct exfat_node* parent,
+		struct exfat_node** node, struct exfat_iterator* it)
 {
 	const struct exfat_entry* entry;
 	const struct exfat_file* file;
@@ -47,6 +52,8 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 	const struct exfat_label* label;
 	uint8_t continuations = 0;
 	le16_t* namep = NULL;
+
+	*node = NULL;
 
 	if (it->chunk == NULL)
 	{
@@ -76,7 +83,7 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			{
 				exfat_error("expected %hhu continuations before EOD",
 						continuations);
-				return -EIO;
+				goto error;
 			}
 			return -ENOENT; /* that's OK, means end of directory */
 
@@ -85,14 +92,9 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			{
 				exfat_error("expected %hhu continuations before new entry",
 						continuations);
-				return -EIO;
+				goto error;
 			}
-			memset(node, 0, sizeof(struct exfat_node));
 			file = (const struct exfat_file*) entry;
-			node->flags = le16_to_cpu(file->attrib);
-			node->mtime = exfat_exfat2unix(file->mdate, file->mtime);
-			node->atime = exfat_exfat2unix(file->adate, file->atime);
-			namep = node->name;
 			continuations = file->continuations;
 			/* each file entry must have at least 2 continuations:
 			   info and name */
@@ -101,6 +103,17 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 				exfat_error("too few continuations (%hhu)", continuations);
 				return -EIO;
 			}
+			*node = malloc(sizeof(struct exfat_node));
+			if (*node == NULL)
+			{
+				exfat_error("failed to allocate node");
+				return -ENOMEM;
+			}
+			memset(*node, 0, sizeof(struct exfat_node));
+			(*node)->flags = le16_to_cpu(file->attrib);
+			(*node)->mtime = exfat_exfat2unix(file->mdate, file->mtime);
+			(*node)->atime = exfat_exfat2unix(file->adate, file->atime);
+			namep = (*node)->name;
 			break;
 
 		case EXFAT_ENTRY_FILE_INFO:
@@ -108,13 +121,13 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			{
 				exfat_error("unexpected continuation (%hhu)",
 						continuations);
-				return -EIO;
+				goto error;
 			}
 			file_info = (const struct exfat_file_info*) entry;
-			node->size = le64_to_cpu(file_info->size);
-			node->start_cluster = le32_to_cpu(file_info->start_cluster);
+			(*node)->size = le64_to_cpu(file_info->size);
+			(*node)->start_cluster = le32_to_cpu(file_info->start_cluster);
 			if (file_info->flag == EXFAT_FLAG_CONTIGUOUS)
-				node->flags |= EXFAT_ATTRIB_CONTIGUOUS;
+				(*node)->flags |= EXFAT_ATTRIB_CONTIGUOUS;
 			--continuations;
 			break;
 
@@ -122,7 +135,7 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			if (continuations == 0)
 			{
 				exfat_error("unexpected continuation");
-				return -EIO;
+				goto error;
 			}
 			file_name = (const struct exfat_file_name*) entry;
 			memcpy(namep, file_name->name, EXFAT_ENAME_MAX * sizeof(le16_t));
@@ -191,7 +204,7 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			if (entry->type & EXFAT_ENTRY_VALID)
 			{
 				exfat_error("unknown entry type 0x%hhu", entry->type);
-				return -EIO;
+				goto error;
 			}
 			break;
 		}
@@ -203,13 +216,21 @@ int exfat_readdir(struct exfat* ef, struct exfat_node* node,
 			if (CLUSTER_INVALID(it->cluster))
 			{
 				exfat_error("invalid cluster while reading directory");
-				return -EIO;
+				goto error;
 			}
 			exfat_read_raw(it->chunk, CLUSTER_SIZE(*ef->sb),
 					exfat_c2o(ef, it->cluster), ef->fd);
 		}
 	}
 	/* we never reach here */
+
+error:
+	if (*node != NULL)
+	{
+		free(*node);
+		*node = NULL;
+	}
+	return -EIO;
 }
 
 static int compare_char(struct exfat* ef, uint16_t a, uint16_t b)
@@ -233,8 +254,8 @@ static int compare_name(struct exfat* ef, const le16_t* a, const le16_t* b)
 	return compare_char(ef, le16_to_cpu(*a), le16_to_cpu(*b));
 }
 
-static int lookup_name(struct exfat* ef, struct exfat_node* node,
-		const char* name, size_t n)
+static int lookup_name(struct exfat* ef, const struct exfat_node* parent,
+		struct exfat_node** node, const char* name, size_t n)
 {
 	struct exfat_iterator it;
 	le16_t buffer[EXFAT_NAME_MAX + 1];
@@ -244,14 +265,15 @@ static int lookup_name(struct exfat* ef, struct exfat_node* node,
 	if (rc != 0)
 		return rc;
 
-	exfat_opendir(node, &it);
-	while (exfat_readdir(ef, node, &it) == 0)
+	exfat_opendir(parent, &it);
+	while (exfat_readdir(ef, parent, node, &it) == 0)
 	{
-		if (compare_name(ef, buffer, node->name) == 0)
+		if (compare_name(ef, buffer, (*node)->name) == 0)
 		{
 			exfat_closedir(&it);
 			return 0;
 		}
+		exfat_put_node(*node);
 	}
 	exfat_closedir(&it);
 	return -ENOENT;
@@ -269,27 +291,37 @@ size_t get_comp(const char* path, const char** comp)
 		return end - *comp;
 }
 
-int exfat_lookup(struct exfat* ef, struct exfat_node* node,
+int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path)
 {
+	struct exfat_node* parent;
 	const char* p;
 	size_t n;
 
+	parent = *node = malloc(sizeof(struct exfat_node));
+	if (parent == NULL)
+	{
+		exfat_error("failed to allocate root node");
+		return -ENOMEM;
+	}
+
 	/* start from the root directory */
-	node->flags = EXFAT_ATTRIB_DIR;
-	node->size = ef->rootdir_size;
-	node->start_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
-	node->name[0] = cpu_to_le16('\0');
+	parent->flags = EXFAT_ATTRIB_DIR;
+	parent->size = ef->rootdir_size;
+	parent->start_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
+	parent->name[0] = cpu_to_le16('\0');
 	/* exFAT does not have time attributes for the root directory */
-	node->mtime = 0;
-	node->atime = 0;
+	parent->mtime = 0;
+	parent->atime = 0;
 
 	for (p = path; (n = get_comp(p, &p)); p += n)
 	{
 		if (n == 1 && *p == '.')				/* skip "." component */
 			continue;
-		if (lookup_name(ef, node, p, n) != 0)
+		if (lookup_name(ef, parent, node, p, n) != 0)
 			return -ENOENT;
+		exfat_put_node(parent);
+		parent = *node;
 	}
 	return 0;
 }

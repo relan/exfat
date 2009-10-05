@@ -59,34 +59,37 @@ static void sbck(const struct exfat* ef)
 
 static void dirck(struct exfat* ef, const char* path)
 {
-	struct exfat_node parent, node;
+	struct exfat_node* parent;
+	struct exfat_node* node;
 	struct exfat_iterator it;
 	char subpath[EXFAT_NAME_MAX + 1];
 
 	if (exfat_lookup(ef, &parent, path) != 0)
 		exfat_bug("directory `%s' is not found", path);
-	if (!(parent.flags & EXFAT_ATTRIB_DIR))
-		exfat_bug("`%s' is not a directory (0x%x)", path, parent.flags);
+	if (!(parent->flags & EXFAT_ATTRIB_DIR))
+		exfat_bug("`%s' is not a directory (0x%x)", path, parent->flags);
 
-	exfat_opendir(&parent, &it);
-	while (exfat_readdir(ef, &node, &it) == 0)
+	exfat_opendir(parent, &it);
+	while (exfat_readdir(ef, parent, &node, &it) == 0)
 	{
-		exfat_debug("%s/%s: %s, %llu bytes, cluster %u", path, node.name,
-				IS_CONTIGUOUS(node) ? "contiguous" : "fragmented",
-				node.size, node.start_cluster);
-		if (node.flags & EXFAT_ATTRIB_DIR)
+		exfat_debug("%s/%s: %s, %llu bytes, cluster %u", path, node->name,
+				IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
+				node->size, node->start_cluster);
+		if (node->flags & EXFAT_ATTRIB_DIR)
 		{
 			directories_count++;
 			strcpy(subpath, path);
 			strcat(subpath, "/");
-			exfat_get_name(&node, subpath + strlen(subpath),
+			exfat_get_name(node, subpath + strlen(subpath),
 					EXFAT_NAME_MAX - strlen(subpath));
 			dirck(ef, subpath);
 		}
 		else
 			files_count++;
+		exfat_put_node(node);
 	}
 	exfat_closedir(&it);
+	exfat_put_node(parent);
 }
 
 static void fsck(struct exfat* ef)
