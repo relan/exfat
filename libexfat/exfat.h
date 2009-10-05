@@ -65,11 +65,12 @@ void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
 ssize_t exfat_read(const struct exfat* ef, const struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
 
-void exfat_opendir(struct exfat_node* node, struct exfat_iterator* it);
+void exfat_put_node(struct exfat_node* node);
+void exfat_opendir(const struct exfat_node* node, struct exfat_iterator* it);
 void exfat_closedir(struct exfat_iterator* it);
-int exfat_readdir(struct exfat* ef, struct exfat_node* node,
-		struct exfat_iterator* it);
-int exfat_lookup(struct exfat* ef, struct exfat_node* node,
+int exfat_readdir(struct exfat* ef, const struct exfat_node* parent,
+		struct exfat_node** node, struct exfat_iterator* it);
+int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
 
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster);
