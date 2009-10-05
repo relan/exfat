@@ -72,16 +72,16 @@ static void dirck(struct exfat* ef, const char* path)
 	exfat_opendir(parent, &it);
 	while (exfat_readdir(ef, parent, &node, &it) == 0)
 	{
-		exfat_debug("%s/%s: %s, %llu bytes, cluster %u", path, node->name,
+		strcpy(subpath, path);
+		strcat(subpath, "/");
+		exfat_get_name(node, subpath + strlen(subpath),
+				EXFAT_NAME_MAX - strlen(subpath));
+		exfat_debug("%s: %s, %llu bytes, cluster %u", subpath,
 				IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
 		if (node->flags & EXFAT_ATTRIB_DIR)
 		{
 			directories_count++;
-			strcpy(subpath, path);
-			strcat(subpath, "/");
-			exfat_get_name(node, subpath + strlen(subpath),
-					EXFAT_NAME_MAX - strlen(subpath));
 			dirck(ef, subpath);
 		}
 		else
