@@ -138,6 +138,11 @@ static int fuse_exfat_statfs(const char *path, struct statvfs *sfs)
 	return 0;
 }
 
+void fuse_exfat_destroy(void* unused)
+{
+	exfat_unmount(&ef);
+}
+
 static void usage(const char* prog)
 {
 	fprintf(stderr, "Usage: %s <spec> <mountpoint> [-o options]\n", prog);
@@ -152,6 +157,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.release	= fuse_exfat_release,
 	.read		= fuse_exfat_read,
 	.statfs		= fuse_exfat_statfs,
+	.destroy	= fuse_exfat_destroy,
 };
 
 int main(int argc, char* argv[])
