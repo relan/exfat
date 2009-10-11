@@ -186,49 +186,56 @@ int main(int argc, char* argv[])
 	if (spec == NULL || mount_point == NULL)
 		usage(argv[0]);
 
-	if (exfat_mount(&ef, spec) != 0)
-		goto error_exit;
-
 	/* create arguments for fuse_mount() */
 	if (fuse_opt_add_arg(&mount_args, "exfat") != 0 ||
 		fuse_opt_add_arg(&mount_args, "-o") != 0 ||
 		fuse_opt_add_arg(&mount_args, mount_options) != 0)
-		goto error_exfat_unmount;
+		return 1;
 
 	/* create FUSE mount point */
 	fc = fuse_mount(mount_point, &mount_args);
 	fuse_opt_free_args(&mount_args);
 	if (fc == NULL)
-		goto error_exfat_unmount;
+		return 1;
 
 	/* create arguments for fuse_new() */
 	if (fuse_opt_add_arg(&newfs_args, "") != 0)
-		goto error_fuse_unmount;
+	{
+		fuse_unmount(mount_point, fc);
+		return 1;
+	}
 
 	/* create new FUSE file system */
 	fh = fuse_new(fc, &newfs_args, &fuse_exfat_ops,
 			sizeof(struct fuse_operations), NULL);
 	fuse_opt_free_args(&newfs_args);
 	if (fh == NULL)
-		goto error_fuse_unmount;
+	{
+		fuse_unmount(mount_point, fc);
+		return 1;
+	}
 
 	/* exit session on HUP, TERM and INT signals and ignore PIPE signal */
 	if (fuse_set_signal_handlers(fuse_get_session(fh)))
-		goto error_fuse_destroy;
+	{
+		fuse_unmount(mount_point, fc);
+		fuse_destroy(fh);
+		return 1;
+	}
+
+	if (exfat_mount(&ef, spec) != 0)
+	{
+		fuse_unmount(mount_point, fc);
+		fuse_destroy(fh);
+		return 1;
+	}
 
 	/* FUSE main loop */
 	fuse_loop(fh);
 
-	fuse_destroy(fh);
+	/* it's quite illogical but fuse_unmount() must be called BEFORE
+	   fuse_destroy() */
 	fuse_unmount(mount_point, fc);
+	fuse_destroy(fh);
 	return 0;
-
-error_fuse_destroy:
-	fuse_destroy(fh);
-error_fuse_unmount:
-	fuse_unmount(mount_point, fc);
-error_exfat_unmount:
-	exfat_unmount(&ef);
-error_exit:
-	return 1;
 }
