@@ -279,7 +279,7 @@ static int lookup_name(struct exfat* ef, const struct exfat_node* parent,
 	return -ENOENT;
 }
 
-size_t get_comp(const char* path, const char** comp)
+static size_t get_comp(const char* path, const char** comp)
 {
 	const char* end;
 
