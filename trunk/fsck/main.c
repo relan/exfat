@@ -28,7 +28,8 @@ static void sbck(const struct exfat* ef)
 {
 	const uint32_t block_size = (1 << ef->sb->block_bits); /* in bytes */
 	const uint32_t cluster_size = CLUSTER_SIZE(*ef->sb); /* in bytes */
-	const uint64_t total = le32_to_cpu(ef->sb->cluster_count) * cluster_size;
+	const uint64_t total = (uint64_t) le32_to_cpu(ef->sb->cluster_count) *
+		cluster_size;
 
 #if 0 /* low-level info */
 	printf("First block           %8"PRIu64"\n",
