@@ -84,8 +84,6 @@ cluster_t exfat_next_cluster(const struct exfat* ef, cluster_t cluster,
 cluster_t exfat_advance_cluster(const struct exfat* ef, cluster_t cluster,
 		int contiguous, uint32_t count);
 
-int exfat_mount(struct exfat* ef, const char* spec);
-void exfat_unmount(struct exfat* ef);
 void exfat_stat(const struct exfat_node* node, struct stat *stbuf);
 time_t exfat_exfat2unix(le16_t date, le16_t time);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time);
@@ -100,5 +98,8 @@ struct exfat_node* exfat_get_node(struct exfat_node* node);
 void exfat_put_node(struct exfat_node* node);
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir);
 void exfat_reset_cache(struct exfat* ef);
+
+int exfat_mount(struct exfat* ef, const char* spec);
+void exfat_unmount(struct exfat* ef);
 
 #endif /* ifndef EXFAT_H_INCLUDED */
