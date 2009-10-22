@@ -66,18 +66,25 @@ static int fuse_exfat_readdir(const char *path, void *buffer,
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
 	{
 		exfat_put_node(parent);
+		exfat_error("`%s' is not a directory (0x%x)", path, parent->flags);
 		return -ENOTDIR;
 	}
 
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
 
-	exfat_opendir(parent, &it);
-	while (exfat_readdir(&ef, parent, &node, &it) == 0)
+	rc = exfat_opendir(&ef, parent, &it);
+	if (rc != 0)
+	{
+		exfat_put_node(parent);
+		exfat_error("failed to open directory `%s'", path);
+		return rc;
+	}
+	while ((node = exfat_readdir(&ef, &it)))
 	{
 		exfat_get_name(node, name, EXFAT_NAME_MAX);
 		exfat_debug("[fuse_exfat_readdir] %s: %s, %llu bytes, cluster %u",
-				name, IS_CONTIGUOUS(node) ? "contiguous" : "fragmented",
+				name, IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
 		filler(buffer, name, NULL, 0);
 		exfat_put_node(node);

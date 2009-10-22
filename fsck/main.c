@@ -63,6 +63,7 @@ static void dirck(struct exfat* ef, const char* path)
 	struct exfat_node* parent;
 	struct exfat_node* node;
 	struct exfat_iterator it;
+	int rc;
 	char subpath[EXFAT_NAME_MAX + 1];
 
 	if (exfat_lookup(ef, &parent, path) != 0)
@@ -70,8 +71,14 @@ static void dirck(struct exfat* ef, const char* path)
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("`%s' is not a directory (0x%x)", path, parent->flags);
 
-	exfat_opendir(parent, &it);
-	while (exfat_readdir(ef, parent, &node, &it) == 0)
+	rc = exfat_opendir(ef, parent, &it);
+	if (rc != 0)
+	{
+		exfat_put_node(parent);
+		exfat_error("failed to open directory `%s'", path);
+		return;
+	}
+	while ((node = exfat_readdir(ef, &it)))
 	{
 		strcpy(subpath, path);
 		strcat(subpath, "/");
