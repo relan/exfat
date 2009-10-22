@@ -23,10 +23,25 @@
 
 #define EXFAT_NAME_MAX 256
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000
+#define EXFAT_ATTRIB_CACHED     0x20000
 #define IS_CONTIGUOUS(node) (((node).flags & EXFAT_ATTRIB_CONTIGUOUS) != 0)
 #define BLOCK_SIZE(sb) (1 << (sb).block_bits)
 #define CLUSTER_SIZE(sb) (BLOCK_SIZE(sb) << (sb).bpc_bits)
 #define CLUSTER_INVALID(c) ((c) == EXFAT_CLUSTER_BAD || (c) == EXFAT_CLUSTER_END)
+
+struct exfat_node
+{
+	struct exfat_node* child;
+	struct exfat_node* next;
+	struct exfat_node* prev;
+
+	int references;
+	cluster_t start_cluster;
+	int flags;
+	uint64_t size;
+	time_t mtime, atime;
+	le16_t name[EXFAT_NAME_MAX + 1];
+};
 
 struct exfat
 {
@@ -35,23 +50,14 @@ struct exfat
 	uint64_t rootdir_size;
 	le16_t* upcase;
 	size_t upcase_chars;
+	struct exfat_node* root;
 };
 
-struct exfat_node
-{
-	cluster_t start_cluster;
-	int flags;
-	uint64_t size;
-	time_t mtime, atime;
-	le16_t name[EXFAT_NAME_MAX + 1];
-};
-
+/* in-core nodes iterator */
 struct exfat_iterator
 {
-	cluster_t cluster;
-	off_t offset;
-	int contiguous;
-	char* chunk;
+	struct exfat_node* parent;
+	struct exfat_node* current;
 };
 
 extern int exfat_errors;
@@ -65,11 +71,10 @@ void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
 ssize_t exfat_read(const struct exfat* ef, const struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
 
-void exfat_put_node(struct exfat_node* node);
-void exfat_opendir(const struct exfat_node* node, struct exfat_iterator* it);
+int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
+		struct exfat_iterator* it);
 void exfat_closedir(struct exfat_iterator* it);
-int exfat_readdir(struct exfat* ef, const struct exfat_node* parent,
-		struct exfat_node** node, struct exfat_iterator* it);
+struct exfat_node* exfat_readdir(struct exfat* ef, struct exfat_iterator* it);
 int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
 
@@ -90,5 +95,10 @@ int utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
 		size_t insize);
 int utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
 		size_t insize);
+
+struct exfat_node* exfat_get_node(struct exfat_node* node);
+void exfat_put_node(struct exfat_node* node);
+int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir);
+void exfat_reset_cache(struct exfat* ef);
 
 #endif /* ifndef EXFAT_H_INCLUDED */
