@@ -41,7 +41,7 @@ int exfat_mount(struct exfat* ef, const char* spec)
 		return -ENOMEM;
 	}
 
-	ef->fd = open(spec, O_RDONLY); /* currently read only */
+	ef->fd = open(spec, O_RDWR);
 	if (ef->fd < 0)
 	{
 		free(ef->sb);
