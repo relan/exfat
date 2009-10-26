@@ -60,7 +60,6 @@ int exfat_mount(struct exfat* ef, const char* spec)
 
 	ef->upcase = NULL;
 	ef->upcase_chars = 0;
-	ef->rootdir_size = rootdir_size(ef);
 
 	ef->root = malloc(sizeof(struct exfat_node));
 	if (ef->root == NULL)
@@ -72,9 +71,9 @@ int exfat_mount(struct exfat* ef, const char* spec)
 	}
 	memset(ef->root, 0, sizeof(struct exfat_node));
 	ef->root->flags = EXFAT_ATTRIB_DIR;
-	ef->root->size = ef->rootdir_size;
 	ef->root->start_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
 	ef->root->name[0] = cpu_to_le16('\0');
+	ef->root->size = rootdir_size(ef);
 	/* exFAT does not have time attributes for the root directory */
 	ef->root->mtime = 0;
 	ef->root->atime = 0;
