@@ -25,7 +25,7 @@ static uint64_t rootdir_size(const struct exfat* ef)
 		clusters++;
 		/* root directory cannot be contiguous because there is no flag
 		   to indicate this */
-		rootdir_cluster = exfat_next_cluster(ef, rootdir_cluster, 0);
+		rootdir_cluster = exfat_next_cluster(ef, ef->root, rootdir_cluster);
 	}
 	return clusters * CLUSTER_SIZE(*ef->sb);
 }
