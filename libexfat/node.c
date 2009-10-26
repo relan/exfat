@@ -235,7 +235,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		/* fetch the next cluster if needed */
 		if ((it->offset & (CLUSTER_SIZE(*ef->sb) - 1)) == 0)
 		{
-			it->cluster = exfat_next_cluster(ef, it->cluster, it->contiguous);
+			it->cluster = exfat_next_cluster(ef, parent, it->cluster);
 			if (CLUSTER_INVALID(it->cluster))
 			{
 				exfat_error("invalid cluster while reading directory");

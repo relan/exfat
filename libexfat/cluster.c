@@ -36,13 +36,13 @@ static off_t b2o(const struct exfat* ef, uint32_t block)
 	return (off_t) block << ef->sb->block_bits;
 }
 
-cluster_t exfat_next_cluster(const struct exfat* ef, cluster_t cluster,
-		int contiguous)
+cluster_t exfat_next_cluster(const struct exfat* ef,
+		const struct exfat_node* node, cluster_t cluster)
 {
 	cluster_t next;
 	off_t fat_offset;
 
-	if (contiguous)
+	if (IS_CONTIGUOUS(*node))
 		return cluster + 1;
 	fat_offset = b2o(ef, le32_to_cpu(ef->sb->fat_block_start))
 		+ cluster * sizeof(cluster_t);
@@ -50,14 +50,14 @@ cluster_t exfat_next_cluster(const struct exfat* ef, cluster_t cluster,
 	return next;
 }
 
-cluster_t exfat_advance_cluster(const struct exfat* ef, cluster_t cluster,
-		int contiguous, uint32_t count)
+cluster_t exfat_advance_cluster(const struct exfat* ef,
+		const struct exfat_node* node, cluster_t cluster, uint32_t count)
 {
 	uint32_t i;
 
 	for (i = 0; i < count; i++)
 	{
-		cluster = exfat_next_cluster(ef, cluster, contiguous);
+		cluster = exfat_next_cluster(ef, node, cluster);
 		if (CLUSTER_INVALID(cluster))
 			break;
 	}
