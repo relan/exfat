@@ -78,10 +78,10 @@ int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
 
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster);
-cluster_t exfat_next_cluster(const struct exfat* ef, cluster_t cluster,
-		int contiguous);
-cluster_t exfat_advance_cluster(const struct exfat* ef, cluster_t cluster,
-		int contiguous, uint32_t count);
+cluster_t exfat_next_cluster(const struct exfat* ef,
+		const struct exfat_node* node, cluster_t cluster);
+cluster_t exfat_advance_cluster(const struct exfat* ef,
+		const struct exfat_node* node, cluster_t cluster, uint32_t count);
 
 void exfat_stat(const struct exfat_node* node, struct stat *stbuf);
 time_t exfat_exfat2unix(le16_t date, le16_t time);

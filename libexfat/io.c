@@ -37,8 +37,8 @@ ssize_t exfat_read(const struct exfat* ef, const struct exfat_node* node,
 	if (size == 0)
 		return 0;
 
-	cluster = exfat_advance_cluster(ef, node->start_cluster,
-			IS_CONTIGUOUS(*node), offset / CLUSTER_SIZE(*ef->sb));
+	cluster = exfat_advance_cluster(ef, node, node->start_cluster,
+			offset / CLUSTER_SIZE(*ef->sb));
 	if (CLUSTER_INVALID(cluster))
 	{
 		exfat_error("got invalid cluster");
@@ -54,7 +54,7 @@ ssize_t exfat_read(const struct exfat* ef, const struct exfat_node* node,
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;
-		cluster = exfat_next_cluster(ef, cluster, IS_CONTIGUOUS(*node));
+		cluster = exfat_next_cluster(ef, node, cluster);
 		if (CLUSTER_INVALID(cluster))
 		{
 			exfat_error("got invalid cluster");
