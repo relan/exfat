@@ -50,12 +50,7 @@ static void sbck(const struct exfat* ef)
 	printf("Block size            %8u bytes\n", block_size);
 	printf("Cluster size          %8u bytes\n", cluster_size);
 	printf("Total space           %8"PRIu64" MB\n", bytes2mb(total));
-	printf("Used space            %8"PRIu64" MB (%hhu%%)\n",
-			bytes2mb(total * ef->sb->allocated_percent / 100),
-			ef->sb->allocated_percent);
-	printf("Free space            %8"PRIu64" MB (%hhu%%)\n",
-			bytes2mb(total * (100 - ef->sb->allocated_percent) / 100),
-			100 - ef->sb->allocated_percent);
+	printf("Used space            %8hhu%%\n", ef->sb->allocated_percent);
 }
 
 static void dirck(struct exfat* ef, const char* path)
