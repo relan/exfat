@@ -17,8 +17,6 @@
 	#error You should define _FILE_OFFSET_BITS=64
 #endif
 
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd)
 {
 	if (pread(fd, buffer, size, offset) != size)
