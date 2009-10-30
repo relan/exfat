@@ -29,6 +29,8 @@
 #define CLUSTER_SIZE(sb) (BLOCK_SIZE(sb) << (sb).bpc_bits)
 #define CLUSTER_INVALID(c) ((c) == EXFAT_CLUSTER_BAD || (c) == EXFAT_CLUSTER_END)
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 struct exfat_node
 {
 	struct exfat_node* child;
