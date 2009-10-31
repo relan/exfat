@@ -49,6 +49,22 @@ static int fuse_exfat_getattr(const char *path, struct stat *stbuf)
 	return 0;
 }
 
+static int fuse_exfat_truncate(const char *path, off_t size)
+{
+	struct exfat_node* node;
+	int rc;
+
+	exfat_debug("[fuse_exfat_truncate] %s, %llu", path, size);
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+
+	exfat_truncate(&ef, node, size);
+	exfat_put_node(node);
+	return 0;
+}
+
 static int fuse_exfat_readdir(const char *path, void *buffer,
 		fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi)
 {
@@ -121,6 +137,13 @@ static int fuse_exfat_read(const char *path, char *buffer, size_t size,
 	return exfat_read(&ef, get_node(fi), buffer, size, offset);
 }
 
+static int fuse_exfat_write(const char *path, const char *buffer, size_t size,
+		off_t offset, struct fuse_file_info *fi)
+{
+	exfat_debug("[fuse_exfat_write] %s (%zu bytes)", path, size);
+	return exfat_write(&ef, get_node(fi), buffer, size, offset);
+}
+
 static int fuse_exfat_statfs(const char *path, struct statvfs *sfs)
 {
 	const uint64_t block_count = le64_to_cpu(ef.sb->block_count);
@@ -159,10 +182,12 @@ static void usage(const char* prog)
 static struct fuse_operations fuse_exfat_ops =
 {
 	.getattr	= fuse_exfat_getattr,
+	.truncate	= fuse_exfat_truncate,
 	.readdir	= fuse_exfat_readdir,
 	.open		= fuse_exfat_open,
 	.release	= fuse_exfat_release,
 	.read		= fuse_exfat_read,
+	.write		= fuse_exfat_write,
 	.statfs		= fuse_exfat_statfs,
 	.destroy	= fuse_exfat_destroy,
 };
