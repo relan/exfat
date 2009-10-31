@@ -74,6 +74,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 	const struct exfat_label* label;
 	uint8_t continuations = 0;
 	le16_t* namep = NULL;
+	uint16_t reference_checksum = 0;
+	uint16_t actual_checksum = 0;
 
 	*node = NULL;
 
@@ -125,6 +127,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("too few continuations (%hhu)", continuations);
 				return -EIO;
 			}
+			reference_checksum = le16_to_cpu(file->checksum);
+			actual_checksum = exfat_start_checksum(file);
 			*node = malloc(sizeof(struct exfat_node));
 			if (*node == NULL)
 			{
@@ -147,6 +151,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			file_info = (const struct exfat_file_info*) entry;
+			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 			(*node)->size = le64_to_cpu(file_info->size);
 			(*node)->start_cluster = le32_to_cpu(file_info->start_cluster);
 			if (file_info->flag == EXFAT_FLAG_CONTIGUOUS)
@@ -161,10 +166,20 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			file_name = (const struct exfat_file_name*) entry;
+			actual_checksum = exfat_add_checksum(entry, actual_checksum);
+
 			memcpy(namep, file_name->name, EXFAT_ENAME_MAX * sizeof(le16_t));
 			namep += EXFAT_ENAME_MAX;
 			if (--continuations == 0)
+			{
+				if (actual_checksum != reference_checksum)
+				{
+					exfat_error("invalid checksum (0x%hx != 0x%hx)",
+							actual_checksum, reference_checksum);
+					return -EIO;
+				}
 				return 0; /* entry completed */
+			}
 			break;
 
 		case EXFAT_ENTRY_UPCASE:
