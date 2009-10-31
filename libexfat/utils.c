@@ -160,3 +160,23 @@ void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
 	if (utf16_to_utf8(buffer, node->name, n, EXFAT_NAME_MAX) != 0)
 		exfat_bug("failed to convert name to UTF-8");
 }
+
+uint16_t exfat_start_checksum(const struct exfat_file* entry)
+{
+	uint16_t sum = 0;
+	int i;
+
+	for (i = 0; i < sizeof(struct exfat_entry); i++)
+		if (i != 2 && i != 3) /* skip checksum field itself */
+			sum = ((sum << 15) | (sum >> 1)) + ((const uint8_t*) entry)[i];
+	return sum;
+}
+
+uint16_t exfat_add_checksum(const void* entry, uint16_t sum)
+{
+	int i;
+
+	for (i = 0; i < sizeof(struct exfat_entry); i++)
+		sum = ((sum << 15) | (sum >> 1)) + ((const uint8_t*) entry)[i];
+	return sum;
+}

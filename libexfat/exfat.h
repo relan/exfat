@@ -89,6 +89,8 @@ void exfat_stat(const struct exfat_node* node, struct stat *stbuf);
 time_t exfat_exfat2unix(le16_t date, le16_t time);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time);
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n);
+uint16_t exfat_start_checksum(const struct exfat_file* entry);
+uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 
 int utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
 		size_t insize);
