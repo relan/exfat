@@ -28,6 +28,7 @@ static inline le64_t cpu_to_le64(uint64_t v) { le64_t t = {v}; return t; }
 
 #define EXFAT_FIRST_DATA_CLUSTER 2
 
+#define EXFAT_CLUSTER_FREE         0 /* free cluster */
 #define EXFAT_CLUSTER_BAD 0xfffffff7 /* cluster contains bad block */
 #define EXFAT_CLUSTER_END 0xffffffff /* final cluster of file or directory */
 
@@ -130,7 +131,7 @@ struct exfat_file_info				/* file or directory info */
 	uint8_t flag;					/* fragmented or contiguous */
 	uint8_t __unknown1;
 	uint8_t name_length;
-	le16_t hash;
+	le16_t name_hash;
 	uint8_t __unknown[14];
 	le32_t start_cluster;
 	le64_t size;					/* in bytes */
