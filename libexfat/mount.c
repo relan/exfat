@@ -40,6 +40,7 @@ int exfat_mount(struct exfat* ef, const char* spec)
 		exfat_error("memory allocation failed");
 		return -ENOMEM;
 	}
+	memset(ef->sb, 0, sizeof(struct exfat_super_block));
 
 	ef->fd = open(spec, O_RDWR);
 	if (ef->fd < 0)
@@ -58,12 +59,20 @@ int exfat_mount(struct exfat* ef, const char* spec)
 		return -EIO;
 	}
 
-	ef->upcase = NULL;
-	ef->upcase_chars = 0;
+	ef->zero_block = malloc(BLOCK_SIZE(*ef->sb));
+	if (ef->zero_block == NULL)
+	{
+		close(ef->fd);
+		free(ef->sb);
+		exfat_error("failed to allocate zero block");
+		return -ENOMEM;
+	}
+	memset(ef->zero_block, 0, BLOCK_SIZE(*ef->sb));
 
 	ef->root = malloc(sizeof(struct exfat_node));
 	if (ef->root == NULL)
 	{
+		free(ef->zero_block);
 		close(ef->fd);
 		free(ef->sb);
 		exfat_error("failed to allocate root node");
@@ -88,6 +97,10 @@ void exfat_unmount(struct exfat* ef)
 	exfat_put_node(ef->root);
 	exfat_reset_cache(ef);
 	ef->root = NULL;
+	free(ef->zero_block);
+	ef->zero_block = NULL;
+	free(ef->cmap.chunk);
+	ef->cmap.chunk = NULL;
 	close(ef->fd);
 	ef->fd = 0;
 	free(ef->sb);

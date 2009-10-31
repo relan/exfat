@@ -137,6 +137,9 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			memset(*node, 0, sizeof(struct exfat_node));
 			/* new node has zero reference counter */
+			(*node)->meta1_offset = exfat_c2o(ef, it->cluster) +
+					(it->offset - sizeof(struct exfat_entry)) %
+					CLUSTER_SIZE(*ef->sb);
 			(*node)->flags = le16_to_cpu(file->attrib);
 			(*node)->mtime = exfat_exfat2unix(file->mdate, file->mtime);
 			(*node)->atime = exfat_exfat2unix(file->adate, file->atime);
@@ -152,6 +155,9 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			file_info = (const struct exfat_file_info*) entry;
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
+			(*node)->meta2_offset = exfat_c2o(ef, it->cluster) +
+					(it->offset - sizeof(struct exfat_entry)) %
+					CLUSTER_SIZE(*ef->sb);
 			(*node)->size = le64_to_cpu(file_info->size);
 			(*node)->start_cluster = le32_to_cpu(file_info->start_cluster);
 			if (file_info->flag == EXFAT_FLAG_CONTIGUOUS)
@@ -227,6 +233,20 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						(le32_to_cpu(ef->sb->cluster_count) + 7) / 8);
 				return -EIO;
 			}
+			ef->cmap.start_cluster = le32_to_cpu(bitmap->start_cluster);
+			ef->cmap.size = le32_to_cpu(ef->sb->cluster_count);
+			/* FIXME bitmap can be rather big, up to 512 MB */
+			ef->cmap.chunk_size = ef->cmap.size;
+			ef->cmap.chunk = malloc(le64_to_cpu(bitmap->size));
+			if (ef->cmap.chunk == NULL)
+			{
+				exfat_error("failed to allocate clusters map chunk "
+						"(%"PRIu64" bytes)", le64_to_cpu(bitmap->size));
+				return -ENOMEM;
+			}
+
+			exfat_read_raw(ef->cmap.chunk, le64_to_cpu(bitmap->size),
+					exfat_c2o(ef, ef->cmap.start_cluster), ef->fd);
 			break;
 
 		case EXFAT_ENTRY_LABEL:
@@ -334,4 +354,42 @@ static void reset_cache(struct exfat_node* node)
 void exfat_reset_cache(struct exfat* ef)
 {
 	reset_cache(ef->root);
+}
+
+void exfat_flush_node(struct exfat* ef, const struct exfat_node* node)
+{
+	struct exfat_file meta1;
+	struct exfat_file_info meta2;
+	uint16_t checksum;
+	uint8_t i;
+
+	exfat_read_raw(&meta1, sizeof(meta1), node->meta1_offset, ef->fd);
+	if (meta1.type != EXFAT_ENTRY_FILE)
+		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
+	meta1.attrib = cpu_to_le16(node->flags);
+	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime);
+	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime);
+
+	exfat_read_raw(&meta2, sizeof(meta2), node->meta2_offset, ef->fd);
+	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
+		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
+	meta2.size = cpu_to_le64(node->size);
+	meta2.start_cluster = cpu_to_le32(node->start_cluster);
+	meta2.flag = (IS_CONTIGUOUS(*node) ?
+			EXFAT_FLAG_CONTIGUOUS : EXFAT_FLAG_FRAGMENTED);
+	/* FIXME name hash */
+
+	checksum = exfat_start_checksum(&meta1);
+	checksum = exfat_add_checksum(&meta2, checksum);
+	for (i = 1; i < meta1.continuations; i++)
+	{
+		struct exfat_file_name name = {EXFAT_ENTRY_FILE_NAME, 0};
+		memcpy(name.name, node->name + (i - 1) * EXFAT_ENAME_MAX,
+				EXFAT_ENAME_MAX * sizeof(le16_t));
+		checksum = exfat_add_checksum(&name, checksum);
+	}
+	meta1.checksum = cpu_to_le16(checksum);
+
+	exfat_write_raw(&meta1, sizeof(meta1), node->meta1_offset, ef->fd);
+	exfat_write_raw(&meta2, sizeof(meta2), node->meta2_offset, ef->fd);
 }
