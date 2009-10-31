@@ -38,6 +38,7 @@ struct exfat_node
 	struct exfat_node* prev;
 
 	int references;
+	off_t meta1_offset, meta2_offset;
 	cluster_t start_cluster;
 	int flags;
 	uint64_t size;
@@ -52,6 +53,15 @@ struct exfat
 	le16_t* upcase;
 	size_t upcase_chars;
 	struct exfat_node* root;
+	struct
+	{
+		cluster_t start_cluster;
+		uint32_t size;				/* in bits */
+		uint8_t* chunk;
+		uint32_t chunk_size;		/* in bits */
+	}
+	cmap;
+	void* zero_block;
 };
 
 /* in-core nodes iterator */
@@ -69,8 +79,11 @@ void exfat_warn(const char* format, ...);
 void exfat_debug(const char* format, ...);
 
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
+void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd);
 ssize_t exfat_read(const struct exfat* ef, const struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
+ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
+		const void* buffer, size_t size, off_t offset);
 
 int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_iterator* it);
@@ -84,6 +97,10 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 		const struct exfat_node* node, cluster_t cluster);
 cluster_t exfat_advance_cluster(const struct exfat* ef,
 		const struct exfat_node* node, cluster_t cluster, uint32_t count);
+cluster_t exfat_allocate_cluster(struct exfat* ef, cluster_t previous);
+void exfat_free_cluster(struct exfat* ef, cluster_t cluster,
+		cluster_t previous);
+int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size);
 
 void exfat_stat(const struct exfat_node* node, struct stat *stbuf);
 time_t exfat_exfat2unix(le16_t date, le16_t time);
@@ -101,6 +118,7 @@ struct exfat_node* exfat_get_node(struct exfat_node* node);
 void exfat_put_node(struct exfat_node* node);
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir);
 void exfat_reset_cache(struct exfat* ef);
+void exfat_flush_node(struct exfat* ef, const struct exfat_node* node);
 
 int exfat_mount(struct exfat* ef, const char* spec);
 void exfat_unmount(struct exfat* ef);
