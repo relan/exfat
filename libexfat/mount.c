@@ -33,6 +33,7 @@ static uint64_t rootdir_size(const struct exfat* ef)
 int exfat_mount(struct exfat* ef, const char* spec)
 {
 	tzset();
+	memset(ef, 0, sizeof(struct exfat));
 
 	ef->sb = malloc(sizeof(struct exfat_super_block));
 	if (ef->sb == NULL)
