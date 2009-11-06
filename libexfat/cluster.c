@@ -53,6 +53,9 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 	cluster_t next;
 	off_t fat_offset;
 
+	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
+		exfat_bug("bad cluster 0x%x", cluster);
+
 	if (IS_CONTIGUOUS(*node))
 		return cluster + 1;
 	fat_offset = b2o(ef, le32_to_cpu(ef->sb->fat_block_start))
@@ -91,7 +94,7 @@ static cluster_t find_bit_and_set(uint8_t* bitmap, uint64_t size_in_bits)
 				if (!(bitmap[byte] & (1u << bit)))
 				{
 					bitmap[byte] |= (1u << bit);
-					return byte * 8 + bit;
+					return byte * 8 + bit + EXFAT_FIRST_DATA_CLUSTER;
 				}
 		}
 
@@ -149,7 +152,10 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 	if (CLUSTER_INVALID(cluster))
 		exfat_bug("attempting to free invalid cluster");
 
-	ef->cmap.chunk[cluster / 8] &= ~(1u << cluster % 8);
+	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
+		exfat_bug("bad cluster 0x%x", cluster);
+	ef->cmap.chunk[(cluster - EXFAT_FIRST_DATA_CLUSTER) / 8] &=
+			~(1u << (cluster - EXFAT_FIRST_DATA_CLUSTER) % 8);
 	/* FIXME no need to flush immediately */
 	flush_cmap(ef);
 }
