@@ -11,6 +11,10 @@
 #include <errno.h>
 #include <string.h>
 
+#define BMAP_GET(bitmap, index) ((bitmap)[(index) / 8] & (1u << ((index) % 8)))
+#define BMAP_SET(bitmap, index) (bitmap)[(index) / 8] |= (1u << ((index) % 8))
+#define BMAP_CLR(bitmap, index) (bitmap)[(index) / 8] &= ~(1u << ((index) % 8))
+
 /*
  * Cluster to block.
  */
@@ -78,24 +82,39 @@ cluster_t exfat_advance_cluster(const struct exfat* ef,
 	return cluster;
 }
 
-static cluster_t find_bit_and_set(uint8_t* bitmap, uint64_t size_in_bits)
+static cluster_t find_bit_and_set(uint8_t* bitmap, cluster_t start,
+		cluster_t end)
 {
-	uint32_t byte;
+	const cluster_t mid_start = (start + 7) / 8 * 8;
+	const cluster_t mid_end = end / 8 * 8;
+	cluster_t c;
+	cluster_t byte;
 
-	/* FIXME this is too straightforward algorithm that often produces
-	   fragmentation */
-	for (byte = 0; byte < size_in_bits / 8; byte++)
+	for (c = start; c < mid_start; c++)
+		if (BMAP_GET(bitmap, c) == 0)
+		{
+			BMAP_SET(bitmap, c);
+			return c + EXFAT_FIRST_DATA_CLUSTER;
+		}
+
+	for (byte = mid_start / 8; byte < mid_end / 8; byte++)
 		if (bitmap[byte] != 0xff)
 		{
-			const uint32_t last_bit = MIN(8, size_in_bits - byte * 8);
-			uint32_t bit;
+			cluster_t bit;
 
-			for (bit = 0; bit < last_bit; bit++)
+			for (bit = 0; bit < 8; bit++)
 				if (!(bitmap[byte] & (1u << bit)))
 				{
 					bitmap[byte] |= (1u << bit);
 					return byte * 8 + bit + EXFAT_FIRST_DATA_CLUSTER;
 				}
+		}
+
+	for (c = mid_end; c < end; c++)
+		if (BMAP_GET(bitmap, c) == 0)
+		{
+			BMAP_SET(bitmap, c);
+			return c + EXFAT_FIRST_DATA_CLUSTER;
 		}
 
 	return EXFAT_CLUSTER_END;
@@ -132,7 +151,8 @@ static void erase_cluster(struct exfat* ef, cluster_t cluster)
 
 static cluster_t allocate_cluster(struct exfat* ef)
 {
-	cluster_t cluster = find_bit_and_set(ef->cmap.chunk, ef->cmap.chunk_size);
+	cluster_t cluster = find_bit_and_set(ef->cmap.chunk, 0,
+			ef->cmap.chunk_size);
 
 	if (cluster == EXFAT_CLUSTER_END)
 	{
@@ -154,8 +174,7 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 
 	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
 		exfat_bug("bad cluster 0x%x", cluster);
-	ef->cmap.chunk[(cluster - EXFAT_FIRST_DATA_CLUSTER) / 8] &=
-			~(1u << (cluster - EXFAT_FIRST_DATA_CLUSTER) % 8);
+	BMAP_CLR(ef->cmap.chunk, cluster - EXFAT_FIRST_DATA_CLUSTER);
 	/* FIXME no need to flush immediately */
 	flush_cmap(ef);
 }
@@ -174,7 +193,6 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 {
 	cluster_t previous;
 	cluster_t next;
-
 
 	if (difference == 0)
 		exfat_bug("zero clusters count passed");
