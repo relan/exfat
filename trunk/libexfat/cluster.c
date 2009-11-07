@@ -149,11 +149,17 @@ static void erase_cluster(struct exfat* ef, cluster_t cluster)
 				exfat_c2o(ef, cluster) + i * block_size, ef->fd);
 }
 
-static cluster_t allocate_cluster(struct exfat* ef)
+static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 {
-	cluster_t cluster = find_bit_and_set(ef->cmap.chunk, 0,
-			ef->cmap.chunk_size);
+	cluster_t cluster;
 
+	hint -= EXFAT_FIRST_DATA_CLUSTER;
+	if (hint >= ef->cmap.chunk_size)
+		hint = 0;
+
+	cluster = find_bit_and_set(ef->cmap.chunk, hint, ef->cmap.chunk_size);
+	if (cluster == EXFAT_CLUSTER_END)
+		cluster = find_bit_and_set(ef->cmap.chunk, 0, hint);
 	if (cluster == EXFAT_CLUSTER_END)
 	{
 		exfat_error("no free space left");
@@ -212,7 +218,7 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 	{
 		/* file does not have clusters (i.e. is empty), allocate
 		   the first one for it */
-		previous = allocate_cluster(ef);
+		previous = allocate_cluster(ef, 0);
 		if (CLUSTER_INVALID(previous))
 			return -ENOSPC;
 		node->start_cluster = previous;
@@ -223,7 +229,7 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 
 	while (difference--)
 	{
-		next = allocate_cluster(ef);
+		next = allocate_cluster(ef, previous + 1);
 		if (CLUSTER_INVALID(next))
 			return -ENOSPC;
 		if (next != previous - 1 && IS_CONTIGUOUS(*node))
