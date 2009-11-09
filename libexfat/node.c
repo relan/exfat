@@ -159,6 +159,17 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 					(it->offset - sizeof(struct exfat_entry)) %
 					CLUSTER_SIZE(*ef->sb);
 			(*node)->size = le64_to_cpu(file_info->size);
+			/* directories must be aligned on at cluster boundary */
+			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
+				(*node)->size % CLUSTER_SIZE(*ef->sb) != 0)
+			{
+				char buffer[EXFAT_NAME_MAX + 1];
+
+				exfat_get_name(*node, buffer, EXFAT_NAME_MAX);
+				exfat_error("directory `%s' has invalid size %"PRIu64" bytes",
+						buffer, (*node)->size);
+				goto error;
+			}
 			(*node)->start_cluster = le32_to_cpu(file_info->start_cluster);
 			(*node)->fptr_cluster = (*node)->start_cluster;
 			if (file_info->flag == EXFAT_FLAG_CONTIGUOUS)
