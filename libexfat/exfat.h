@@ -38,6 +38,8 @@ struct exfat_node
 	struct exfat_node* prev;
 
 	int references;
+	uint32_t fptr_index;
+	cluster_t fptr_cluster;
 	off_t meta1_offset, meta2_offset;
 	cluster_t start_cluster;
 	int flags;
@@ -80,7 +82,7 @@ void exfat_debug(const char* format, ...);
 
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
 void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd);
-ssize_t exfat_read(const struct exfat* ef, const struct exfat_node* node,
+ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
 ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
 		const void* buffer, size_t size, off_t offset);
@@ -96,7 +98,7 @@ off_t exfat_c2o(const struct exfat* ef, cluster_t cluster);
 cluster_t exfat_next_cluster(const struct exfat* ef,
 		const struct exfat_node* node, cluster_t cluster);
 cluster_t exfat_advance_cluster(const struct exfat* ef,
-		const struct exfat_node* node, cluster_t cluster, uint32_t count);
+		struct exfat_node* node, uint32_t count);
 cluster_t exfat_allocate_cluster(struct exfat* ef, cluster_t previous);
 void exfat_free_cluster(struct exfat* ef, cluster_t cluster,
 		cluster_t previous);
