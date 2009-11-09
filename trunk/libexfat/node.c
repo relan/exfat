@@ -160,6 +160,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 					CLUSTER_SIZE(*ef->sb);
 			(*node)->size = le64_to_cpu(file_info->size);
 			(*node)->start_cluster = le32_to_cpu(file_info->start_cluster);
+			(*node)->fptr_cluster = (*node)->start_cluster;
 			if (file_info->flag == EXFAT_FLAG_CONTIGUOUS)
 				(*node)->flags |= EXFAT_ATTRIB_CONTIGUOUS;
 			--continuations;
