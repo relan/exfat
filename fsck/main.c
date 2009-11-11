@@ -17,6 +17,8 @@
 
 #define MB (1024 * 1024)
 
+#define BMAP_GET(bitmap, index) ((bitmap)[(index) / 8] & (1u << ((index) % 8)))
+
 uint64_t files_count, directories_count;
 
 static uint64_t bytes2mb(uint64_t bytes)
@@ -51,6 +53,34 @@ static void sbck(const struct exfat* ef)
 	printf("Cluster size          %8u bytes\n", cluster_size);
 	printf("Total space           %8"PRIu64" MB\n", bytes2mb(total));
 	printf("Used space            %8hhu%%\n", ef->sb->allocated_percent);
+}
+
+static void nodeck(struct exfat* ef, struct exfat_node* node)
+{
+	const cluster_t cluster_size = CLUSTER_SIZE(*ef->sb);
+	cluster_t clusters = (node->size + cluster_size - 1) / cluster_size;
+	cluster_t c = node->start_cluster;
+	
+	while (clusters--)
+	{
+		if (CLUSTER_INVALID(c))
+		{
+			char name[EXFAT_NAME_MAX + 1];
+
+			exfat_get_name(node, name, EXFAT_NAME_MAX);
+			exfat_error("file `%s' has invalid cluster", name);
+			return;
+		}
+		if (BMAP_GET(ef->cmap.chunk, c - EXFAT_FIRST_DATA_CLUSTER) == 0)
+		{
+			char name[EXFAT_NAME_MAX + 1];
+
+			exfat_get_name(node, name, EXFAT_NAME_MAX);
+			exfat_error("cluster 0x%x of file `%s' already allocated "
+					"to another file", c, name);
+		}
+		c = exfat_next_cluster(ef, node, c);
+	}
 }
 
 static void dirck(struct exfat* ef, const char* path)
@@ -89,6 +119,7 @@ static void dirck(struct exfat* ef, const char* path)
 		}
 		else
 			files_count++;
+		nodeck(ef, node);
 		exfat_put_node(node);
 	}
 	exfat_closedir(&it);
