@@ -38,8 +38,13 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 		exfat_bug("reference counter of `%s' is below zero", buffer);
 	}
 
-	if (node->references == 0 && node->flags & EXFAT_ATTRIB_DIRTY)
-		exfat_flush_node(ef, node);
+	if (node->references == 0)
+	{
+		if (node->flags & EXFAT_ATTRIB_DIRTY)
+			exfat_flush_node(ef, node);
+		if (ef->cmap.dirty)
+			exfat_flush_cmap(ef);
+	}
 }
 
 static void opendir(const struct exfat_node* dir, struct iterator* it)
