@@ -89,7 +89,7 @@ ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
 
 int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_iterator* it);
-void exfat_closedir(struct exfat_iterator* it);
+void exfat_closedir(struct exfat* ef, struct exfat_iterator* it);
 struct exfat_node* exfat_readdir(struct exfat* ef, struct exfat_iterator* it);
 int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
@@ -117,10 +117,10 @@ int utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
 		size_t insize);
 
 struct exfat_node* exfat_get_node(struct exfat_node* node);
-void exfat_put_node(struct exfat_node* node);
+void exfat_put_node(struct exfat* ef, struct exfat_node* node);
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir);
 void exfat_reset_cache(struct exfat* ef);
-void exfat_flush_node(struct exfat* ef, const struct exfat_node* node);
+void exfat_flush_node(struct exfat* ef, struct exfat_node* node);
 
 int exfat_mount(struct exfat* ef, const char* spec);
 void exfat_unmount(struct exfat* ef);

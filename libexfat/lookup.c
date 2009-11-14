@@ -22,13 +22,13 @@ int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
 	it->current = NULL;
 	rc = exfat_cache_directory(ef, dir);
 	if (rc != 0)
-		exfat_put_node(dir);
+		exfat_put_node(ef, dir);
 	return rc;
 }
 
-void exfat_closedir(struct exfat_iterator* it)
+void exfat_closedir(struct exfat* ef, struct exfat_iterator* it)
 {
-	exfat_put_node(it->parent);
+	exfat_put_node(ef, it->parent);
 	it->parent = NULL;
 	it->current = NULL;
 }
@@ -85,12 +85,12 @@ static int lookup_name(struct exfat* ef, struct exfat_node* parent,
 	{
 		if (compare_name(ef, buffer, (*node)->name) == 0)
 		{
-			exfat_closedir(&it);
+			exfat_closedir(ef, &it);
 			return 0;
 		}
-		exfat_put_node(*node);
+		exfat_put_node(ef, *node);
 	}
-	exfat_closedir(&it);
+	exfat_closedir(ef, &it);
 	return -ENOENT;
 }
 
@@ -121,10 +121,10 @@ int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 			continue;
 		if (lookup_name(ef, parent, node, p, n) != 0)
 		{
-			exfat_put_node(parent);
+			exfat_put_node(ef, parent);
 			return -ENOENT;
 		}
-		exfat_put_node(parent);
+		exfat_put_node(ef, parent);
 		parent = *node;
 	}
 	return 0;

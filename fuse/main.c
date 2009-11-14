@@ -45,7 +45,7 @@ static int fuse_exfat_getattr(const char *path, struct stat *stbuf)
 		return rc;
 
 	exfat_stat(node, stbuf);
-	exfat_put_node(node);
+	exfat_put_node(&ef, node);
 	return 0;
 }
 
@@ -61,7 +61,7 @@ static int fuse_exfat_truncate(const char *path, off_t size)
 		return rc;
 
 	exfat_truncate(&ef, node, size);
-	exfat_put_node(node);
+	exfat_put_node(&ef, node);
 	return 0;
 }
 
@@ -81,7 +81,7 @@ static int fuse_exfat_readdir(const char *path, void *buffer,
 		return rc;
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
 	{
-		exfat_put_node(parent);
+		exfat_put_node(&ef, parent);
 		exfat_error("`%s' is not a directory (0x%x)", path, parent->flags);
 		return -ENOTDIR;
 	}
@@ -92,7 +92,7 @@ static int fuse_exfat_readdir(const char *path, void *buffer,
 	rc = exfat_opendir(&ef, parent, &it);
 	if (rc != 0)
 	{
-		exfat_put_node(parent);
+		exfat_put_node(&ef, parent);
 		exfat_error("failed to open directory `%s'", path);
 		return rc;
 	}
@@ -103,10 +103,10 @@ static int fuse_exfat_readdir(const char *path, void *buffer,
 				name, IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
 		filler(buffer, name, NULL, 0);
-		exfat_put_node(node);
+		exfat_put_node(&ef, node);
 	}
-	exfat_closedir(&it);
-	exfat_put_node(parent);
+	exfat_closedir(&ef, &it);
+	exfat_put_node(&ef, parent);
 	return 0;
 }
 
@@ -126,7 +126,7 @@ static int fuse_exfat_open(const char *path, struct fuse_file_info *fi)
 
 static int fuse_exfat_release(const char *path, struct fuse_file_info *fi)
 {
-	exfat_put_node(get_node(fi));
+	exfat_put_node(&ef, get_node(fi));
 	return 0;
 }
 
