@@ -96,7 +96,7 @@ int exfat_mount(struct exfat* ef, const char* spec)
 
 void exfat_unmount(struct exfat* ef)
 {
-	exfat_put_node(ef->root);
+	exfat_put_node(ef, ef->root);
 	exfat_reset_cache(ef);
 	ef->root = NULL;
 	free(ef->zero_block);

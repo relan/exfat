@@ -29,7 +29,7 @@ struct exfat_node* exfat_get_node(struct exfat_node* node)
 	return node;
 }
 
-void exfat_put_node(struct exfat_node* node)
+void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 {
 	if (--node->references < 0)
 	{
@@ -340,14 +340,14 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 	return 0;
 }
 
-static void reset_cache(struct exfat_node* node)
+static void reset_cache(struct exfat* ef, struct exfat_node* node)
 {
 	struct exfat_node* child;
 	struct exfat_node* next;
 
 	for (child = node->child; child; child = next)
 	{
-		reset_cache(child);
+		reset_cache(ef, child);
 		next = child->next;
 		free(child);
 	}
@@ -364,10 +364,10 @@ static void reset_cache(struct exfat_node* node)
 
 void exfat_reset_cache(struct exfat* ef)
 {
-	reset_cache(ef->root);
+	reset_cache(ef, ef->root);
 }
 
-void exfat_flush_node(struct exfat* ef, const struct exfat_node* node)
+void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 {
 	struct exfat_file meta1;
 	struct exfat_file_info meta2;
