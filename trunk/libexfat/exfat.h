@@ -101,9 +101,6 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 		const struct exfat_node* node, cluster_t cluster);
 cluster_t exfat_advance_cluster(const struct exfat* ef,
 		struct exfat_node* node, uint32_t count);
-cluster_t exfat_allocate_cluster(struct exfat* ef, cluster_t previous);
-void exfat_free_cluster(struct exfat* ef, cluster_t cluster,
-		cluster_t previous);
 void exfat_flush_cmap(struct exfat* ef);
 int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size);
 
