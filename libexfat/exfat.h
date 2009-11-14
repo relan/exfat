@@ -62,6 +62,7 @@ struct exfat
 		uint32_t size;				/* in bits */
 		uint8_t* chunk;
 		uint32_t chunk_size;		/* in bits */
+		int dirty;
 	}
 	cmap;
 	void* zero_block;
@@ -103,6 +104,7 @@ cluster_t exfat_advance_cluster(const struct exfat* ef,
 cluster_t exfat_allocate_cluster(struct exfat* ef, cluster_t previous);
 void exfat_free_cluster(struct exfat* ef, cluster_t cluster,
 		cluster_t previous);
+void exfat_flush_cmap(struct exfat* ef);
 int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size);
 
 void exfat_stat(const struct exfat_node* node, struct stat *stbuf);
