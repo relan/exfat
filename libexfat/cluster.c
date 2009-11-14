@@ -325,8 +325,7 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	if (node->size != size)
 	{
 		node->size = size;
-		/* FIXME no need to flush immediately */
-		exfat_flush_node(ef, node);
+		node->flags |= EXFAT_ATTRIB_DIRTY;
 	}
 	return 0;
 }

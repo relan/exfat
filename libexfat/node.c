@@ -37,6 +37,9 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 		exfat_get_name(node, buffer, EXFAT_NAME_MAX);
 		exfat_bug("reference counter of `%s' is below zero", buffer);
 	}
+
+	if (node->references == 0 && node->flags & EXFAT_ATTRIB_DIRTY)
+		exfat_flush_node(ef, node);
 }
 
 static void opendir(const struct exfat_node* dir, struct iterator* it)
@@ -358,6 +361,8 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 		exfat_warn("non-zero reference counter (%d) for `%s'",
 				node->references, buffer);
 	}
+	while (node->references--)
+		exfat_put_node(ef, node);
 	node->child = NULL;
 	node->flags &= ~EXFAT_ATTRIB_CACHED;
 }
@@ -403,4 +408,6 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 
 	exfat_write_raw(&meta1, sizeof(meta1), node->meta1_offset, ef->fd);
 	exfat_write_raw(&meta2, sizeof(meta2), node->meta2_offset, ef->fd);
+
+	node->flags &= ~EXFAT_ATTRIB_DIRTY;
 }
