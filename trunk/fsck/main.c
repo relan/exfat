@@ -99,7 +99,7 @@ static void dirck(struct exfat* ef, const char* path)
 	rc = exfat_opendir(ef, parent, &it);
 	if (rc != 0)
 	{
-		exfat_put_node(parent);
+		exfat_put_node(ef, parent);
 		exfat_error("failed to open directory `%s'", path);
 		return;
 	}
@@ -120,10 +120,10 @@ static void dirck(struct exfat* ef, const char* path)
 		else
 			files_count++;
 		nodeck(ef, node);
-		exfat_put_node(node);
+		exfat_put_node(ef, node);
 	}
-	exfat_closedir(&it);
-	exfat_put_node(parent);
+	exfat_closedir(ef, &it);
+	exfat_put_node(ef, parent);
 }
 
 static void fsck(struct exfat* ef)
