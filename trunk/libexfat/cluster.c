@@ -127,10 +127,11 @@ static cluster_t find_bit_and_set(uint8_t* bitmap, cluster_t start,
 	return EXFAT_CLUSTER_END;
 }
 
-static void flush_cmap(struct exfat* ef)
+void exfat_flush_cmap(struct exfat* ef)
 {
 	exfat_write_raw(ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
 			exfat_c2o(ef, ef->cmap.start_cluster), ef->fd);
+	ef->cmap.dirty = 0;
 }
 
 static void set_next_cluster(const struct exfat* ef, int contiguous,
@@ -174,8 +175,7 @@ static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 	}
 
 	erase_cluster(ef, cluster);
-	/* FIXME no need to flush immediately */
-	flush_cmap(ef);
+	ef->cmap.dirty = 1;
 	/* FIXME update percentage of used space */
 	return cluster;
 }
@@ -188,8 +188,8 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
 		exfat_bug("bad cluster 0x%x", cluster);
 	BMAP_CLR(ef->cmap.chunk, cluster - EXFAT_FIRST_DATA_CLUSTER);
-	/* FIXME no need to flush immediately */
-	flush_cmap(ef);
+	ef->cmap.dirty = 1;
+	/* FIXME update percentage of used space */
 }
 
 static void make_noncontiguous(const struct exfat* ef, cluster_t first,
