@@ -24,6 +24,7 @@
 #define EXFAT_NAME_MAX 256
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000
 #define EXFAT_ATTRIB_CACHED     0x20000
+#define EXFAT_ATTRIB_DIRTY      0x40000
 #define IS_CONTIGUOUS(node) (((node).flags & EXFAT_ATTRIB_CONTIGUOUS) != 0)
 #define BLOCK_SIZE(sb) (1 << (sb).block_bits)
 #define CLUSTER_SIZE(sb) (BLOCK_SIZE(sb) << (sb).bpc_bits)

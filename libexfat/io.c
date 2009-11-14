@@ -103,7 +103,6 @@ ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
 		cluster = exfat_next_cluster(ef, node, cluster);
 	}
 	/* FIXME update modification time */
-	/* FIXME no need to flush immediately */
-	exfat_flush_node(ef, node);
+	node->flags |= EXFAT_ATTRIB_DIRTY;
 	return size - remainder;
 }
