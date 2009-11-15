@@ -199,6 +199,7 @@ int main(int argc, char* argv[])
 	const char* spec = NULL;
 	const char* mount_point = NULL;
 	const char* mount_options = "";
+	int debug = 0;
 	struct fuse_chan* fc = NULL;
 	struct fuse* fh = NULL;
 	char** pp;
@@ -214,6 +215,8 @@ int main(int argc, char* argv[])
 				usage(argv[0]);
 			mount_options = *pp;
 		}
+		else if (strcmp(*pp, "-d") == 0)
+			debug = 1;
 		else if (spec == NULL)
 			spec = *pp;
 		else if (mount_point == NULL)
@@ -237,7 +240,8 @@ int main(int argc, char* argv[])
 		return 1;
 
 	/* create arguments for fuse_new() */
-	if (fuse_opt_add_arg(&newfs_args, "") != 0)
+	if (fuse_opt_add_arg(&newfs_args, "") != 0 ||
+		(debug && fuse_opt_add_arg(&newfs_args, "-d") != 0))
 	{
 		fuse_unmount(mount_point, fc);
 		return 1;
