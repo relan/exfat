@@ -66,6 +66,26 @@ static void closedir(struct iterator* it)
 	it->chunk = NULL;
 }
 
+static int nextent(struct exfat* ef, const struct exfat_node* parent,
+		struct iterator* it)
+{
+	/* move iterator to the next entry in the directory */
+	it->offset += sizeof(struct exfat_entry);
+	/* fetch the next cluster if needed */
+	if ((it->offset & (CLUSTER_SIZE(*ef->sb) - 1)) == 0)
+	{
+		it->cluster = exfat_next_cluster(ef, parent, it->cluster);
+		if (CLUSTER_INVALID(it->cluster))
+		{
+			exfat_error("invalid cluster while reading directory");
+			return 1;
+		}
+		exfat_read_raw(it->chunk, CLUSTER_SIZE(*ef->sb),
+				exfat_c2o(ef, it->cluster), ef->fd);
+	}
+	return 0;
+}
+
 /*
  * Reads one entry in directory at position pointed by iterator and fills
  * node structure.
@@ -105,8 +125,6 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		   must contain EOD entry */
 		entry = (const struct exfat_entry*)
 				(it->chunk + it->offset % CLUSTER_SIZE(*ef->sb));
-		/* move iterator to the next entry in the directory */
-		it->offset += sizeof(struct exfat_entry);
 
 		switch (entry->type)
 		{
@@ -146,8 +164,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			memset(*node, 0, sizeof(struct exfat_node));
 			/* new node has zero reference counter */
 			(*node)->meta1_offset = exfat_c2o(ef, it->cluster) +
-					(it->offset - sizeof(struct exfat_entry)) %
-					CLUSTER_SIZE(*ef->sb);
+					it->offset % CLUSTER_SIZE(*ef->sb);
 			(*node)->flags = le16_to_cpu(file->attrib);
 			(*node)->mtime = exfat_exfat2unix(file->mdate, file->mtime);
 			(*node)->atime = exfat_exfat2unix(file->adate, file->atime);
@@ -164,8 +181,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			file_info = (const struct exfat_file_info*) entry;
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 			(*node)->meta2_offset = exfat_c2o(ef, it->cluster) +
-					(it->offset - sizeof(struct exfat_entry)) %
-					CLUSTER_SIZE(*ef->sb);
+					it->offset % CLUSTER_SIZE(*ef->sb);
 			(*node)->size = le64_to_cpu(file_info->size);
 			/* directories must be aligned on at cluster boundary */
 			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
@@ -204,6 +220,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 							actual_checksum, reference_checksum);
 					return -EIO;
 				}
+				if (nextent(ef, parent, it) != 0)
+					goto error;
 				return 0; /* entry completed */
 			}
 			break;
@@ -286,18 +304,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 		}
 
-		/* fetch the next cluster if needed */
-		if ((it->offset & (CLUSTER_SIZE(*ef->sb) - 1)) == 0)
-		{
-			it->cluster = exfat_next_cluster(ef, parent, it->cluster);
-			if (CLUSTER_INVALID(it->cluster))
-			{
-				exfat_error("invalid cluster while reading directory");
-				goto error;
-			}
-			exfat_read_raw(it->chunk, CLUSTER_SIZE(*ef->sb),
-					exfat_c2o(ef, it->cluster), ef->fd);
-		}
+		if (nextent(ef, parent, it) != 0)
+			goto error;
 	}
 	/* we never reach here */
 
