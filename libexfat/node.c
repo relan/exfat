@@ -163,8 +163,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			memset(*node, 0, sizeof(struct exfat_node));
 			/* new node has zero reference counter */
-			(*node)->meta1_offset = exfat_c2o(ef, it->cluster) +
-					it->offset % CLUSTER_SIZE(*ef->sb);
+			(*node)->entry_cluster = it->cluster;
+			(*node)->entry_offset = it->offset % CLUSTER_SIZE(*ef->sb);
 			(*node)->flags = le16_to_cpu(file->attrib);
 			(*node)->mtime = exfat_exfat2unix(file->mdate, file->mtime);
 			(*node)->atime = exfat_exfat2unix(file->adate, file->atime);
@@ -180,8 +180,6 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			file_info = (const struct exfat_file_info*) entry;
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
-			(*node)->meta2_offset = exfat_c2o(ef, it->cluster) +
-					it->offset % CLUSTER_SIZE(*ef->sb);
 			(*node)->size = le64_to_cpu(file_info->size);
 			/* directories must be aligned on at cluster boundary */
 			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
@@ -387,19 +385,29 @@ void exfat_reset_cache(struct exfat* ef)
 
 void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 {
+	off_t meta1_offset, meta2_offset;
 	struct exfat_file meta1;
 	struct exfat_file_info meta2;
 	uint16_t checksum;
 	uint8_t i;
 
-	exfat_read_raw(&meta1, sizeof(meta1), node->meta1_offset, ef->fd);
+	meta1_offset = exfat_c2o(ef, node->entry_cluster) + node->entry_offset;
+	if (node->entry_offset + sizeof(struct exfat_entry)
+			== CLUSTER_SIZE(*ef->sb))
+		/* next cluster cannot be invalid */
+		meta2_offset = exfat_c2o(ef,
+				exfat_next_cluster(ef, node, node->entry_cluster));
+	else
+		meta2_offset = meta1_offset + sizeof(struct exfat_entry);
+
+	exfat_read_raw(&meta1, sizeof(meta1), meta1_offset, ef->fd);
 	if (meta1.type != EXFAT_ENTRY_FILE)
 		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
 	meta1.attrib = cpu_to_le16(node->flags);
 	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime);
 	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime);
 
-	exfat_read_raw(&meta2, sizeof(meta2), node->meta2_offset, ef->fd);
+	exfat_read_raw(&meta2, sizeof(meta2), meta2_offset, ef->fd);
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
 	meta2.size = cpu_to_le64(node->size);
@@ -419,8 +427,8 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	}
 	meta1.checksum = cpu_to_le16(checksum);
 
-	exfat_write_raw(&meta1, sizeof(meta1), node->meta1_offset, ef->fd);
-	exfat_write_raw(&meta2, sizeof(meta2), node->meta2_offset, ef->fd);
+	exfat_write_raw(&meta1, sizeof(meta1), meta1_offset, ef->fd);
+	exfat_write_raw(&meta2, sizeof(meta2), meta2_offset, ef->fd);
 
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
 }
