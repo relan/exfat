@@ -144,6 +144,38 @@ static int fuse_exfat_write(const char *path, const char *buffer, size_t size,
 	return exfat_write(&ef, get_node(fi), buffer, size, offset);
 }
 
+int fuse_exfat_unlink(const char *path)
+{
+	struct exfat_node* node;
+	int rc;
+
+	exfat_debug("[fuse_exfat_unlink] %s", path);
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+
+	rc = exfat_unlink(&ef, node);
+	exfat_put_node(&ef, node);
+	return rc;
+}
+
+int fuse_exfat_rmdir(const char *path)
+{
+	struct exfat_node* node;
+	int rc;
+
+	exfat_debug("[fuse_exfat_rmdir] %s", path);
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+
+	rc = exfat_rmdir(&ef, node);
+	exfat_put_node(&ef, node);
+	return rc;
+}
+
 static int fuse_exfat_statfs(const char *path, struct statvfs *sfs)
 {
 	const uint64_t block_count = le64_to_cpu(ef.sb->block_count);
@@ -188,6 +220,8 @@ static struct fuse_operations fuse_exfat_ops =
 	.release	= fuse_exfat_release,
 	.read		= fuse_exfat_read,
 	.write		= fuse_exfat_write,
+	.unlink		= fuse_exfat_unlink,
+	.rmdir		= fuse_exfat_rmdir,
 	.statfs		= fuse_exfat_statfs,
 	.destroy	= fuse_exfat_destroy,
 };
