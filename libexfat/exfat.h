@@ -25,6 +25,7 @@
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000
 #define EXFAT_ATTRIB_CACHED     0x20000
 #define EXFAT_ATTRIB_DIRTY      0x40000
+#define EXFAT_ATTRIB_UNLINKED   0x80000
 #define IS_CONTIGUOUS(node) (((node).flags & EXFAT_ATTRIB_CONTIGUOUS) != 0)
 #define BLOCK_SIZE(sb) (1 << (sb).block_bits)
 #define CLUSTER_SIZE(sb) (BLOCK_SIZE(sb) << (sb).bpc_bits)
@@ -124,6 +125,8 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node);
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir);
 void exfat_reset_cache(struct exfat* ef);
 void exfat_flush_node(struct exfat* ef, struct exfat_node* node);
+int exfat_unlink(struct exfat* ef, struct exfat_node* node);
+int exfat_rmdir(struct exfat* ef, struct exfat_node* node);
 
 int exfat_mount(struct exfat* ef, const char* spec);
 void exfat_unmount(struct exfat* ef);
