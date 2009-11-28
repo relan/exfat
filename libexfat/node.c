@@ -384,22 +384,38 @@ void exfat_reset_cache(struct exfat* ef)
 	reset_cache(ef, ef->root);
 }
 
+void next_entry(struct exfat* ef, const struct exfat_node* parent,
+		cluster_t* cluster, off_t* offset)
+{
+	if (*offset + sizeof(struct exfat_entry) == CLUSTER_SIZE(*ef->sb))
+	{
+		/* next cluster cannot be invalid */
+		*cluster = exfat_next_cluster(ef, parent, *cluster);
+		*offset = 0;
+	}
+	else
+		*offset += sizeof(struct exfat_entry);
+
+}
+
 void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 {
+	cluster_t cluster;
+	off_t offset;
 	off_t meta1_offset, meta2_offset;
 	struct exfat_file meta1;
 	struct exfat_file_info meta2;
 	uint16_t checksum;
 	uint8_t i;
 
-	meta1_offset = exfat_c2o(ef, node->entry_cluster) + node->entry_offset;
-	if (node->entry_offset + sizeof(struct exfat_entry)
-			== CLUSTER_SIZE(*ef->sb))
-		/* next cluster cannot be invalid */
-		meta2_offset = exfat_c2o(ef,
-				exfat_next_cluster(ef, node, node->entry_cluster));
-	else
-		meta2_offset = meta1_offset + sizeof(struct exfat_entry);
+	if (node->parent == NULL)
+		return; /* do not flush unlinked node */
+ 
+	cluster = node->entry_cluster;
+	offset = node->entry_offset;
+	meta1_offset = exfat_c2o(ef, cluster) + offset;
+	next_entry(ef, node->parent, &cluster, &offset);
+	meta2_offset = exfat_c2o(ef, cluster) + offset;
 
 	exfat_read_raw(&meta1, sizeof(meta1), meta1_offset, ef->fd);
 	if (meta1.type != EXFAT_ENTRY_FILE)
