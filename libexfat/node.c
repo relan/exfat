@@ -66,7 +66,7 @@ static void closedir(struct iterator* it)
 	it->chunk = NULL;
 }
 
-static int nextent(struct exfat* ef, const struct exfat_node* parent,
+static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 		struct iterator* it)
 {
 	/* move iterator to the next entry in the directory */
@@ -218,7 +218,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 							actual_checksum, reference_checksum);
 					return -EIO;
 				}
-				if (nextent(ef, parent, it) != 0)
+				if (fetch_next_entry(ef, parent, it) != 0)
 					goto error;
 				return 0; /* entry completed */
 			}
@@ -302,7 +302,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 		}
 
-		if (nextent(ef, parent, it) != 0)
+		if (fetch_next_entry(ef, parent, it) != 0)
 			goto error;
 	}
 	/* we never reach here */
