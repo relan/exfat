@@ -34,6 +34,7 @@
 
 struct exfat_node
 {
+	struct exfat_node* parent;
 	struct exfat_node* child;
 	struct exfat_node* next;
 	struct exfat_node* prev;
