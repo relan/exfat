@@ -117,6 +117,7 @@ int utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
 		size_t insize);
 int utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
 		size_t insize);
+size_t utf16_length(const le16_t* str);
 
 struct exfat_node* exfat_get_node(struct exfat_node* node);
 void exfat_put_node(struct exfat* ef, struct exfat_node* node);
