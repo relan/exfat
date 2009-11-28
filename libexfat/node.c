@@ -326,6 +326,7 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 	opendir(dir, &it);
 	while ((rc = readdir(ef, dir, &node, &it)) == 0)
 	{
+		node->parent = dir;
 		if (current != NULL)
 		{
 			current->next = node;
