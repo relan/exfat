@@ -98,6 +98,7 @@ void exfat_unmount(struct exfat* ef)
 {
 	exfat_put_node(ef, ef->root);
 	exfat_reset_cache(ef);
+	free(ef->root);
 	ef->root = NULL;
 	free(ef->zero_block);
 	ef->zero_block = NULL;
