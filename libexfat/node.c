@@ -12,6 +12,8 @@
 #include <string.h>
 #include <inttypes.h>
 
+#define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
+
 /* on-disk nodes iterator */
 struct iterator
 {
@@ -42,6 +44,12 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 	{
 		if (node->flags & EXFAT_ATTRIB_DIRTY)
 			exfat_flush_node(ef, node);
+		if (node->flags & EXFAT_ATTRIB_UNLINKED)
+		{
+			/* free all clusters and node structure itself */
+			exfat_truncate(ef, node, 0);
+			free(node);
+		}
 		if (ef->cmap.dirty)
 			exfat_flush_cmap(ef);
 	}
@@ -410,7 +418,7 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 
 	if (node->parent == NULL)
 		return; /* do not flush unlinked node */
- 
+
 	cluster = node->entry_cluster;
 	offset = node->entry_offset;
 	meta1_offset = exfat_c2o(ef, cluster) + offset;
@@ -448,4 +456,63 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	exfat_write_raw(&meta2, sizeof(meta2), meta2_offset, ef->fd);
 
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
+}
+
+static void erase_entry(struct exfat* ef, struct exfat_node* node)
+{
+	cluster_t cluster = node->entry_cluster;
+	off_t offset = node->entry_offset;
+	int name_entries = DIV_ROUND_UP(utf16_length(node->name), EXFAT_ENAME_MAX);
+	uint8_t entry_type;
+
+	entry_type = EXFAT_ENTRY_FILE & ~EXFAT_ENTRY_VALID;
+	exfat_write_raw(&entry_type, 1, exfat_c2o(ef, cluster) + offset, ef->fd);
+
+	next_entry(ef, node->parent, &cluster, &offset);
+	entry_type = EXFAT_ENTRY_FILE_INFO & ~EXFAT_ENTRY_VALID;
+	exfat_write_raw(&entry_type, 1, exfat_c2o(ef, cluster) + offset, ef->fd);
+
+	while (name_entries--)
+	{
+		next_entry(ef, node->parent, &cluster, &offset);
+		entry_type = EXFAT_ENTRY_FILE_NAME & ~EXFAT_ENTRY_VALID;
+		exfat_write_raw(&entry_type, 1, exfat_c2o(ef, cluster) + offset,
+				ef->fd);
+	}
+}
+
+static void delete(struct exfat* ef, struct exfat_node* node)
+{
+	erase_entry(ef, node);
+	if (node->prev)
+		node->prev->next = node->next;
+	else /* this is the first node in the list */
+		node->parent->child = node->next;
+	if (node->next)
+		node->next->prev = node->prev;
+	node->parent = NULL;
+	node->prev = NULL;
+	node->next = NULL;
+	/* file clusters will be freed when node reference counter becomes 0 */
+	node->flags |= EXFAT_ATTRIB_UNLINKED;
+}
+
+int exfat_unlink(struct exfat* ef, struct exfat_node* node)
+{
+	if (node->flags & EXFAT_ATTRIB_DIR)
+		return -EISDIR;
+	delete(ef, node);
+	return 0;
+}
+
+int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
+{
+	if (!(node->flags & EXFAT_ATTRIB_DIR))
+		return -ENOTDIR;
+	/* check that directory is empty */
+	exfat_cache_directory(ef, node);
+	if (node->child)
+		return -ENOTEMPTY;
+	delete(ef, node);
+	return 0;
 }
