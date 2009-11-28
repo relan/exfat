@@ -211,3 +211,12 @@ int utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
 	*outp = cpu_to_le16(0);
 	return 0;
 }
+
+size_t utf16_length(const le16_t* str)
+{
+	size_t i = 0;
+
+	while (le16_to_cpu(str[i]))
+		i++;
+	return i;
+}
