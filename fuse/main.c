@@ -306,6 +306,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	/* go to background unless "-d" option is passed */
+	fuse_daemonize(debug);
+
 	/* FUSE main loop */
 	fuse_loop(fh);
 
