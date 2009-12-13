@@ -180,3 +180,22 @@ uint16_t exfat_add_checksum(const void* entry, uint16_t sum)
 		sum = ((sum << 15) | (sum >> 1)) + ((const uint8_t*) entry)[i];
 	return sum;
 }
+
+le16_t exfat_calc_checksum(const struct exfat_file* meta1,
+		const struct exfat_file_info* meta2, const le16_t* name)
+{
+	uint16_t checksum;
+	const int name_entries = DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX);
+	int i;
+
+	checksum = exfat_start_checksum(meta1);
+	checksum = exfat_add_checksum(meta2, checksum);
+	for (i = 0; i < name_entries; i++)
+	{
+		struct exfat_file_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
+		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
+				EXFAT_ENAME_MAX * sizeof(le16_t));
+		checksum = exfat_add_checksum(&name_entry, checksum);
+	}
+	return cpu_to_le16(checksum);
+}
