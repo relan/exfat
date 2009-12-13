@@ -411,8 +411,6 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	off_t meta1_offset, meta2_offset;
 	struct exfat_file meta1;
 	struct exfat_file_info meta2;
-	uint16_t checksum;
-	uint8_t i;
 
 	if (node->parent == NULL)
 		return; /* do not flush unlinked node */
@@ -439,16 +437,7 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 			EXFAT_FLAG_CONTIGUOUS : EXFAT_FLAG_FRAGMENTED);
 	/* FIXME name hash */
 
-	checksum = exfat_start_checksum(&meta1);
-	checksum = exfat_add_checksum(&meta2, checksum);
-	for (i = 1; i < meta1.continuations; i++)
-	{
-		struct exfat_file_name name = {EXFAT_ENTRY_FILE_NAME, 0};
-		memcpy(name.name, node->name + (i - 1) * EXFAT_ENAME_MAX,
-				EXFAT_ENAME_MAX * sizeof(le16_t));
-		checksum = exfat_add_checksum(&name, checksum);
-	}
-	meta1.checksum = cpu_to_le16(checksum);
+	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
 	exfat_write_raw(&meta1, sizeof(meta1), meta1_offset, ef->fd);
 	exfat_write_raw(&meta2, sizeof(meta2), meta2_offset, ef->fd);
