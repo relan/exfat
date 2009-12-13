@@ -12,8 +12,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-#define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
-
 /* on-disk nodes iterator */
 struct iterator
 {
