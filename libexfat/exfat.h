@@ -32,6 +32,7 @@
 #define CLUSTER_INVALID(c) ((c) == EXFAT_CLUSTER_BAD || (c) == EXFAT_CLUSTER_END)
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
 
 struct exfat_node
 {
