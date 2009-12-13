@@ -53,14 +53,23 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 	}
 }
 
-static void opendir(const struct exfat_node* dir, struct iterator* it)
+static int opendir(struct exfat* ef, const struct exfat_node* dir,
+		struct iterator* it)
 {
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("`%s' is not a directory", dir->name);
 	it->cluster = dir->start_cluster;
 	it->offset = 0;
 	it->contiguous = IS_CONTIGUOUS(*dir);
-	it->chunk = NULL;
+	it->chunk = malloc(CLUSTER_SIZE(*ef->sb));
+	if (it->chunk == NULL)
+	{
+		exfat_error("out of memory");
+		return -ENOMEM;
+	}
+	exfat_read_raw(it->chunk, CLUSTER_SIZE(*ef->sb),
+			exfat_c2o(ef, it->cluster), ef->fd);
+	return 0;
 }
 
 static void closedir(struct iterator* it)
@@ -112,18 +121,6 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 	uint16_t actual_checksum = 0;
 
 	*node = NULL;
-
-	if (it->chunk == NULL)
-	{
-		it->chunk = malloc(CLUSTER_SIZE(*ef->sb));
-		if (it->chunk == NULL)
-		{
-			exfat_error("out of memory");
-			return -ENOMEM;
-		}
-		exfat_read_raw(it->chunk, CLUSTER_SIZE(*ef->sb),
-				exfat_c2o(ef, it->cluster), ef->fd);
-	}
 
 	for (;;)
 	{
@@ -329,7 +326,9 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 	if (dir->flags & EXFAT_ATTRIB_CACHED)
 		return 0; /* already cached */
 
-	opendir(dir, &it);
+	rc = opendir(ef, dir, &it);
+	if (rc != 0)
+		return rc;
 	while ((rc = readdir(ef, dir, &node, &it)) == 0)
 	{
 		node->parent = dir;
