@@ -101,6 +101,36 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 	return 0;
 }
 
+static struct exfat_node* allocate_node(void)
+{
+	struct exfat_node* node = malloc(sizeof(struct exfat_node));
+	if (node == NULL)
+	{
+		exfat_error("failed to allocate node");
+		return NULL;
+	}
+	memset(node, 0, sizeof(struct exfat_node));
+	return node;
+}
+
+static void init_node_meta1(struct exfat_node* node,
+		const struct exfat_file* meta1)
+{
+	node->flags = le16_to_cpu(meta1->attrib);
+	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime);
+	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime);
+}
+
+static void init_node_meta2(struct exfat_node* node,
+		const struct exfat_file_info* meta2)
+{
+	node->size = le64_to_cpu(meta2->size);
+	node->start_cluster = le32_to_cpu(meta2->start_cluster);
+	node->fptr_cluster = node->start_cluster;
+	if (meta2->flag == EXFAT_FLAG_CONTIGUOUS)
+		node->flags |= EXFAT_ATTRIB_CONTIGUOUS;
+}
+
 /*
  * Reads one entry in directory at position pointed by iterator and fills
  * node structure.
@@ -158,19 +188,13 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			reference_checksum = le16_to_cpu(file->checksum);
 			actual_checksum = exfat_start_checksum(file);
-			*node = malloc(sizeof(struct exfat_node));
+			*node = allocate_node();
 			if (*node == NULL)
-			{
-				exfat_error("failed to allocate node");
 				return -ENOMEM;
-			}
-			memset(*node, 0, sizeof(struct exfat_node));
 			/* new node has zero reference counter */
 			(*node)->entry_cluster = it->cluster;
 			(*node)->entry_offset = it->offset % CLUSTER_SIZE(*ef->sb);
-			(*node)->flags = le16_to_cpu(file->attrib);
-			(*node)->mtime = exfat_exfat2unix(file->mdate, file->mtime);
-			(*node)->atime = exfat_exfat2unix(file->adate, file->atime);
+			init_node_meta1(*node, file);
 			namep = (*node)->name;
 			break;
 
@@ -182,8 +206,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			file_info = (const struct exfat_file_info*) entry;
+			init_node_meta2(*node, file_info);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
-			(*node)->size = le64_to_cpu(file_info->size);
 			/* directories must be aligned on at cluster boundary */
 			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
 				(*node)->size % CLUSTER_SIZE(*ef->sb) != 0)
@@ -195,10 +219,6 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						buffer, (*node)->size);
 				goto error;
 			}
-			(*node)->start_cluster = le32_to_cpu(file_info->start_cluster);
-			(*node)->fptr_cluster = (*node)->start_cluster;
-			if (file_info->flag == EXFAT_FLAG_CONTIGUOUS)
-				(*node)->flags |= EXFAT_ATTRIB_CONTIGUOUS;
 			--continuations;
 			break;
 
