@@ -208,6 +208,18 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			file_info = (const struct exfat_file_info*) entry;
 			init_node_meta2(*node, file_info);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
+			/* There are two fields that contain file size. Maybe they plan
+			   to add compression support in the future and one of those
+			   fields is visible (uncompressed) size and the other is real
+			   (compressed) size. Anyway, currently it looks like exFAT does
+			   not support compression and both fields must be equal. */
+			if (le64_to_cpu(file_info->real_size) != (*node)->size)
+			{
+				exfat_error("real size does not equal to size "
+						"(%"PRIu64" != %"PRIu64")",
+						le64_to_cpu(file_info->real_size), (*node)->size);
+				goto error;
+			}
 			/* directories must be aligned on at cluster boundary */
 			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
 				(*node)->size % CLUSTER_SIZE(*ef->sb) != 0)
