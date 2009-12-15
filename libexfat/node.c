@@ -450,7 +450,7 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	exfat_read_raw(&meta2, sizeof(meta2), meta2_offset, ef->fd);
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
-	meta2.size = cpu_to_le64(node->size);
+	meta2.size = meta2.real_size = cpu_to_le64(node->size);
 	meta2.start_cluster = cpu_to_le32(node->start_cluster);
 	meta2.flag = (IS_CONTIGUOUS(*node) ?
 			EXFAT_FLAG_CONTIGUOUS : EXFAT_FLAG_FRAGMENTED);
