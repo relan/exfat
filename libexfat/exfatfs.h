@@ -132,9 +132,11 @@ struct exfat_file_info				/* file or directory info */
 	uint8_t __unknown1;
 	uint8_t name_length;
 	le16_t name_hash;
-	uint8_t __unknown[14];
+	le16_t __unknown2;
+	le64_t real_size;				/* in bytes, equals to size */
+	uint8_t __unknown3[4];
 	le32_t start_cluster;
-	le64_t size;					/* in bytes */
+	le64_t size;					/* in bytes, equals to real_size */
 };
 
 struct exfat_file_name				/* file or directory name */
