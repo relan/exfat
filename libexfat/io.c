@@ -75,7 +75,11 @@ ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
 	off_t lsize, loffset, remainder;
 
 	if (offset + size > node->size)
-		exfat_truncate(ef, node, offset + size);
+	{
+		int rc = exfat_truncate(ef, node, offset + size);
+		if (rc != 0)
+			return rc;
+	}
 	if (size == 0)
 		return 0;
 
