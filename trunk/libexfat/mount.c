@@ -30,7 +30,7 @@ static uint64_t rootdir_size(const struct exfat* ef)
 	return clusters * CLUSTER_SIZE(*ef->sb);
 }
 
-int exfat_mount(struct exfat* ef, const char* spec)
+int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	tzset();
 	memset(ef, 0, sizeof(struct exfat));
