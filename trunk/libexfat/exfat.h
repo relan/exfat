@@ -82,10 +82,14 @@ struct exfat_iterator
 
 extern int exfat_errors;
 
-void exfat_bug(const char* format, ...);
-void exfat_error(const char* format, ...);
-void exfat_warn(const char* format, ...);
-void exfat_debug(const char* format, ...);
+void exfat_bug(const char* format, ...)
+	__attribute__((format(printf, 1, 2), noreturn));
+void exfat_error(const char* format, ...)
+	__attribute__((format(printf, 1, 2)));
+void exfat_warn(const char* format, ...)
+	__attribute__((format(printf, 1, 2)));
+void exfat_debug(const char* format, ...)
+	__attribute__((format(printf, 1, 2)));
 
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
 void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd);
