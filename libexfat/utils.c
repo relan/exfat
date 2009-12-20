@@ -12,7 +12,8 @@
 #define _XOPEN_SOURCE /* for timezone in Linux */
 #include <time.h>
 
-void exfat_stat(const struct exfat_node* node, struct stat *stbuf)
+void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
+		struct stat* stbuf)
 {
 	memset(stbuf, 0, sizeof(struct stat));
 	if (node->flags & EXFAT_ATTRIB_DIR)
