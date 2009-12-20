@@ -57,7 +57,7 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		struct iterator* it)
 {
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
-		exfat_bug("`%s' is not a directory", dir->name);
+		exfat_bug("not a directory");
 	it->cluster = dir->start_cluster;
 	it->offset = 0;
 	it->contiguous = IS_CONTIGUOUS(*dir);
