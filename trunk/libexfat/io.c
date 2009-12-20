@@ -8,6 +8,7 @@
  */
 
 #include "exfat.h"
+#include <inttypes.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #define __USE_UNIX98 /* for pread() in Linux */
@@ -20,13 +21,15 @@
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd)
 {
 	if (pread(fd, buffer, size, offset) != size)
-		exfat_bug("failed to read %zu bytes from file at %llu", size, offset);
+		exfat_bug("failed to read %zu bytes from file at %"PRIu64, size,
+				(uint64_t) offset);
 }
 
 void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd)
 {
 	if (pwrite(fd, buffer, size, offset) != size)
-		exfat_bug("failed to write %zu bytes to file at %llu", size, offset);
+		exfat_bug("failed to write %zu bytes to file at %"PRIu64, size,
+				(uint64_t) offset);
 }
 
 ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
