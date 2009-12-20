@@ -44,7 +44,7 @@ static int fuse_exfat_getattr(const char* path, struct stat* stbuf)
 	if (rc != 0)
 		return rc;
 
-	exfat_stat(node, stbuf);
+	exfat_stat(&ef, node, stbuf);
 	exfat_put_node(&ef, node);
 	return 0;
 }
