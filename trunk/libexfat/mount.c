@@ -9,9 +9,12 @@
 
 #include "exfat.h"
 #include <string.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #define _XOPEN_SOURCE /* for tzset() in Linux */
 #include <time.h>
 
@@ -30,6 +33,39 @@ static uint64_t rootdir_size(const struct exfat* ef)
 	return clusters * CLUSTER_SIZE(*ef->sb);
 }
 
+static const char* get_option(const char* options, const char* option_name)
+{
+	const char* p = strstr(options, option_name);
+	size_t length = strlen(option_name);
+
+	if (p == NULL)
+		return NULL;
+	if ((p != options && p[-1] != ',') || p[length] != '=')
+		return NULL;
+	return p + length + 1;
+}
+
+static int get_int_option(const char* options, const char* option_name,
+		int base, int default_value)
+{
+	const char* p = get_option(options, option_name);
+
+	if (p == NULL)
+		return default_value;
+	return strtol(p, NULL, base);
+}
+
+static void parse_options(struct exfat* ef, const char* options)
+{
+	int sys_umask = umask(0);
+	int opt_umask;
+
+	umask(sys_umask); /* restore umask */
+	opt_umask = get_int_option(options, "umask", 8, sys_umask);
+	ef->dmask = get_int_option(options, "dmask", 8, opt_umask) & 0777;
+	ef->fmask = get_int_option(options, "fmask", 8, opt_umask) & 0777;
+}
+
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	tzset();
@@ -42,6 +78,8 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -ENOMEM;
 	}
 	memset(ef->sb, 0, sizeof(struct exfat_super_block));
+
+	parse_options(ef, options);
 
 	ef->fd = open(spec, O_RDWR);
 	if (ef->fd < 0)
