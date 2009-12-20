@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	if (exfat_mount(&ef, spec) != 0)
+	if (exfat_mount(&ef, spec, mount_options) != 0)
 	{
 		fuse_unmount(mount_point, fc);
 		fuse_destroy(fh);
