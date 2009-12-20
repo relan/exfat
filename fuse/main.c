@@ -176,6 +176,18 @@ int fuse_exfat_rmdir(const char *path)
 	return rc;
 }
 
+static int fuse_exfat_mknod(const char* path, mode_t mode, dev_t dev)
+{
+	exfat_debug("[fuse_exfat_mknod] %s", path);
+	return exfat_mknod(&ef, path);
+}
+
+static int fuse_exfat_mkdir(const char* path, mode_t mode)
+{
+	exfat_debug("[fuse_exfat_mkdir] %s", path);
+	return exfat_mkdir(&ef, path);
+}
+
 static int fuse_exfat_statfs(const char *path, struct statvfs *sfs)
 {
 	const uint64_t block_count = le64_to_cpu(ef.sb->block_count);
@@ -222,6 +234,8 @@ static struct fuse_operations fuse_exfat_ops =
 	.write		= fuse_exfat_write,
 	.unlink		= fuse_exfat_unlink,
 	.rmdir		= fuse_exfat_rmdir,
+	.mknod		= fuse_exfat_mknod,
+	.mkdir		= fuse_exfat_mkdir,
 	.statfs		= fuse_exfat_statfs,
 	.destroy	= fuse_exfat_destroy,
 };
