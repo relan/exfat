@@ -99,6 +99,8 @@ void exfat_closedir(struct exfat* ef, struct exfat_iterator* it);
 struct exfat_node* exfat_readdir(struct exfat* ef, struct exfat_iterator* it);
 int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
+int exfat_split(struct exfat* ef, struct exfat_node** node, le16_t* name,
+		const char* path);
 
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster);
 cluster_t exfat_next_cluster(const struct exfat* ef,
@@ -131,6 +133,8 @@ void exfat_reset_cache(struct exfat* ef);
 void exfat_flush_node(struct exfat* ef, struct exfat_node* node);
 int exfat_unlink(struct exfat* ef, struct exfat_node* node);
 int exfat_rmdir(struct exfat* ef, struct exfat_node* node);
+int exfat_mknod(struct exfat* ef, const char* path);
+int exfat_mkdir(struct exfat* ef, const char* path);
 
 int exfat_mount(struct exfat* ef, const char* spec);
 void exfat_unmount(struct exfat* ef);
