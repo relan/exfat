@@ -110,7 +110,8 @@ cluster_t exfat_advance_cluster(const struct exfat* ef,
 void exfat_flush_cmap(struct exfat* ef);
 int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size);
 
-void exfat_stat(const struct exfat_node* node, struct stat *stbuf);
+void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
+		struct stat* stbuf);
 time_t exfat_exfat2unix(le16_t date, le16_t time);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time);
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n);
