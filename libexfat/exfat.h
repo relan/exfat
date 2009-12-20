@@ -136,7 +136,7 @@ int exfat_rmdir(struct exfat* ef, struct exfat_node* node);
 int exfat_mknod(struct exfat* ef, const char* path);
 int exfat_mkdir(struct exfat* ef, const char* path);
 
-int exfat_mount(struct exfat* ef, const char* spec);
+int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
 
 #endif /* ifndef EXFAT_H_INCLUDED */
