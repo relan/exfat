@@ -129,3 +129,45 @@ int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 	}
 	return 0;
 }
+
+static int is_last_comp(const char* comp, size_t length)
+{
+	const char* p = comp + length;
+
+	return get_comp(p, &p) == 0;
+}
+
+int exfat_split(struct exfat* ef, struct exfat_node** node, le16_t* name,
+		const char* path)
+{
+	struct exfat_node* parent;
+	const char* p;
+	size_t n;
+
+	parent = *node = exfat_get_node(ef->root);
+	for (p = path; (n = get_comp(p, &p)); p += n)
+	{
+		if (n == 1 && *p == '.')
+			continue;
+		if (lookup_name(ef, parent, node, p, n) != 0)
+		{
+			int rc;
+
+			if (!is_last_comp(p, n))
+			{
+				/* this is not the last component of the path */
+				exfat_put_node(ef, parent);
+				return -ENOENT;
+			}
+			*node = parent;
+			rc = utf8_to_utf16(name, p, EXFAT_NAME_MAX, n);
+			if (rc != 0)
+				exfat_put_node(ef, parent);
+			return rc;
+		}
+		exfat_put_node(ef, parent);
+		parent = *node;
+	}
+	exfat_put_node(ef, *node);
+	return -EEXIST;
+}

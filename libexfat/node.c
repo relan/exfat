@@ -469,7 +469,7 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 		meta2.flag = EXFAT_FLAG_CONTIGUOUS;
 	else
 		meta2.flag = EXFAT_FLAG_FRAGMENTED;
-	/* FIXME name hash */
+	/* name hash remains unchanged, no need to recalculate it */
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
@@ -535,5 +535,193 @@ int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
 	if (node->child)
 		return -ENOTEMPTY;
 	delete(ef, node);
+	return 0;
+}
+
+static int grow_directory(struct exfat* ef, struct exfat_node* dir,
+		uint64_t asize, uint32_t difference)
+{
+	return exfat_truncate(ef, dir,
+			DIV_ROUND_UP(asize + difference, CLUSTER_SIZE(*ef->sb))
+				* CLUSTER_SIZE(*ef->sb));
+}
+
+static void write_eod(struct exfat* ef, struct exfat_node* dir,
+		cluster_t cluster, off_t offset, int seek)
+{
+	struct exfat_entry eod;
+
+	while (seek--)
+		next_entry(ef, dir, &cluster, &offset);
+	memset(&eod, 0, sizeof(struct exfat_entry));
+	exfat_write_raw(&eod, sizeof(struct exfat_entry),
+			exfat_c2o(ef, cluster) + offset, ef->fd);
+}
+
+static int find_slot(struct exfat* ef, struct exfat_node* dir,
+		cluster_t* cluster, off_t* offset, int subentries)
+{
+	struct iterator it;
+	int rc;
+	const struct exfat_entry* entry;
+	int contiguous = 0;
+
+	rc = opendir(ef, dir, &it);
+	if (rc != 0)
+		return rc;
+	for (;;)
+	{
+		if (contiguous == 0)
+		{
+			*cluster = it.cluster;
+			*offset = it.offset % CLUSTER_SIZE(*ef->sb);
+		}
+		entry = (const struct exfat_entry*)
+				(it.chunk + it.offset % CLUSTER_SIZE(*ef->sb));
+		if (entry->type == EXFAT_ENTRY_EOD)
+		{
+			rc = grow_directory(ef, dir,
+					it.offset + sizeof(struct exfat_entry), /* actual size */
+					(subentries - contiguous) * sizeof(struct exfat_entry));
+			if (rc != 0)
+			{
+				closedir(&it);
+				return rc;
+			}
+			write_eod(ef, dir, *cluster, *offset, subentries - contiguous);
+			break;
+		}
+		if (entry->type & EXFAT_ENTRY_VALID)
+			contiguous = 0;
+		else
+			contiguous++;
+		if (contiguous == subentries)
+			break;	/* suitable slot it found */
+		if (fetch_next_entry(ef, dir, &it) != 0)
+		{
+			closedir(&it);
+			return -EIO;
+		}
+	}
+	closedir(&it);
+	return 0;
+}
+
+static int write_entry(struct exfat* ef, struct exfat_node* dir,
+		const le16_t* name, cluster_t cluster, off_t offset, uint16_t attrib)
+{
+	struct exfat_node* node;
+	struct exfat_file meta1;
+	struct exfat_file_info meta2;
+	const size_t name_length = utf16_length(name);
+	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
+	int i;
+
+	node = allocate_node();
+	if (node == NULL)
+		return -ENOMEM;
+	node->entry_cluster = cluster;
+	node->entry_offset = offset;
+	memcpy(node->name, name, name_length * sizeof(le16_t));
+
+	memset(&meta1, 0, sizeof(meta1));
+	meta1.type = EXFAT_ENTRY_FILE;
+	meta1.continuations = 1 + name_entries;
+	meta1.attrib = cpu_to_le16(attrib);
+	exfat_unix2exfat(time(NULL), &meta1.crdate, &meta1.crtime);
+	meta1.adate = meta1.mdate = meta1.crdate;
+	meta1.atime = meta1.mtime = meta1.crtime;
+	/* crtime_cs and mtime_cs contain addition to the time in centiseconds;
+	   just ignore those fields because we operate with 2 sec resolution */
+
+	memset(&meta2, 0, sizeof(meta2));
+	meta2.type = EXFAT_ENTRY_FILE_INFO;
+	meta2.flag = EXFAT_FLAG_FRAGMENTED;
+	meta2.name_length = name_length;
+	meta2.name_hash = exfat_calc_name_hash(ef, node->name);
+	meta2.start_cluster = cpu_to_le32(EXFAT_CLUSTER_FREE);
+
+	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
+
+	exfat_write_raw(&meta1, sizeof(meta1), exfat_c2o(ef, cluster) + offset,
+			ef->fd);
+	next_entry(ef, dir, &cluster, &offset);
+	exfat_write_raw(&meta2, sizeof(meta2), exfat_c2o(ef, cluster) + offset,
+			ef->fd);
+	for (i = 0; i < name_entries; i++)
+	{
+		struct exfat_file_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
+		memcpy(name_entry.name, node->name + i * EXFAT_ENAME_MAX,
+				EXFAT_ENAME_MAX * sizeof(le16_t));
+		next_entry(ef, dir, &cluster, &offset);
+		exfat_write_raw(&name_entry, sizeof(name_entry),
+				exfat_c2o(ef, cluster) + offset, ef->fd);
+	}
+
+	init_node_meta1(node, &meta1);
+	init_node_meta2(node, &meta2);
+
+	node->parent = dir;
+	if (dir->child)
+	{
+		dir->child->prev = node;
+		node->next = dir->child;
+	}
+	dir->child = node;
+
+	return 0;
+}
+
+static int create(struct exfat* ef, const char* path, uint16_t attrib)
+{
+	struct exfat_node* dir;
+	cluster_t cluster = EXFAT_CLUSTER_BAD;
+	off_t offset = -1;
+	le16_t name[EXFAT_NAME_MAX + 1];
+	int rc;
+
+	/* FIXME filter name characters */
+
+	rc = exfat_split(ef, &dir, name, path);
+	if (rc != 0)
+		return rc;
+
+	rc = find_slot(ef, dir, &cluster, &offset,
+			2 + DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX));
+	if (rc != 0)
+	{
+		exfat_put_node(ef, dir);
+		return rc;
+	}
+	rc = write_entry(ef, dir, name, cluster, offset, attrib);
+	exfat_put_node(ef, dir);
+	return rc;
+}
+
+int exfat_mknod(struct exfat* ef, const char* path)
+{
+	return create(ef, path, EXFAT_ATTRIB_ARCH);
+}
+
+int exfat_mkdir(struct exfat* ef, const char* path)
+{
+	int rc;
+	struct exfat_node* node;
+
+	rc = create(ef, path, EXFAT_ATTRIB_ARCH | EXFAT_ATTRIB_DIR);
+	if (rc != 0)
+		return rc;
+	rc = exfat_lookup(ef, &node, path);
+	if (rc != 0)
+		return 0;
+	/* directories always have at least one cluster */
+	rc = exfat_truncate(ef, node, CLUSTER_SIZE(*ef->sb));
+	if (rc != 0)
+	{
+		delete(ef, node);
+		exfat_put_node(ef, node);
+		return rc;
+	}
+	exfat_put_node(ef, node);
 	return 0;
 }
