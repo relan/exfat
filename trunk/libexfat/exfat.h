@@ -116,6 +116,7 @@ uint16_t exfat_start_checksum(const struct exfat_file* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 le16_t exfat_calc_checksum(const struct exfat_file* meta1,
 		const struct exfat_file_info* meta2, const le16_t* name);
+le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name);
 
 int utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
 		size_t insize);

@@ -199,3 +199,23 @@ le16_t exfat_calc_checksum(const struct exfat_file* meta1,
 	}
 	return cpu_to_le16(checksum);
 }
+
+le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name)
+{
+	size_t i;
+	size_t length = utf16_length(name);
+	uint16_t hash = 0;
+
+	for (i = 0; i < length; i++)
+	{
+		uint16_t c = le16_to_cpu(name[i]);
+
+		/* convert to upper case */
+		if (c < ef->upcase_chars)
+			c = le16_to_cpu(ef->upcase[c]);
+
+		hash = ((hash << 15) | (hash >> 1)) + (c & 0xff);
+		hash = ((hash << 15) | (hash >> 1)) + (c >> 8);
+	}
+	return cpu_to_le16(hash);
+}
