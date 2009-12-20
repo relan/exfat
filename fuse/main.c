@@ -144,7 +144,7 @@ static int fuse_exfat_write(const char* path, const char* buffer, size_t size,
 	return exfat_write(&ef, get_node(fi), buffer, size, offset);
 }
 
-int fuse_exfat_unlink(const char* path)
+static int fuse_exfat_unlink(const char* path)
 {
 	struct exfat_node* node;
 	int rc;
@@ -160,7 +160,7 @@ int fuse_exfat_unlink(const char* path)
 	return rc;
 }
 
-int fuse_exfat_rmdir(const char* path)
+static int fuse_exfat_rmdir(const char* path)
 {
 	struct exfat_node* node;
 	int rc;
@@ -212,7 +212,7 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 	return 0;
 }
 
-void fuse_exfat_destroy(void* unused)
+static void fuse_exfat_destroy(void* unused)
 {
 	exfat_unmount(&ef);
 }
