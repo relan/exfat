@@ -141,6 +141,7 @@ int exfat_unlink(struct exfat* ef, struct exfat_node* node);
 int exfat_rmdir(struct exfat* ef, struct exfat_node* node);
 int exfat_mknod(struct exfat* ef, const char* path);
 int exfat_mkdir(struct exfat* ef, const char* path);
+void exfat_utimes(struct exfat_node* node, const struct timespec tv[2]);
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);

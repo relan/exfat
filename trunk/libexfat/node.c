@@ -728,3 +728,10 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 	exfat_put_node(ef, node);
 	return 0;
 }
+
+void exfat_utimes(struct exfat_node* node, const struct timespec tv[2])
+{
+	node->atime = tv[0].tv_sec;
+	node->mtime = tv[1].tv_sec;
+	node->flags |= EXFAT_ATTRIB_DIRTY;
+}
