@@ -188,6 +188,22 @@ static int fuse_exfat_mkdir(const char* path, mode_t mode)
 	return exfat_mkdir(&ef, path);
 }
 
+static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
+{
+	struct exfat_node* node;
+	int rc;
+
+	exfat_debug("[fuse_exfat_utimens] %s", path);
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+
+	exfat_utimes(node, tv);
+	exfat_put_node(&ef, node);
+	return 0;
+}
+
 static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 {
 	const uint64_t block_count = le64_to_cpu(ef.sb->block_count);
@@ -236,6 +252,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.rmdir		= fuse_exfat_rmdir,
 	.mknod		= fuse_exfat_mknod,
 	.mkdir		= fuse_exfat_mkdir,
+	.utimens	= fuse_exfat_utimens,
 	.statfs		= fuse_exfat_statfs,
 	.destroy	= fuse_exfat_destroy,
 };
