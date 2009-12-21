@@ -325,6 +325,7 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	if (node->size != size)
 	{
 		node->size = size;
+		node->mtime = time(NULL);
 		node->flags |= EXFAT_ATTRIB_DIRTY;
 	}
 	return 0;
