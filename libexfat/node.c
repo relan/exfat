@@ -669,6 +669,9 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 	}
 	dir->child = node;
 
+	dir->mtime = time(NULL);
+	dir->flags |= EXFAT_ATTRIB_DIRTY;
+
 	return 0;
 }
 
