@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <exfat.h>
+#include <inttypes.h>
 
 #define exfat_debug(format, ...)
 
@@ -54,7 +55,7 @@ static int fuse_exfat_truncate(const char* path, off_t size)
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_truncate] %s, %llu", path, size);
+	exfat_debug("[fuse_exfat_truncate] %s, %"PRIu64, path, (uint64_t) size);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -99,9 +100,9 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	while ((node = exfat_readdir(&ef, &it)))
 	{
 		exfat_get_name(node, name, EXFAT_NAME_MAX);
-		exfat_debug("[fuse_exfat_readdir] %s: %s, %llu bytes, cluster %u",
+		exfat_debug("[fuse_exfat_readdir] %s: %s, %"PRIu64" bytes, cluster %u",
 				name, IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
-				node->size, node->start_cluster);
+				(uint64_t) node->size, node->start_cluster);
 		filler(buffer, name, NULL, 0);
 		exfat_put_node(&ef, node);
 	}
