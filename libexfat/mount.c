@@ -54,6 +54,18 @@ static int get_int_option(const char* options, const char* option_name,
 	return strtol(p, NULL, base);
 }
 
+static int match_option(const char* options, const char* option_name)
+{
+	const char* p;
+	size_t length = strlen(option_name);
+
+	for (p = strstr(options, option_name); p; p = strstr(p + 1, option_name))
+		if ((p == options || p[-1] == ',') &&
+				(p[length] == ',' || p[length] == '\0'))
+			return 1;
+	return 0;
+}
+
 static void parse_options(struct exfat* ef, const char* options)
 {
 	int sys_umask = umask(0);
@@ -66,6 +78,8 @@ static void parse_options(struct exfat* ef, const char* options)
 
 	ef->uid = get_int_option(options, "uid", 10, geteuid());
 	ef->gid = get_int_option(options, "gid", 10, getegid());
+
+	ef->ro = match_option(options, "ro");
 }
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
@@ -83,7 +97,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 
 	parse_options(ef, options);
 
-	ef->fd = open(spec, O_RDWR);
+	ef->fd = open(spec, ef->ro ? O_RDONLY : O_RDWR);
 	if (ef->fd < 0)
 	{
 		free(ef->sb);
