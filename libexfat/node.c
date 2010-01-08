@@ -505,6 +505,10 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 static void delete(struct exfat* ef, struct exfat_node* node)
 {
 	erase_entry(ef, node);
+
+	node->parent->mtime = time(NULL);
+	node->parent->flags |= EXFAT_ATTRIB_DIRTY;
+
 	if (node->prev)
 		node->prev->next = node->next;
 	else /* this is the first node in the list */
