@@ -745,3 +745,9 @@ void exfat_update_atime(struct exfat_node* node)
 	node->atime = time(NULL);
 	node->flags |= EXFAT_ATTRIB_DIRTY;
 }
+
+void exfat_update_mtime(struct exfat_node* node)
+{
+	node->mtime = time(NULL);
+	node->flags |= EXFAT_ATTRIB_DIRTY;
+}
