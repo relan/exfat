@@ -111,7 +111,6 @@ ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
 		remainder -= lsize;
 		cluster = exfat_next_cluster(ef, node, cluster);
 	}
-	node->mtime = time(NULL);
-	node->flags |= EXFAT_ATTRIB_DIRTY;
+	exfat_update_mtime(node);
 	return size - remainder;
 }

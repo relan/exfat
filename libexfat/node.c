@@ -505,9 +505,7 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 static void delete(struct exfat* ef, struct exfat_node* node)
 {
 	erase_entry(ef, node);
-
-	node->parent->mtime = time(NULL);
-	node->parent->flags |= EXFAT_ATTRIB_DIRTY;
+	exfat_update_mtime(node->parent);
 
 	if (node->prev)
 		node->prev->next = node->next;
@@ -673,9 +671,7 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 	}
 	dir->child = node;
 
-	dir->mtime = time(NULL);
-	dir->flags |= EXFAT_ATTRIB_DIRTY;
-
+	exfat_update_mtime(dir);
 	return 0;
 }
 
