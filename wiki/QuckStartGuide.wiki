@@ -1,4 +1,5 @@
 #summary Quick start guide.
+#labels Featured
 
 = Prerequisites =
 
