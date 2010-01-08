@@ -71,6 +71,8 @@ struct exfat
 	cmap;
 	void* zero_block;
 	int dmask, fmask;
+	uid_t uid;
+	gid_t gid;
 };
 
 /* in-core nodes iterator */

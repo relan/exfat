@@ -21,6 +21,8 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 	else
 		stbuf->st_mode = S_IFREG | (0777 & ~ef->fmask);
 	stbuf->st_nlink = 1;
+	stbuf->st_uid = ef->uid;
+	stbuf->st_gid = ef->gid;
 	stbuf->st_size = node->size;
 	stbuf->st_blocks = DIV_ROUND_UP(node->size, CLUSTER_SIZE(*ef->sb)) *
 		CLUSTER_SIZE(*ef->sb) / 512;
