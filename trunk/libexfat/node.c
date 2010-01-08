@@ -505,11 +505,8 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 	}
 }
 
-static void delete(struct exfat* ef, struct exfat_node* node)
+static void tree_detach(struct exfat_node* node)
 {
-	erase_entry(ef, node);
-	exfat_update_mtime(node->parent);
-
 	if (node->prev)
 		node->prev->next = node->next;
 	else /* this is the first node in the list */
@@ -519,6 +516,24 @@ static void delete(struct exfat* ef, struct exfat_node* node)
 	node->parent = NULL;
 	node->prev = NULL;
 	node->next = NULL;
+}
+
+static void tree_attach(struct exfat_node* dir, struct exfat_node* node)
+{
+	node->parent = dir;
+	if (dir->child)
+	{
+		dir->child->prev = node;
+		node->next = dir->child;
+	}
+	dir->child = node;
+}
+
+static void delete(struct exfat* ef, struct exfat_node* node)
+{
+	erase_entry(ef, node);
+	exfat_update_mtime(node->parent);
+	tree_detach(node);
 	/* file clusters will be freed when node reference counter becomes 0 */
 	node->flags |= EXFAT_ATTRIB_UNLINKED;
 }
@@ -666,14 +681,7 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 	init_node_meta1(node, &meta1);
 	init_node_meta2(node, &meta2);
 
-	node->parent = dir;
-	if (dir->child)
-	{
-		dir->child->prev = node;
-		node->next = dir->child;
-	}
-	dir->child = node;
-
+	tree_attach(dir, node);
 	exfat_update_mtime(dir);
 	return 0;
 }
