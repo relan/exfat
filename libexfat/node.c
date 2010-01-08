@@ -739,3 +739,9 @@ void exfat_utimes(struct exfat_node* node, const struct timespec tv[2])
 	node->mtime = tv[1].tv_sec;
 	node->flags |= EXFAT_ATTRIB_DIRTY;
 }
+
+void exfat_update_atime(struct exfat_node* node)
+{
+	node->atime = time(NULL);
+	node->flags |= EXFAT_ATTRIB_DIRTY;
+}
