@@ -443,6 +443,9 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	struct exfat_file meta1;
 	struct exfat_file_info meta2;
 
+	if (ef->ro)
+		exfat_bug("unable to flush node to read-only FS");
+
 	if (node->parent == NULL)
 		return; /* do not flush unlinked node */
 
