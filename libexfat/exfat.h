@@ -73,6 +73,7 @@ struct exfat
 	int dmask, fmask;
 	uid_t uid;
 	gid_t gid;
+	int ro;
 };
 
 /* in-core nodes iterator */
