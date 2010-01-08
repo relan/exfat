@@ -80,6 +80,7 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->gid = get_int_option(options, "gid", 10, getegid());
 
 	ef->ro = match_option(options, "ro");
+	ef->noatime = match_option(options, "noatime");
 }
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
