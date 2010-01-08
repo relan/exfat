@@ -67,6 +67,8 @@ ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
 		remainder -= lsize;
 		cluster = exfat_next_cluster(ef, node, cluster);
 	}
+	if (!ef->ro)
+		exfat_update_atime(node);
 	return size - remainder;
 }
 
