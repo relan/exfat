@@ -1,0 +1,35 @@
+#summary Quick start guide.
+
+= Prerequisites =
+
+Currently there are no binary packages here, so you should compile this driver from source. To do this you need to install the following packages:
+  * `subversion`,
+  * `scons`,
+  * `fuse-devel` (or `fuse-dev`),
+  * `gcc`.
+
+= Getting the source =
+
+Download the source from repository:
+{{{
+svn co http://exfat.googlecode.com/svn/trunk/ exfat-read-only
+}}}
+
+= Compiling =
+
+Change directory and compile:
+{{{
+cd exfat-read-only
+scons
+}}}
+Then install the driver:
+{{{
+sudo scons install
+}}}
+
+= Mounting =
+
+Mount you exFAT volume from root (`/dev/sdXn` is the volume special file, `/mnt/exfat` is a mountpoint):
+{{{
+sudo mount -t exfat-fuse -o allow_other /dev/sdXn /mnt/exfat
+}}}
