@@ -184,9 +184,10 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 {
 	if (CLUSTER_INVALID(cluster))
 		exfat_bug("attempting to free invalid cluster");
+	if (cluster < EXFAT_FIRST_DATA_CLUSTER ||
+		cluster - EXFAT_FIRST_DATA_CLUSTER >= ef->cmap.size)
+		exfat_bug("bad cluster 0x%x (0x%x)", cluster, ef->cmap.size);
 
-	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
-		exfat_bug("bad cluster 0x%x", cluster);
 	BMAP_CLR(ef->cmap.chunk, cluster - EXFAT_FIRST_DATA_CLUSTER);
 	ef->cmap.dirty = 1;
 	/* FIXME update percentage of used space */
