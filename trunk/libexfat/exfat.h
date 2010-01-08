@@ -74,6 +74,7 @@ struct exfat
 	uid_t uid;
 	gid_t gid;
 	int ro;
+	int noatime;
 };
 
 /* in-core nodes iterator */
