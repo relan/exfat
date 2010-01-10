@@ -189,6 +189,12 @@ static int fuse_exfat_mkdir(const char* path, mode_t mode)
 	return exfat_mkdir(&ef, path);
 }
 
+static int fuse_exfat_rename(const char* old_path, const char* new_path)
+{
+	exfat_debug("[fuse_exfat_rename] %s => %s", old_path, new_path);
+	return exfat_rename(&ef, old_path, new_path);
+}
+
 static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 {
 	struct exfat_node* node;
@@ -253,6 +259,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.rmdir		= fuse_exfat_rmdir,
 	.mknod		= fuse_exfat_mknod,
 	.mkdir		= fuse_exfat_mkdir,
+	.rename		= fuse_exfat_rename,
 	.utimens	= fuse_exfat_utimens,
 	.statfs		= fuse_exfat_statfs,
 	.destroy	= fuse_exfat_destroy,
