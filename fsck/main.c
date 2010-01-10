@@ -152,11 +152,12 @@ int main(int argc, char* argv[])
 	printf("Totally %"PRIu64" directories and %"PRIu64" files.\n",
 			directories_count, files_count);
 
-	fputs("File system checking finished: ", stdout);
-	if (exfat_errors == 0)
-		puts("seems OK.");
-	else
-		printf("%d ERROR%s FOUND!!!\n", exfat_errors,
-				exfat_errors > 1 ? "S WERE" : " WAS");
+	fputs("File system checking finished. ", stdout);
+	if (exfat_errors != 0)
+	{
+		printf("ERRORS FOUND: %d.\n", exfat_errors);
+		return 1;
+	}
+	puts("No errors found.");
 	return 0;
 }
