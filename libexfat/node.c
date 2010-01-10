@@ -740,6 +740,89 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 	return 0;
 }
 
+static void rename_entry(struct exfat* ef, struct exfat_node* dir,
+		struct exfat_node* node, const le16_t* name, cluster_t new_cluster,
+		off_t new_offset)
+{
+	struct exfat_file meta1;
+	struct exfat_file_info meta2;
+	cluster_t old_cluster = node->entry_cluster;
+	off_t old_offset = node->entry_offset;
+	const size_t name_length = utf16_length(name);
+	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
+	int i;
+
+	exfat_read_raw(&meta1, sizeof(meta1),
+			exfat_c2o(ef, old_cluster) + old_offset, ef->fd);
+	next_entry(ef, node->parent, &old_cluster, &old_offset);
+	exfat_read_raw(&meta2, sizeof(meta2),
+			exfat_c2o(ef, old_cluster) + old_offset, ef->fd);
+	meta1.continuations = 1 + name_entries;
+	meta2.name_hash = exfat_calc_name_hash(ef, name);
+	meta2.name_length = name_length;
+	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, name);
+
+	erase_entry(ef, node);
+
+	node->entry_cluster = new_cluster;
+	node->entry_offset = new_offset;
+
+	exfat_write_raw(&meta1, sizeof(meta1),
+            exfat_c2o(ef, new_cluster) + new_offset, ef->fd);
+	next_entry(ef, dir, &new_cluster, &new_offset);
+	exfat_write_raw(&meta2, sizeof(meta2),
+            exfat_c2o(ef, new_cluster) + new_offset, ef->fd);
+
+	for (i = 0; i < name_entries; i++)
+	{
+		struct exfat_file_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
+		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
+				EXFAT_ENAME_MAX * sizeof(le16_t));
+		next_entry(ef, dir, &new_cluster, &new_offset);
+		exfat_write_raw(&name_entry, sizeof(name_entry),
+				exfat_c2o(ef, new_cluster) + new_offset, ef->fd);
+	}
+
+	memcpy(node->name, name, (name_length + 1) * sizeof(le16_t));
+	tree_detach(node);
+	tree_attach(dir, node);
+}
+
+int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
+{
+	struct exfat_node* node;
+	struct exfat_node* dir;
+	cluster_t cluster = EXFAT_CLUSTER_BAD;
+	off_t offset = -1;
+	le16_t name[EXFAT_NAME_MAX + 1];
+	int rc;
+
+	rc = exfat_lookup(ef, &node, old_path);
+	if (rc != 0)
+		return rc;
+
+	memset(name, 0, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
+	rc = exfat_split(ef, &dir, name, new_path);
+	if (rc != 0)
+	{
+		exfat_put_node(ef, node);
+		return rc;
+	}
+
+	rc = find_slot(ef, dir, &cluster, &offset,
+			2 + DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX));
+	if (rc != 0)
+	{
+		exfat_put_node(ef, dir);
+		exfat_put_node(ef, node);
+		return rc;
+	}
+	rename_entry(ef, dir, node, name, cluster, offset);
+	exfat_put_node(ef, dir);
+	exfat_put_node(ef, node);
+	return 0;
+}
+
 void exfat_utimes(struct exfat_node* node, const struct timespec tv[2])
 {
 	node->atime = tv[0].tv_sec;
