@@ -277,7 +277,8 @@ int main(int argc, char* argv[])
 	struct fuse* fh = NULL;
 	char** pp;
 
-	printf("FUSE exfat %u.%u\n", EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR);
+	printf("FUSE exfat %u.%u.%u\n",
+			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
 	for (pp = argv + 1; *pp; pp++)
 	{
