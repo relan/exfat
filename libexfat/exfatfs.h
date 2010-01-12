@@ -21,38 +21,9 @@
 #ifndef EXFATFS_H_INCLUDED
 #define EXFATFS_H_INCLUDED
 
-#include <stdint.h>
-#include <endian.h>
-#include <byteswap.h>
+#include "byteorder.h"
 
 typedef uint32_t cluster_t;		/* cluster number */
-
-typedef struct { uint16_t __u16; } le16_t;
-typedef struct { uint32_t __u32; } le32_t;
-typedef struct { uint64_t __u64; } le64_t;
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-static inline uint16_t le16_to_cpu(le16_t v) { return v.__u16; }
-static inline uint32_t le32_to_cpu(le32_t v) { return v.__u32; }
-static inline uint64_t le64_to_cpu(le64_t v) { return v.__u64; }
-
-static inline le16_t cpu_to_le16(uint16_t v) { le16_t t = {v}; return t; }
-static inline le32_t cpu_to_le32(uint32_t v) { le32_t t = {v}; return t; }
-static inline le64_t cpu_to_le64(uint64_t v) { le64_t t = {v}; return t; }
-#elif __BYTE_ORDER == __BIG_ENDIAN
-static inline uint16_t le16_to_cpu(le16_t v) { return bswap_16(v.__u16); }
-static inline uint32_t le32_to_cpu(le32_t v) { return bswap_32(v.__u32); }
-static inline uint64_t le64_to_cpu(le64_t v) { return bswap_64(v.__u64); }
-
-static inline le16_t cpu_to_le16(uint16_t v)
-	{ le16_t t = {bswap_16(v)}; return t; }
-static inline le32_t cpu_to_le32(uint32_t v)
-	{ le32_t t = {bswap_32(v)}; return t; }
-static inline le64_t cpu_to_le64(uint64_t v)
-	{ le64_t t = {bswap_64(v)}; return t; }
-#else
-#error Wow! You have a PDP machine?!
-#endif
 
 #define EXFAT_FIRST_DATA_CLUSTER 2
 
