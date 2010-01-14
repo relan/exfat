@@ -705,8 +705,6 @@ static int create(struct exfat* ef, const char* path, uint16_t attrib)
 	le16_t name[EXFAT_NAME_MAX + 1];
 	int rc;
 
-	/* FIXME filter name characters */
-
 	rc = exfat_split(ef, &dir, name, path);
 	if (rc != 0)
 		return rc;
