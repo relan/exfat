@@ -22,8 +22,17 @@
 #define BYTEORDER_H_INCLUDED
 
 #include <stdint.h>
+
+#ifdef __APPLE__
+#include <machine/endian.h>
+#include <libkern/OSByteOrder.h>
+#define bswap_16(x) OSSwapInt16(x)
+#define bswap_32(x) OSSwapInt32(x)
+#define bswap_64(x) OSSwapInt64(x)
+#else
 #include <endian.h>
 #include <byteswap.h>
+#endif
 
 typedef struct { uint16_t __u16; } le16_t;
 typedef struct { uint32_t __u32; } le32_t;
