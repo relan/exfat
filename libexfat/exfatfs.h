@@ -74,7 +74,7 @@ struct exfat_entry					/* common container for all entries */
 
 #define EXFAT_ENAME_MAX 15
 
-struct exfat_bitmap					/* allocated clusters bitmap */
+struct exfat_entry_bitmap			/* allocated clusters bitmap */
 {
 	uint8_t type;					/* EXFAT_ENTRY_BITMAP */
 	uint8_t __unknown1[19];
@@ -82,7 +82,7 @@ struct exfat_bitmap					/* allocated clusters bitmap */
 	le64_t size;					/* in bytes */
 };
 
-struct exfat_upcase					/* upper case translation table */
+struct exfat_entry_upcase			/* upper case translation table */
 {
 	uint8_t type;					/* EXFAT_ENTRY_UPCASE */
 	uint8_t __unknown1[3];
@@ -92,7 +92,7 @@ struct exfat_upcase					/* upper case translation table */
 	le64_t size;					/* in bytes */
 };
 
-struct exfat_label					/* volume label */
+struct exfat_entry_label			/* volume label */
 {
 	uint8_t type;					/* EXFAT_ENTRY_LABEL */
 	uint8_t length;					/* number of characters */
@@ -106,7 +106,7 @@ struct exfat_label					/* volume label */
 #define EXFAT_ATTRIB_DIR    0x10
 #define EXFAT_ATTRIB_ARCH   0x20
 
-struct exfat_file					/* file or directory */
+struct exfat_entry_meta1			/* file or directory info (part 1) */
 {
 	uint8_t type;					/* EXFAT_ENTRY_FILE */
 	uint8_t continuations;
@@ -124,7 +124,7 @@ struct exfat_file					/* file or directory */
 #define EXFAT_FLAG_FRAGMENTED 1
 #define EXFAT_FLAG_CONTIGUOUS 3
 
-struct exfat_file_info				/* file or directory info */
+struct exfat_entry_meta2			/* file or directory info (part 2) */
 {
 	uint8_t type;					/* EXFAT_ENTRY_FILE_INFO */
 	uint8_t flag;					/* fragmented or contiguous */
@@ -138,7 +138,7 @@ struct exfat_file_info				/* file or directory info */
 	le64_t size;					/* in bytes, equals to real_size */
 };
 
-struct exfat_file_name				/* file or directory name */
+struct exfat_entry_name				/* file or directory name */
 {
 	uint8_t type;					/* EXFAT_ENTRY_FILE_NAME */
 	uint8_t __unknown;
