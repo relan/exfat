@@ -125,7 +125,7 @@ static struct exfat_node* allocate_node(void)
 }
 
 static void init_node_meta1(struct exfat_node* node,
-		const struct exfat_file* meta1)
+		const struct exfat_entry_meta1* meta1)
 {
 	node->flags = le16_to_cpu(meta1->attrib);
 	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime);
@@ -133,7 +133,7 @@ static void init_node_meta1(struct exfat_node* node,
 }
 
 static void init_node_meta2(struct exfat_node* node,
-		const struct exfat_file_info* meta2)
+		const struct exfat_entry_meta2* meta2)
 {
 	node->size = le64_to_cpu(meta2->size);
 	node->start_cluster = le32_to_cpu(meta2->start_cluster);
@@ -150,12 +150,12 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		struct exfat_node** node, struct iterator* it)
 {
 	const struct exfat_entry* entry;
-	const struct exfat_file* file;
-	const struct exfat_file_info* file_info;
-	const struct exfat_file_name* file_name;
-	const struct exfat_upcase* upcase;
-	const struct exfat_bitmap* bitmap;
-	const struct exfat_label* label;
+	const struct exfat_entry_meta1* meta1;
+	const struct exfat_entry_meta2* meta2;
+	const struct exfat_entry_name* file_name;
+	const struct exfat_entry_upcase* upcase;
+	const struct exfat_entry_bitmap* bitmap;
+	const struct exfat_entry_label* label;
 	uint8_t continuations = 0;
 	le16_t* namep = NULL;
 	uint16_t reference_checksum = 0;
@@ -188,8 +188,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						continuations);
 				goto error;
 			}
-			file = (const struct exfat_file*) entry;
-			continuations = file->continuations;
+			meta1 = (const struct exfat_entry_meta1*) entry;
+			continuations = meta1->continuations;
 			/* each file entry must have at least 2 continuations:
 			   info and name */
 			if (continuations < 2)
@@ -197,15 +197,15 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("too few continuations (%hhu)", continuations);
 				return -EIO;
 			}
-			reference_checksum = le16_to_cpu(file->checksum);
-			actual_checksum = exfat_start_checksum(file);
+			reference_checksum = le16_to_cpu(meta1->checksum);
+			actual_checksum = exfat_start_checksum(meta1);
 			*node = allocate_node();
 			if (*node == NULL)
 				return -ENOMEM;
 			/* new node has zero reference counter */
 			(*node)->entry_cluster = it->cluster;
 			(*node)->entry_offset = it->offset % CLUSTER_SIZE(*ef->sb);
-			init_node_meta1(*node, file);
+			init_node_meta1(*node, meta1);
 			namep = (*node)->name;
 			break;
 
@@ -216,19 +216,19 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						continuations);
 				goto error;
 			}
-			file_info = (const struct exfat_file_info*) entry;
-			init_node_meta2(*node, file_info);
+			meta2 = (const struct exfat_entry_meta2*) entry;
+			init_node_meta2(*node, meta2);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 			/* There are two fields that contain file size. Maybe they plan
 			   to add compression support in the future and one of those
 			   fields is visible (uncompressed) size and the other is real
 			   (compressed) size. Anyway, currently it looks like exFAT does
 			   not support compression and both fields must be equal. */
-			if (le64_to_cpu(file_info->real_size) != (*node)->size)
+			if (le64_to_cpu(meta2->real_size) != (*node)->size)
 			{
 				exfat_error("real size does not equal to size "
 						"(%"PRIu64" != %"PRIu64")",
-						le64_to_cpu(file_info->real_size), (*node)->size);
+						le64_to_cpu(meta2->real_size), (*node)->size);
 				goto error;
 			}
 			/* directories must be aligned on at cluster boundary */
@@ -251,7 +251,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("unexpected continuation");
 				goto error;
 			}
-			file_name = (const struct exfat_file_name*) entry;
+			file_name = (const struct exfat_entry_name*) entry;
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 
 			memcpy(namep, file_name->name, EXFAT_ENAME_MAX * sizeof(le16_t));
@@ -273,7 +273,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		case EXFAT_ENTRY_UPCASE:
 			if (ef->upcase != NULL)
 				break;
-			upcase = (const struct exfat_upcase*) entry;
+			upcase = (const struct exfat_entry_upcase*) entry;
 			if (CLUSTER_INVALID(le32_to_cpu(upcase->start_cluster)))
 			{
 				exfat_error("invalid cluster in upcase table");
@@ -301,7 +301,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 
 		case EXFAT_ENTRY_BITMAP:
-			bitmap = (const struct exfat_bitmap*) entry;
+			bitmap = (const struct exfat_entry_bitmap*) entry;
 			if (CLUSTER_INVALID(le32_to_cpu(bitmap->start_cluster)))
 			{
 				exfat_error("invalid cluster in clusters bitmap");
@@ -331,7 +331,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 
 		case EXFAT_ENTRY_LABEL:
-			label = (const struct exfat_label*) entry;
+			label = (const struct exfat_entry_label*) entry;
 			if (label->length > EXFAT_ENAME_MAX)
 			{
 				exfat_error("too long label (%hhu chars)", label->length);
@@ -451,8 +451,8 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	cluster_t cluster;
 	off_t offset;
 	off_t meta1_offset, meta2_offset;
-	struct exfat_file meta1;
-	struct exfat_file_info meta2;
+	struct exfat_entry_meta1 meta1;
+	struct exfat_entry_meta2 meta2;
 
 	if (ef->ro)
 		exfat_bug("unable to flush node to read-only FS");
@@ -642,8 +642,8 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 		const le16_t* name, cluster_t cluster, off_t offset, uint16_t attrib)
 {
 	struct exfat_node* node;
-	struct exfat_file meta1;
-	struct exfat_file_info meta2;
+	struct exfat_entry_meta1 meta1;
+	struct exfat_entry_meta2 meta2;
 	const size_t name_length = utf16_length(name);
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
 	int i;
@@ -681,7 +681,7 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 			ef->fd);
 	for (i = 0; i < name_entries; i++)
 	{
-		struct exfat_file_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
+		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
 		memcpy(name_entry.name, node->name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		next_entry(ef, dir, &cluster, &offset);
@@ -753,8 +753,8 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_node* node, const le16_t* name, cluster_t new_cluster,
 		off_t new_offset)
 {
-	struct exfat_file meta1;
-	struct exfat_file_info meta2;
+	struct exfat_entry_meta1 meta1;
+	struct exfat_entry_meta2 meta2;
 	cluster_t old_cluster = node->entry_cluster;
 	off_t old_offset = node->entry_offset;
 	const size_t name_length = utf16_length(name);
@@ -784,7 +784,7 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 
 	for (i = 0; i < name_entries; i++)
 	{
-		struct exfat_file_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
+		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
 		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		next_entry(ef, dir, &new_cluster, &new_offset);

@@ -177,7 +177,7 @@ void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
 		exfat_bug("failed to convert name to UTF-8");
 }
 
-uint16_t exfat_start_checksum(const struct exfat_file* entry)
+uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry)
 {
 	uint16_t sum = 0;
 	int i;
@@ -197,8 +197,8 @@ uint16_t exfat_add_checksum(const void* entry, uint16_t sum)
 	return sum;
 }
 
-le16_t exfat_calc_checksum(const struct exfat_file* meta1,
-		const struct exfat_file_info* meta2, const le16_t* name)
+le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
+		const struct exfat_entry_meta2* meta2, const le16_t* name)
 {
 	uint16_t checksum;
 	const int name_entries = DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX);
@@ -208,7 +208,7 @@ le16_t exfat_calc_checksum(const struct exfat_file* meta1,
 	checksum = exfat_add_checksum(meta2, checksum);
 	for (i = 0; i < name_entries; i++)
 	{
-		struct exfat_file_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
+		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
 		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		checksum = exfat_add_checksum(&name_entry, checksum);
