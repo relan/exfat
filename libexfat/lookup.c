@@ -148,6 +148,11 @@ static int is_last_comp(const char* comp, size_t length)
 	return get_comp(p, &p) == 0;
 }
 
+static int is_allowed(const char* comp, size_t length)
+{
+	return strcspn(comp, "/\\:*?\"<>|") >= length;
+}
+
 int exfat_split(struct exfat* ef, struct exfat_node** node, le16_t* name,
 		const char* path)
 {
@@ -167,6 +172,12 @@ int exfat_split(struct exfat* ef, struct exfat_node** node, le16_t* name,
 			if (!is_last_comp(p, n))
 			{
 				/* this is not the last component of the path */
+				exfat_put_node(ef, parent);
+				return -ENOENT;
+			}
+			if (!is_allowed(p, n))
+			{
+				/* contains characters that are not allowed */
 				exfat_put_node(ef, parent);
 				return -ENOENT;
 			}
