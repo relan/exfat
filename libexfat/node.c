@@ -577,18 +577,6 @@ static int grow_directory(struct exfat* ef, struct exfat_node* dir,
 				* CLUSTER_SIZE(*ef->sb));
 }
 
-static void write_eod(struct exfat* ef, struct exfat_node* dir,
-		cluster_t cluster, off_t offset, int seek)
-{
-	struct exfat_entry eod;
-
-	while (seek--)
-		next_entry(ef, dir, &cluster, &offset);
-	memset(&eod, 0, sizeof(struct exfat_entry));
-	exfat_write_raw(&eod, sizeof(struct exfat_entry),
-			exfat_c2o(ef, cluster) + offset, ef->fd);
-}
-
 static int find_slot(struct exfat* ef, struct exfat_node* dir,
 		cluster_t* cluster, off_t* offset, int subentries)
 {
@@ -619,7 +607,6 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 				closedir(&it);
 				return rc;
 			}
-			write_eod(ef, dir, *cluster, *offset, subentries - contiguous);
 			break;
 		}
 		if (entry->type & EXFAT_ENTRY_VALID)
