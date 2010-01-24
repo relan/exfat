@@ -125,6 +125,15 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		exfat_error("exFAT file system is not found");
 		return -EIO;
 	}
+	/* officially exFAT supports cluster size up to 32 MB */
+	if ((int) ef->sb->block_bits + (int) ef->sb->bpc_bits > 25)
+	{
+		close(ef->fd);
+		free(ef->sb);
+		exfat_error("too big cluster size: 2^%d",
+				(int) ef->sb->block_bits + (int) ef->sb->bpc_bits);
+		return -EIO;
+	}
 
 	ef->zero_block = malloc(BLOCK_SIZE(*ef->sb));
 	if (ef->zero_block == NULL)
