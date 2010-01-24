@@ -157,17 +157,6 @@ static void set_next_cluster(const struct exfat* ef, int contiguous,
 	exfat_write_raw(&next, sizeof(next), fat_offset, ef->fd);
 }
 
-static void erase_cluster(struct exfat* ef, cluster_t cluster)
-{
-	const int block_size = BLOCK_SIZE(*ef->sb);
-	const int blocks_in_cluster = CLUSTER_SIZE(*ef->sb) / block_size;
-	int i;
-
-	for (i = 0; i < blocks_in_cluster; i++)
-		exfat_write_raw(ef->zero_block, block_size,
-				exfat_c2o(ef, cluster) + i * block_size, ef->fd);
-}
-
 static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 {
 	cluster_t cluster;
@@ -185,7 +174,6 @@ static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 		return EXFAT_CLUSTER_END;
 	}
 
-	erase_cluster(ef, cluster);
 	ef->cmap.dirty = 1;
 	/* FIXME update percentage of used space */
 	return cluster;
@@ -320,11 +308,51 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 	return 0;
 }
 
+static void erase_raw(struct exfat* ef, size_t size, off_t offset)
+{
+	exfat_write_raw(ef->zero_block, size, offset, ef->fd);
+}
+
+static int erase_range(struct exfat* ef, struct exfat_node* node,
+		uint64_t begin, uint64_t end)
+{
+	uint64_t block_boundary;
+	cluster_t cluster;
+
+	if (begin >= end)
+		return 0;
+
+	block_boundary = (node->size | (BLOCK_SIZE(*ef->sb) - 1)) + 1;
+	cluster = exfat_advance_cluster(ef, node,
+			node->size / CLUSTER_SIZE(*ef->sb));
+	if (CLUSTER_INVALID(cluster))
+	{
+		exfat_error("invalid cluster in file");
+		return -EIO;
+	}
+	/* erase from the beginning to the closest block boundary */
+	erase_raw(ef, MIN(block_boundary, end) - node->size,
+			exfat_c2o(ef, cluster) + node->size % CLUSTER_SIZE(*ef->sb));
+	/* erase whole blocks */
+	while (block_boundary < end)
+	{
+		if (block_boundary % CLUSTER_SIZE(*ef->sb) == 0)
+			cluster = exfat_next_cluster(ef, node, cluster);
+		erase_raw(ef, BLOCK_SIZE(*ef->sb),
+			exfat_c2o(ef, cluster) + block_boundary % CLUSTER_SIZE(*ef->sb));
+		block_boundary += BLOCK_SIZE(*ef->sb);
+	}
+	return 0;
+}
+
 int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 {
 	uint32_t c1 = bytes2clusters(ef, node->size);
 	uint32_t c2 = bytes2clusters(ef, size);
 	int rc = 0;
+
+	if (node->size == size)
+		return 0;
 
 	if (c1 < c2)
 		rc = grow_file(ef, node, c2 - c1);
@@ -334,11 +362,12 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	if (rc != 0)
 		return rc;
 
-	if (node->size != size)
-	{
-		exfat_update_mtime(node);
-		node->size = size;
-		node->flags |= EXFAT_ATTRIB_DIRTY;
-	}
+	rc = erase_range(ef, node, node->size, size);
+	if (rc != 0)
+		return rc;
+
+	exfat_update_mtime(node);
+	node->size = size;
+	node->flags |= EXFAT_ATTRIB_DIRTY;
 	return 0;
 }
