@@ -85,6 +85,8 @@ static int lookup_name(struct exfat* ef, struct exfat_node* parent,
 	le16_t buffer[EXFAT_NAME_MAX + 1];
 	int rc;
 
+	*node = NULL;
+
 	rc = utf8_to_utf16(buffer, name, EXFAT_NAME_MAX, n);
 	if (rc != 0)
 		return rc;
@@ -153,43 +155,49 @@ static int is_allowed(const char* comp, size_t length)
 	return strcspn(comp, "/\\:*?\"<>|") >= length;
 }
 
-int exfat_split(struct exfat* ef, struct exfat_node** node, le16_t* name,
-		const char* path)
+int exfat_split(struct exfat* ef, struct exfat_node** parent,
+		struct exfat_node** node, le16_t* name, const char* path)
 {
-	struct exfat_node* parent;
 	const char* p;
 	size_t n;
 
-	parent = *node = exfat_get_node(ef->root);
+	*parent = *node = exfat_get_node(ef->root);
 	for (p = path; (n = get_comp(p, &p)); p += n)
 	{
 		if (n == 1 && *p == '.')
 			continue;
-		if (lookup_name(ef, parent, node, p, n) != 0)
+		if (is_last_comp(p, n))
 		{
 			int rc;
 
-			if (!is_last_comp(p, n))
-			{
-				/* this is not the last component of the path */
-				exfat_put_node(ef, parent);
-				return -ENOENT;
-			}
 			if (!is_allowed(p, n))
 			{
 				/* contains characters that are not allowed */
-				exfat_put_node(ef, parent);
+				exfat_put_node(ef, *parent);
 				return -ENOENT;
 			}
-			*node = parent;
 			rc = utf8_to_utf16(name, p, EXFAT_NAME_MAX, n);
 			if (rc != 0)
-				exfat_put_node(ef, parent);
-			return rc;
+			{
+				exfat_put_node(ef, *parent);
+				return rc;
+			}
+
+			rc = lookup_name(ef, *parent, node, p, n);
+			if (rc != 0 && rc != -ENOENT)
+			{
+				exfat_put_node(ef, *parent);
+				return rc;
+			}
+			return 0;
 		}
-		exfat_put_node(ef, parent);
-		parent = *node;
+		if (lookup_name(ef, *parent, node, p, n) != 0)
+		{
+			exfat_put_node(ef, *parent);
+			return -ENOENT;
+		}
+		exfat_put_node(ef, *parent);
+		*parent = *node;
 	}
-	exfat_put_node(ef, *node);
-	return -EEXIST;
+	exfat_bug("impossible");
 }

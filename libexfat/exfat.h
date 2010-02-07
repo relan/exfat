@@ -120,8 +120,8 @@ void exfat_closedir(struct exfat* ef, struct exfat_iterator* it);
 struct exfat_node* exfat_readdir(struct exfat* ef, struct exfat_iterator* it);
 int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
-int exfat_split(struct exfat* ef, struct exfat_node** node, le16_t* name,
-		const char* path);
+int exfat_split(struct exfat* ef, struct exfat_node** parent,
+		struct exfat_node** node, le16_t* name, const char* path);
 
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster);
 cluster_t exfat_next_cluster(const struct exfat* ef,
