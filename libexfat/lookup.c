@@ -125,6 +125,7 @@ int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 	struct exfat_node* parent;
 	const char* p;
 	size_t n;
+	int rc;
 
 	/* start from the root directory */
 	parent = *node = exfat_get_node(ef->root);
@@ -132,10 +133,11 @@ int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 	{
 		if (n == 1 && *p == '.')				/* skip "." component */
 			continue;
-		if (lookup_name(ef, parent, node, p, n) != 0)
+		rc = lookup_name(ef, parent, node, p, n);
+		if (rc != 0)
 		{
 			exfat_put_node(ef, parent);
-			return -ENOENT;
+			return rc;
 		}
 		exfat_put_node(ef, parent);
 		parent = *node;
@@ -160,6 +162,7 @@ int exfat_split(struct exfat* ef, struct exfat_node** parent,
 {
 	const char* p;
 	size_t n;
+	int rc;
 
 	*parent = *node = exfat_get_node(ef->root);
 	for (p = path; (n = get_comp(p, &p)); p += n)
@@ -168,8 +171,6 @@ int exfat_split(struct exfat* ef, struct exfat_node** parent,
 			continue;
 		if (is_last_comp(p, n))
 		{
-			int rc;
-
 			if (!is_allowed(p, n))
 			{
 				/* contains characters that are not allowed */
@@ -191,10 +192,11 @@ int exfat_split(struct exfat* ef, struct exfat_node** parent,
 			}
 			return 0;
 		}
-		if (lookup_name(ef, *parent, node, p, n) != 0)
+		rc = lookup_name(ef, *parent, node, p, n);
+		if (rc != 0)
 		{
 			exfat_put_node(ef, *parent);
-			return -ENOENT;
+			return rc;
 		}
 		exfat_put_node(ef, *parent);
 		*parent = *node;
