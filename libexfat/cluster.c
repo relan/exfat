@@ -201,11 +201,15 @@ static void make_noncontiguous(const struct exfat* ef, cluster_t first,
 		set_next_cluster(ef, 0, c, c + 1);
 }
 
+static int shrink_file(struct exfat* ef, struct exfat_node* node,
+		uint32_t current, uint32_t difference);
+
 static int grow_file(struct exfat* ef, struct exfat_node* node,
-		uint32_t difference)
+		uint32_t current, uint32_t difference)
 {
 	cluster_t previous;
 	cluster_t next;
+	uint32_t allocated = 0;
 
 	if (difference == 0)
 		exfat_bug("zero clusters count passed");
@@ -213,8 +217,7 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 	if (node->start_cluster != EXFAT_CLUSTER_FREE)
 	{
 		/* get the last cluster of the file */
-		previous = exfat_advance_cluster(ef, node,
-				bytes2clusters(ef, node->size) - 1);
+		previous = exfat_advance_cluster(ef, node, current - 1);
 		if (CLUSTER_INVALID(previous))
 		{
 			exfat_error("invalid cluster in file");
@@ -231,25 +234,31 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 		if (CLUSTER_INVALID(previous))
 			return -ENOSPC;
 		node->fptr_cluster = node->start_cluster = previous;
-		difference--;
+		allocated = 1;
 		/* file consists of only one cluster, so it's contiguous */
 		node->flags |= EXFAT_ATTRIB_CONTIGUOUS;
 	}
 
-	while (difference--)
+	while (allocated < difference)
 	{
 		next = allocate_cluster(ef, previous + 1);
 		if (CLUSTER_INVALID(next))
+		{
+			if (allocated != 0)
+				shrink_file(ef, node, current + allocated, allocated);
 			return -ENOSPC;
+		}
 		if (next != previous - 1 && IS_CONTIGUOUS(*node))
 		{
 			/* it's a pity, but we are not able to keep the file contiguous
 			   anymore */
 			make_noncontiguous(ef, node->start_cluster, previous);
 			node->flags &= ~EXFAT_ATTRIB_CONTIGUOUS;
+			node->flags |= EXFAT_ATTRIB_DIRTY;
 		}
 		set_next_cluster(ef, IS_CONTIGUOUS(*node), previous, next);
 		previous = next;
+		allocated++;
 	}
 
 	set_next_cluster(ef, IS_CONTIGUOUS(*node), previous, EXFAT_CLUSTER_END);
@@ -257,9 +266,8 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 }
 
 static int shrink_file(struct exfat* ef, struct exfat_node* node,
-		uint32_t difference)
+		uint32_t current, uint32_t difference)
 {
-	uint32_t current = bytes2clusters(ef, node->size);
 	cluster_t previous;
 	cluster_t next;
 
@@ -355,9 +363,9 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 		return 0;
 
 	if (c1 < c2)
-		rc = grow_file(ef, node, c2 - c1);
+		rc = grow_file(ef, node, c1, c2 - c1);
 	else if (c1 > c2)
-		rc = shrink_file(ef, node, c1 - c2);
+		rc = shrink_file(ef, node, c1, c1 - c2);
 
 	if (rc != 0)
 		return rc;
