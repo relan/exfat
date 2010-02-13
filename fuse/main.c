@@ -72,9 +72,9 @@ static int fuse_exfat_truncate(const char* path, off_t size)
 	if (rc != 0)
 		return rc;
 
-	exfat_truncate(&ef, node, size);
+	rc = exfat_truncate(&ef, node, size);
 	exfat_put_node(&ef, node);
-	return 0;
+	return rc;
 }
 
 static int fuse_exfat_readdir(const char* path, void* buffer,
