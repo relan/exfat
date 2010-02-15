@@ -379,3 +379,14 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	node->flags |= EXFAT_ATTRIB_DIRTY;
 	return 0;
 }
+
+uint32_t exfat_count_free_clusters(struct exfat* ef)
+{
+	uint32_t free_clusters = 0;
+	uint32_t i;
+
+	for (i = 0; i < ef->cmap.size; i++)
+		if (BMAP_GET(ef->cmap.chunk, i) == 0)
+			free_clusters++;
+	return free_clusters;
+}
