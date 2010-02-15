@@ -229,7 +229,8 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 	sfs->f_bsize = BLOCK_SIZE(*ef.sb);
 	sfs->f_frsize = CLUSTER_SIZE(*ef.sb);
 	sfs->f_blocks = block_count;
-	sfs->f_bavail = block_count - ef.sb->allocated_percent * block_count / 100;
+	sfs->f_bavail = (fsblkcnt_t) exfat_count_free_clusters(&ef) *
+			(CLUSTER_SIZE(*ef.sb) / BLOCK_SIZE(*ef.sb));
 	sfs->f_bfree = sfs->f_bavail;
 	sfs->f_namemax = EXFAT_NAME_MAX;
 
