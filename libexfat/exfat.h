@@ -30,7 +30,7 @@
 #include "exfatfs.h"
 
 #define EXFAT_VERSION_MAJOR 0
-#define EXFAT_VERSION_MINOR 5
+#define EXFAT_VERSION_MINOR 9
 #define EXFAT_VERSION_PATCH 0
 
 #define EXFAT_NAME_MAX 256
