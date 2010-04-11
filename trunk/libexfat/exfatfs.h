@@ -35,7 +35,7 @@ struct exfat_super_block
 {
 	uint8_t jump[3];				/* 0x00 jmp and nop instructions */
 	uint8_t oem_name[8];			/* 0x03 "EXFAT   " */
-	uint8_t	__unknown1[53];			/* 0x0B ? always 0 */
+	uint8_t	__unused1[53];			/* 0x0B always 0 */
 	le64_t block_start;				/* 0x40 partition first block */
 	le64_t block_count;				/* 0x48 partition blocks count */
 	le32_t fat_block_start;			/* 0x50 FAT first block */
@@ -43,15 +43,15 @@ struct exfat_super_block
 	le32_t cluster_block_start;		/* 0x58 first cluster block */
 	le32_t cluster_count;			/* 0x5C total clusters count */
 	le32_t rootdir_cluster;			/* 0x60 first cluster of the root dir */
-	le32_t volume_serial;			/* 0x64 */
-	le16_t __unknown2;				/* 0x68 version? always 0x00 0x01 */
-	le16_t volume_state;			/* 0x6A */
+	le32_t volume_serial;			/* 0x64 volume serial number */
+	le16_t version;					/* 0x68 FS version */
+	le16_t volume_state;			/* 0x6A volume state flags */
 	uint8_t block_bits;				/* 0x6C block size as (1 << n) */
 	uint8_t bpc_bits;				/* 0x6D blocks per cluster as (1 << n) */
-	uint8_t __unknown3;				/* 0x6E ? always 1 */
-	uint8_t __unknown4;				/* 0x6F drive number? always 0x80 */
+	uint8_t fat_count;				/* 0x6E always 1 */
+	uint8_t drive_no;				/* 0x6F always 0x80 */
 	uint8_t allocated_percent;		/* 0x70 percentage of allocated space */
-	uint8_t __unknown5[397];		/* 0x71 padding? all zero */
+	uint8_t __unused2[397];			/* 0x71 always 0 */
 	le16_t boot_signature;			/* the value of 0xAA55 */
 };
 
