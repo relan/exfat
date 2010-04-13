@@ -26,12 +26,15 @@
 #include <string.h>
 #include <exfat.h>
 #include <inttypes.h>
+#include <limits.h>
 
 #define exfat_debug(format, ...)
 
 #if !defined(FUSE_VERSION) || (FUSE_VERSION < 26)
 	#error FUSE 2.6 or later is required
 #endif
+
+const char* default_options = "allow_other,blkdev";
 
 struct exfat ef;
 
@@ -277,13 +280,38 @@ static struct fuse_operations fuse_exfat_ops =
 	.destroy	= fuse_exfat_destroy,
 };
 
+static char* add_option(char* options, const char* name, const char* value)
+{
+	size_t size;
+
+	if (value)
+		size = strlen(options) + strlen(name) + strlen(value) + 3;
+	else
+		size = strlen(options) + strlen(name) + 2;
+
+	options = realloc(options, size);
+	if (options == NULL)
+	{
+		exfat_error("failed to reallocate options string");
+		return NULL;
+	}
+	strcat(options, ",");
+	strcat(options, name);
+	if (value)
+	{
+		strcat(options, "=");
+		strcat(options, value);
+	}
+	return options;
+}
+
 int main(int argc, char* argv[])
 {
 	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
 	struct fuse_args newfs_args = FUSE_ARGS_INIT(0, NULL);
 	const char* spec = NULL;
 	const char* mount_point = NULL;
-	const char* mount_options = "";
+	char* mount_options;
 	int debug = 0;
 	struct fuse_chan* fc = NULL;
 	struct fuse* fh = NULL;
@@ -292,6 +320,13 @@ int main(int argc, char* argv[])
 	printf("FUSE exfat %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
+	mount_options = strdup(default_options);
+	if (mount_options == NULL)
+	{
+		exfat_error("failed to allocate options string");
+		return 1;
+	}
+
 	for (pp = argv + 1; *pp; pp++)
 	{
 		if (strcmp(*pp, "-o") == 0)
@@ -299,7 +334,9 @@ int main(int argc, char* argv[])
 			pp++;
 			if (*pp == NULL)
 				usage(argv[0]);
-			mount_options = *pp;
+			mount_options = add_option(mount_options, *pp, NULL);
+			if (mount_options == NULL)
+				return 1;
 		}
 		else if (strcmp(*pp, "-d") == 0)
 			debug = 1;
@@ -308,28 +345,41 @@ int main(int argc, char* argv[])
 		else if (mount_point == NULL)
 			mount_point = *pp;
 		else
+		{
+			free(mount_options);
 			usage(argv[0]);
+		}
 	}
 	if (spec == NULL || mount_point == NULL)
+	{
+		free(mount_options);
 		usage(argv[0]);
+	}
 
 	/* create arguments for fuse_mount() */
 	if (fuse_opt_add_arg(&mount_args, "exfat") != 0 ||
 		fuse_opt_add_arg(&mount_args, "-o") != 0 ||
 		fuse_opt_add_arg(&mount_args, mount_options) != 0)
+	{
+		free(mount_options);
 		return 1;
+	}
 
 	/* create FUSE mount point */
 	fc = fuse_mount(mount_point, &mount_args);
 	fuse_opt_free_args(&mount_args);
 	if (fc == NULL)
+	{
+		free(mount_options);
 		return 1;
+	}
 
 	/* create arguments for fuse_new() */
 	if (fuse_opt_add_arg(&newfs_args, "") != 0 ||
 		(debug && fuse_opt_add_arg(&newfs_args, "-d") != 0))
 	{
 		fuse_unmount(mount_point, fc);
+		free(mount_options);
 		return 1;
 	}
 
@@ -340,6 +390,7 @@ int main(int argc, char* argv[])
 	if (fh == NULL)
 	{
 		fuse_unmount(mount_point, fc);
+		free(mount_options);
 		return 1;
 	}
 
@@ -348,6 +399,7 @@ int main(int argc, char* argv[])
 	{
 		fuse_unmount(mount_point, fc);
 		fuse_destroy(fh);
+		free(mount_options);
 		return 1;
 	}
 
@@ -355,8 +407,10 @@ int main(int argc, char* argv[])
 	{
 		fuse_unmount(mount_point, fc);
 		fuse_destroy(fh);
+		free(mount_options);
 		return 1;
 	}
+	free(mount_options);
 
 	/* go to background unless "-d" option is passed */
 	fuse_daemonize(debug);
