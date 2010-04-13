@@ -305,6 +305,19 @@ static char* add_option(char* options, const char* name, const char* value)
 	return options;
 }
 
+static char* add_fsname_option(char* options, const char* spec)
+{
+	char spec_abs[PATH_MAX];
+
+	if (realpath(spec, spec_abs) == NULL)
+	{
+		free(options);
+		exfat_error("failed to get absolute path for `%s'", spec);
+		return NULL;
+	}
+	return add_option(options, "fsname", spec_abs);
+}
+
 int main(int argc, char* argv[])
 {
 	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
@@ -355,6 +368,9 @@ int main(int argc, char* argv[])
 		free(mount_options);
 		usage(argv[0]);
 	}
+	mount_options = add_fsname_option(mount_options, spec);
+	if (mount_options == NULL)
+		return 1;
 
 	/* create arguments for fuse_mount() */
 	if (fuse_opt_add_arg(&mount_args, "exfat") != 0 ||
