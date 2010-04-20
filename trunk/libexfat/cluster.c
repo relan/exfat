@@ -29,12 +29,12 @@
 /*
  * Cluster to block.
  */
-static uint32_t c2b(const struct exfat* ef, cluster_t cluster)
+static off_t c2b(const struct exfat* ef, cluster_t cluster)
 {
 	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
 		exfat_bug("invalid cluster number %u", cluster);
 	return le32_to_cpu(ef->sb->cluster_block_start) +
-		((cluster - EXFAT_FIRST_DATA_CLUSTER) << ef->sb->bpc_bits);
+		((off_t) (cluster - EXFAT_FIRST_DATA_CLUSTER) << ef->sb->bpc_bits);
 }
 
 /*
@@ -42,7 +42,7 @@ static uint32_t c2b(const struct exfat* ef, cluster_t cluster)
  */
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster)
 {
-	return (off_t) c2b(ef, cluster) << ef->sb->block_bits;
+	return c2b(ef, cluster) << ef->sb->block_bits;
 }
 
 /*
