@@ -96,6 +96,8 @@ static void parse_options(struct exfat* ef, const char* options)
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
+	uint16_t fs_version;
+
 	tzset();
 	memset(ef, 0, sizeof(struct exfat));
 
@@ -123,6 +125,15 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		close(ef->fd);
 		free(ef->sb);
 		exfat_error("exFAT file system is not found");
+		return -EIO;
+	}
+	fs_version = le16_to_cpu(ef->sb->version);
+	if (fs_version != 0x0100)
+	{
+		close(ef->fd);
+		free(ef->sb);
+		exfat_error("unsupported exFAT version: %hu.%hu",
+				fs_version >> 8, fs_version & 0xff);
 		return -EIO;
 	}
 	/* officially exFAT supports cluster size up to 32 MB */
