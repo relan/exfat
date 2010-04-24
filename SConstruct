@@ -19,6 +19,7 @@
 #
 
 import os
+import SCons
 
 # Define __DARWIN_64_BIT_INO_T=0 is needed for Snow Leopard support because
 # in it's headers inode numbers are 64-bit by default, but libfuse operates
@@ -31,10 +32,27 @@ Library('libexfat/exfat', Glob('libexfat/*.c'), CFLAGS = cflags, LINKFLAGS = ldf
 fsck = Program('fsck/exfatck', Glob('fsck/*.c'), CFLAGS = cflags, LINKFLAGS = ldflags, LIBS = ['exfat'], LIBPATH = 'libexfat')
 mount = Program('fuse/mount.exfat-fuse', Glob('fuse/*.c'), CFLAGS = cflags + ' -DFUSE_USE_VERSION=26', LINKFLAGS = ldflags, LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
 
-try:
-	destdir = os.environ['DESTDIR']
-except:
-	destdir = '/sbin'
-Alias('install', Install(dir = destdir, source = mount))
+def get_destdir():
+	try:
+		destdir = os.environ['DESTDIR']
+	except KeyError:
+		destdir = '/sbin'
+	return destdir
+
+def make_symlink((dir)):
+	workdir = os.getcwd()
+	os.chdir(dir)
+	try:
+		os.remove('mount.exfat')
+	except OSError:
+		pass
+	os.symlink('mount.exfat-fuse', 'mount.exfat')
+	os.chdir(workdir)
+
+symlink = SCons.Action.ActionFactory(make_symlink,
+		lambda dir: 'make_symlink("%s")' % dir)
+Alias('install',
+		Install(dir = get_destdir(), source = mount),
+		symlink(dir = get_destdir()))
 
 Default([mount, fsck])
