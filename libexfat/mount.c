@@ -136,6 +136,13 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 				fs_version >> 8, fs_version & 0xff);
 		return -EIO;
 	}
+	if (ef->sb->fat_count != 1)
+	{
+		close(ef->fd);
+		free(ef->sb);
+		exfat_error("unsupported FAT count: %hhu", ef->sb->fat_count);
+		return -EIO;
+	}
 	/* officially exFAT supports cluster size up to 32 MB */
 	if ((int) ef->sb->block_bits + (int) ef->sb->bpc_bits > 25)
 	{
