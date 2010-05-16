@@ -65,7 +65,7 @@ static uint32_t bytes2clusters(const struct exfat* ef, uint64_t bytes)
 cluster_t exfat_next_cluster(const struct exfat* ef,
 		const struct exfat_node* node, cluster_t cluster)
 {
-	cluster_t next;
+	le32_t next;
 	off_t fat_offset;
 
 	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
@@ -76,7 +76,7 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 	fat_offset = b2o(ef, le32_to_cpu(ef->sb->fat_block_start))
 		+ cluster * sizeof(cluster_t);
 	exfat_read_raw(&next, sizeof(next), fat_offset, ef->fd);
-	return next;
+	return le32_to_cpu(next);
 }
 
 cluster_t exfat_advance_cluster(const struct exfat* ef,
