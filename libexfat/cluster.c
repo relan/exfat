@@ -27,6 +27,14 @@
 #define BMAP_CLR(bitmap, index) (bitmap)[(index) / 8] &= ~(1u << ((index) % 8))
 
 /*
+ * Block to absolute offset.
+ */
+static off_t b2o(const struct exfat* ef, off_t block)
+{
+	return block << ef->sb->block_bits;
+}
+
+/*
  * Cluster to block.
  */
 static off_t c2b(const struct exfat* ef, cluster_t cluster)
@@ -42,15 +50,7 @@ static off_t c2b(const struct exfat* ef, cluster_t cluster)
  */
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster)
 {
-	return c2b(ef, cluster) << ef->sb->block_bits;
-}
-
-/*
- * Block to absolute offset.
- */
-static off_t b2o(const struct exfat* ef, uint32_t block)
-{
-	return (off_t) block << ef->sb->block_bits;
+	return b2o(ef, c2b(ef, cluster));
 }
 
 /*
