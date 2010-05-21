@@ -149,12 +149,14 @@ static void set_next_cluster(const struct exfat* ef, int contiguous,
 		cluster_t current, cluster_t next)
 {
 	off_t fat_offset;
+	le32_t next_le32;
 
 	if (contiguous)
 		return;
 	fat_offset = b2o(ef, le32_to_cpu(ef->sb->fat_block_start))
 		+ current * sizeof(cluster_t);
-	exfat_write_raw(&next, sizeof(next), fat_offset, ef->fd);
+	next_le32 = cpu_to_le32(next);
+	exfat_write_raw(&next_le32, sizeof(next_le32), fat_offset, ef->fd);
 }
 
 static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
