@@ -97,6 +97,7 @@ static void parse_options(struct exfat* ef, const char* options)
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	uint16_t fs_version;
+	int rc;
 
 	tzset();
 	memset(ef, 0, sizeof(struct exfat));
@@ -183,6 +184,16 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	ef->root->atime = 0;
 	/* always keep at least 1 reference to the root node */
 	exfat_get_node(ef->root);
+
+	rc = exfat_cache_directory(ef, ef->root);
+	if (rc != 0)
+	{
+		free(ef->root);
+		free(ef->zero_block);
+		close(ef->fd);
+		free(ef->sb);
+		return rc;
+	}
 
 	return 0;
 }
