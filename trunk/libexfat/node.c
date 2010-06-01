@@ -309,9 +309,10 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			ef->cmap.size = le32_to_cpu(ef->sb->cluster_count) -
 				EXFAT_FIRST_DATA_CLUSTER;
-			if (le64_to_cpu(bitmap->size) != (ef->cmap.size + 7) / 8)
+			if (le64_to_cpu(bitmap->size) < (ef->cmap.size + 7) / 8)
 			{
-				exfat_error("invalid bitmap size: %"PRIu64" (expected %u)",
+				exfat_error("invalid bitmap size: %"PRIu64
+						" (expected at least %u)",
 						le64_to_cpu(bitmap->size), (ef->cmap.size + 7) / 8);
 				return -EIO;
 			}
