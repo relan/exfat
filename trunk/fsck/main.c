@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
 	printf("exfatck %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
-	if (exfat_mount(&ef, argv[1], "") != 0)
+	if (exfat_mount(&ef, argv[1], "ro") != 0)
 		return 1;
 
 	printf("Checking file system on %s.\n", argv[1]);
