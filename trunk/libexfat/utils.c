@@ -78,7 +78,8 @@ union exfat_date
 		uint16_t month : 4; /* 1-12 */
 		uint16_t year  : 7; /* 1-127 (+1980) */
 	};
-};
+}
+__attribute__((__packed__));
 
 union exfat_time
 {
@@ -89,7 +90,8 @@ union exfat_time
 		uint16_t min    : 6; /* 0-59 */
 		uint16_t hour   : 5; /* 0-23 */
 	};
-};
+}
+__attribute__((__packed__));
 
 time_t exfat_exfat2unix(le16_t date, le16_t time)
 {
