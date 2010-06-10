@@ -69,64 +69,45 @@ static const time_t days_in_year[] =
 	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334
 };
 
-union exfat_date
-{
-	uint16_t raw;
-	struct
-	{
-		uint16_t day   : 5; /* 1-31 */
-		uint16_t month : 4; /* 1-12 */
-		uint16_t year  : 7; /* 1-127 (+1980) */
-	};
-}
-__attribute__((__packed__));
-
-union exfat_time
-{
-	uint16_t raw;
-	struct
-	{
-		uint16_t twosec : 5; /* 0-29 (2 sec granularity) */
-		uint16_t min    : 6; /* 0-59 */
-		uint16_t hour   : 5; /* 0-23 */
-	};
-}
-__attribute__((__packed__));
-
 time_t exfat_exfat2unix(le16_t date, le16_t time)
 {
-	union exfat_date edate;
-	union exfat_time etime;
 	time_t unix_time = EPOCH_DIFF_SEC;
+	uint16_t ndate = le16_to_cpu(date);
+	uint16_t ntime = le16_to_cpu(time);
 
-	edate.raw = le16_to_cpu(date);
-	etime.raw = le16_to_cpu(time);
+	uint16_t day    = ndate & 0x1f;     /* 5 bits, 1-31 */
+	uint16_t month  = ndate >> 5 & 0xf; /* 4 bits, 1-12 */
+	uint16_t year   = ndate >> 9;       /* 7 bits, 1-127 (+1980) */
 
-	if (edate.day == 0 || edate.month == 0 || edate.month > 12)
+	uint16_t twosec = ntime & 0x1f;     /* 5 bits, 0-29 (2 sec granularity) */
+	uint16_t min    = ntime >> 5 & 0xf; /* 6 bits, 0-59 */
+	uint16_t hour   = ntime >> 11;      /* 5 bits, 0-23 */
+
+	if (day == 0 || month == 0 || month > 12)
 	{
 		exfat_error("bad date %hu-%02hu-%02hu",
-				edate.year + EXFAT_EPOCH_YEAR, edate.month, edate.day);
+				year + EXFAT_EPOCH_YEAR, month, day);
 		return 0;
 	}
-	if (etime.hour > 23 || etime.min > 59 || etime.twosec > 29)
+	if (hour > 23 || min > 59 || twosec > 29)
 	{
 		exfat_error("bad time %hu:%02hu:%02hu",
-			etime.hour, etime.min, etime.twosec * 2);
+				hour, min, twosec * 2);
 		return 0;
 	}
 
 	/* every 4th year between 1904 and 2096 is leap */
-	unix_time += edate.year * SEC_IN_YEAR + LEAP_YEARS(edate.year) * SEC_IN_DAY;
-	unix_time += days_in_year[edate.month] * SEC_IN_DAY;
+	unix_time += year * SEC_IN_YEAR + LEAP_YEARS(year) * SEC_IN_DAY;
+	unix_time += days_in_year[month] * SEC_IN_DAY;
 	/* if it's leap year and February has passed we should add 1 day */
-	if ((EXFAT_EPOCH_YEAR + edate.year) % 4 == 0 && edate.month > 2)
+	if ((EXFAT_EPOCH_YEAR + year) % 4 == 0 && month > 2)
 		unix_time += SEC_IN_DAY;
-	unix_time += (edate.day - 1) * SEC_IN_DAY;
+	unix_time += (day - 1) * SEC_IN_DAY;
 
-	unix_time += etime.hour * SEC_IN_HOUR;
-	unix_time += etime.min * SEC_IN_MIN;
+	unix_time += hour * SEC_IN_HOUR;
+	unix_time += min * SEC_IN_MIN;
 	/* exFAT represents time with 2 sec granularity */
-	unix_time += etime.twosec * 2;
+	unix_time += twosec * 2;
 
 	/* exFAT stores timestamps in local time, so we correct it to UTC */
 	unix_time += timezone;
@@ -136,9 +117,9 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time)
 {
-	union exfat_date edate;
-	union exfat_time etime;
 	time_t shift = EPOCH_DIFF_SEC + timezone;
+	uint16_t day, month, year;
+	uint16_t twosec, min, hour;
 	int days;
 	int i;
 
@@ -149,28 +130,29 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time)
 	unix_time -= shift;
 
 	days = unix_time / SEC_IN_DAY;
-	edate.year = (4 * days) / (4 * 365 + 1);
-	days -= edate.year * 365 + LEAP_YEARS(edate.year);
+	year = (4 * days) / (4 * 365 + 1);
+	days -= year * 365 + LEAP_YEARS(year);
+	month = 0;
 	for (i = 1; i <= 12; i++)
 	{
-		int leap_day = (IS_LEAP_YEAR(edate.year) && i == 2);
-		int leap_sub = (IS_LEAP_YEAR(edate.year) && i >= 3);
+		int leap_day = (IS_LEAP_YEAR(year) && i == 2);
+		int leap_sub = (IS_LEAP_YEAR(year) && i >= 3);
 
 		if (i == 12 || days - leap_sub < days_in_year[i + 1] + leap_day)
 		{
-			edate.month = i;
+			month = i;
 			days -= days_in_year[i] + leap_sub;
 			break;
 		}
 	}
-	edate.day = days + 1;
+	day = days + 1;
 
-	etime.hour = (unix_time % SEC_IN_DAY) / SEC_IN_HOUR;
-	etime.min = (unix_time % SEC_IN_HOUR) / SEC_IN_MIN;
-	etime.twosec = (unix_time % SEC_IN_MIN) / 2;
+	hour = (unix_time % SEC_IN_DAY) / SEC_IN_HOUR;
+	min = (unix_time % SEC_IN_HOUR) / SEC_IN_MIN;
+	twosec = (unix_time % SEC_IN_MIN) / 2;
 
-	*date = cpu_to_le16(edate.raw);
-	*time = cpu_to_le16(etime.raw);
+	*date = cpu_to_le16(day | (month << 5) | (year << 9));
+	*time = cpu_to_le16(twosec | (min << 5) | (hour << 11));
 }
 
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
