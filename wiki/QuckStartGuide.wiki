@@ -32,5 +32,9 @@ sudo scons install
 
 Mount you exFAT volume from root (`/dev/sdXn` is the volume special file, `/mnt/exfat` is a mountpoint):
 {{{
-sudo mount -t exfat-fuse -o allow_other /dev/sdXn /mnt/exfat
+sudo mount -t exfat-fuse /dev/sdXn /mnt/exfat
+}}}
+Under Mac OS X you should specify `umask=0` option to permit write access for non-root user:
+{{{
+sudo mount -t exfat-fuse /dev/sdXn /mnt/exfat -o umask=0
 }}}
