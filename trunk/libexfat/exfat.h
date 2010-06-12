@@ -28,10 +28,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "exfatfs.h"
-
-#define EXFAT_VERSION_MAJOR 0
-#define EXFAT_VERSION_MINOR 9
-#define EXFAT_VERSION_PATCH 0
+#include "version.h"
 
 #define EXFAT_NAME_MAX 256
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000
