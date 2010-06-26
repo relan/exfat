@@ -19,18 +19,28 @@
 #
 
 import os
+import platform
 import SCons
 
+env = Environment(**ARGUMENTS)
+
+if not env['CCFLAGS']:
+	if env['CC'] == 'gcc':
+		env['CCFLAGS'] = '-Wall -O2 -ggdb'
+env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
+env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 # Define __DARWIN_64_BIT_INO_T=0 is needed for Snow Leopard support because
 # in it's headers inode numbers are 64-bit by default, but libfuse operates
 # 32-bit inode numbers. It's also possible to link against libfuse_ino64
 # instead.
-cflags = '-Wall -O2 -ggdb -D_FILE_OFFSET_BITS=64 -D__DARWIN_64_BIT_INO_T=0 -Ilibexfat'
-ldflags = ''
+if platform.system() == 'Darwin':
+	env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
+env.Append(CPPPATH = ['libexfat'])
+env.Append(LINKFLAGS = '')
 
-Library('libexfat/exfat', Glob('libexfat/*.c'), CFLAGS = cflags, LINKFLAGS = ldflags)
-fsck = Program('fsck/exfatck', Glob('fsck/*.c'), CFLAGS = cflags, LINKFLAGS = ldflags, LIBS = ['exfat'], LIBPATH = 'libexfat')
-mount = Program('fuse/mount.exfat-fuse', Glob('fuse/*.c'), CFLAGS = cflags + ' -DFUSE_USE_VERSION=26', LINKFLAGS = ldflags, LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
+env.Library('libexfat/exfat', Glob('libexfat/*.c'))
+fsck = env.Program('fsck/exfatck', Glob('fsck/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
+mount = env.Program('fuse/mount.exfat-fuse', Glob('fuse/*.c'), LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
 
 def get_destdir():
 	try:
