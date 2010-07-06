@@ -787,7 +787,7 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 				exfat_c2o(ef, new_cluster) + new_offset, ef->fd);
 	}
 
-	memcpy(node->name, name, (name_length + 1) * sizeof(le16_t));
+	memcpy(node->name, name, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
 	tree_detach(node);
 	tree_attach(dir, node);
 }
