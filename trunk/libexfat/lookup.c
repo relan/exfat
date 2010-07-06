@@ -164,6 +164,7 @@ int exfat_split(struct exfat* ef, struct exfat_node** parent,
 	size_t n;
 	int rc;
 
+	memset(name, 0, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
 	*parent = *node = exfat_get_node(ef->root);
 	for (p = path; (n = get_comp(p, &p)); p += n)
 	{
