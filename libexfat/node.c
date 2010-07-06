@@ -806,7 +806,6 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 	if (rc != 0)
 		return rc;
 
-	memset(name, 0, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
 	rc = exfat_split(ef, &dir, &existing, name, new_path);
 	if (rc != 0)
 	{
