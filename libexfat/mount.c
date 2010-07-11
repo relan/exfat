@@ -187,15 +187,28 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 
 	rc = exfat_cache_directory(ef, ef->root);
 	if (rc != 0)
+		goto error;
+	if (ef->upcase == NULL)
 	{
-		free(ef->root);
-		free(ef->zero_block);
-		close(ef->fd);
-		free(ef->sb);
-		return rc;
+		exfat_error("upcase table is not found");
+		goto error;
+	}
+	if (ef->cmap.chunk == NULL)
+	{
+		exfat_error("clusters bitmap is not found");
+		goto error;
 	}
 
 	return 0;
+
+error:
+	exfat_put_node(ef, ef->root);
+	exfat_reset_cache(ef);
+	free(ef->root);
+	free(ef->zero_block);
+	close(ef->fd);
+	free(ef->sb);
+	return -EIO;
 }
 
 void exfat_unmount(struct exfat* ef)
