@@ -18,6 +18,11 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef VERSION_H_INCLUDED
+#define VERSION_H_INCLUDED
+
 #define EXFAT_VERSION_MAJOR 0
 #define EXFAT_VERSION_MINOR 9
 #define EXFAT_VERSION_PATCH 1
+
+#endif /* ifndef VERSION_H_INCLUDED */
