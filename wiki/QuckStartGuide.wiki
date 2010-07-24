@@ -3,15 +3,15 @@
 
 = Prerequisites =
 
-Currently there are no binary packages here, so you should compile this driver from source. To do this you need to install the following packages:
-  * `subversion`,
+If there are no binary packages for your OS or you want to get the most recent version, you should compile from source. To do this you need to install the following packages:
+  * `subversion` (if you wish to get the source from the repository, see below),
   * `scons`,
   * `fuse-devel` (or `fuse-dev`),
   * `gcc`.
 
-= Getting the source =
+= Getting the Source =
 
-Download the source from repository:
+Download tarball with source from the [http://code.google.com/p/exfat/downloads/list Downloads] section or directly from the repository:
 {{{
 svn co http://exfat.googlecode.com/svn/trunk/ exfat-read-only
 }}}
