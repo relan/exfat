@@ -154,7 +154,24 @@ static int is_last_comp(const char* comp, size_t length)
 
 static int is_allowed(const char* comp, size_t length)
 {
-	return strcspn(comp, "/\\:*?\"<>|") >= length;
+	size_t i;
+
+	for (i = 0; i < length; i++)
+		switch (comp[i])
+		{
+		case 0x01 ... 0x1f:
+		case '/':
+		case '\\':
+		case ':':
+		case '*':
+		case '?':
+		case '"':
+		case '<':
+		case '>':
+		case '|':
+			return 0;
+		}
+	return 1;
 }
 
 int exfat_split(struct exfat* ef, struct exfat_node** parent,
