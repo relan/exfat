@@ -361,6 +361,9 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	uint32_t c2 = bytes2clusters(ef, size);
 	int rc = 0;
 
+	if (node->references == 0 && node->parent)
+		exfat_bug("no references, node changes can be lost");
+
 	if (node->size == size)
 		return 0;
 
