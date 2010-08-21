@@ -543,21 +543,87 @@ static void tree_attach(struct exfat_node* dir, struct exfat_node* node)
 	dir->child = node;
 }
 
-static void delete(struct exfat* ef, struct exfat_node* node)
+static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
+		off_t deleted_offset)
 {
+	const struct exfat_node* node;
+	const struct exfat_node* last_node;
+	uint64_t entries = 1; /* a directory always has at leat 1 entry (EOD) */
+	uint64_t new_size;
+	struct exfat_entry eod;
+	off_t eod_offset;
+	int rc;
+
+	if (!(dir->flags & EXFAT_ATTRIB_DIR))
+		exfat_bug("attempted to shrink a file");
+	if (!(dir->flags & EXFAT_ATTRIB_CACHED))
+		exfat_bug("attempted to shrink uncached directory");
+
+	for (last_node = node = dir->child; node; node = node->next)
+	{
+		if (deleted_offset < node->entry_offset)
+		{
+			/* there are other entries after the removed one, no way to shrink
+			   this directory */
+			return 0;
+		}
+		if (last_node->entry_offset < node->entry_offset)
+			last_node = node;
+	}
+
+	if (last_node)
+	{
+		/* offset of the last entry */
+		entries += last_node->entry_offset / sizeof(struct exfat_entry);
+		/* two subentries with meta info */
+		entries += 2;
+		/* subentries with file name */
+		entries += DIV_ROUND_UP(utf16_length(last_node->name),
+				EXFAT_ENAME_MAX);
+	}
+
+	new_size = DIV_ROUND_UP(entries * sizeof(struct exfat_entry),
+				 CLUSTER_SIZE(*ef->sb)) * CLUSTER_SIZE(*ef->sb);
+	if (new_size == dir->size)
+		return 0;
+	rc = exfat_truncate(ef, dir, new_size);
+	if (rc != 0)
+		return rc;
+
+	/* put EOD entry at the end of the last cluster */
+	memset(&eod, 0, sizeof(eod));
+	eod_offset = new_size - sizeof(struct exfat_entry);
+	if (last_node)
+		exfat_write_raw(&eod, sizeof(eod),
+				co2o(ef, last_node->entry_cluster, eod_offset), ef->fd);
+	else
+		exfat_write_raw(&eod, sizeof(eod),
+				co2o(ef, dir->start_cluster, eod_offset), ef->fd);
+	return 0;
+}
+
+static int delete(struct exfat* ef, struct exfat_node* node)
+{
+	struct exfat_node* parent = node->parent;
+	off_t deleted_offset = node->entry_offset;
+	int rc;
+
+	exfat_get_node(parent);
 	erase_entry(ef, node);
-	exfat_update_mtime(node->parent);
+	exfat_update_mtime(parent);
 	tree_detach(node);
+	rc = shrink_directory(ef, parent, deleted_offset);
+	exfat_put_node(ef, parent);
 	/* file clusters will be freed when node reference counter becomes 0 */
 	node->flags |= EXFAT_ATTRIB_UNLINKED;
+	return rc;
 }
 
 int exfat_unlink(struct exfat* ef, struct exfat_node* node)
 {
 	if (node->flags & EXFAT_ATTRIB_DIR)
 		return -EISDIR;
-	delete(ef, node);
-	return 0;
+	return delete(ef, node);
 }
 
 int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
@@ -568,8 +634,7 @@ int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
 	exfat_cache_directory(ef, node);
 	if (node->child)
 		return -ENOTEMPTY;
-	delete(ef, node);
-	return 0;
+	return delete(ef, node);
 }
 
 static int grow_directory(struct exfat* ef, struct exfat_node* dir,
