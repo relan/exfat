@@ -3,11 +3,14 @@
 
 = Prerequisites =
 
-If there are no binary packages for your OS or you want to get the most recent version, you should compile from source. To do this you need to install the following packages:
+If there are no binary packages for your OS or you want to get the most recent version, you should compile from source. To do this under GNU/Linux you need to install the following packages:
   * `subversion` (if you wish to get the source from the repository, see below),
   * `scons`,
   * `fuse-devel` (or `fuse-dev`),
   * `gcc`.
+Under Mac OS X you need to install:
+  * XCode (can be found on a Mac OS X installation DVD shipped with your Mac, includes `subversion`),
+  * MacFUSE (can be downloaded [http://code.google.com/p/macfuse/downloads here]).
 
 = Getting the Source =
 
