@@ -136,8 +136,10 @@ static void init_node_meta1(struct exfat_node* node,
 		const struct exfat_entry_meta1* meta1)
 {
 	node->flags = le16_to_cpu(meta1->attrib);
-	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime);
-	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime);
+	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime,
+			meta1->mtime_cs);
+	/* there is no centiseconds field for atime */
+	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime, 0);
 }
 
 static void init_node_meta2(struct exfat_node* node,
@@ -474,8 +476,8 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	if (meta1.type != EXFAT_ENTRY_FILE)
 		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
 	meta1.attrib = cpu_to_le16(node->flags);
-	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime);
-	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime);
+	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime, &meta1.mtime_cs);
+	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime, NULL);
 
 	exfat_read_raw(&meta2, sizeof(meta2), meta2_offset, ef->fd);
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
@@ -714,7 +716,8 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 	meta1.type = EXFAT_ENTRY_FILE;
 	meta1.continuations = 1 + name_entries;
 	meta1.attrib = cpu_to_le16(attrib);
-	exfat_unix2exfat(time(NULL), &meta1.crdate, &meta1.crtime);
+	exfat_unix2exfat(time(NULL), &meta1.crdate, &meta1.crtime,
+			&meta1.crtime_cs);
 	meta1.adate = meta1.mdate = meta1.crdate;
 	meta1.atime = meta1.mtime = meta1.crtime;
 	/* crtime_cs and mtime_cs contain addition to the time in centiseconds;

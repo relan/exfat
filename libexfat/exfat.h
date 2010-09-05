@@ -131,8 +131,9 @@ uint32_t exfat_count_free_clusters(struct exfat* ef);
 
 void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		struct stat* stbuf);
-time_t exfat_exfat2unix(le16_t date, le16_t time);
-void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time);
+time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec);
+void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
+		uint8_t* centisec);
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n);
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
