@@ -69,7 +69,7 @@ static const time_t days_in_year[] =
 	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334
 };
 
-time_t exfat_exfat2unix(le16_t date, le16_t time)
+time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
 {
 	time_t unix_time = EPOCH_DIFF_SEC;
 	uint16_t ndate = le16_to_cpu(date);
@@ -95,6 +95,11 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 				hour, min, twosec * 2);
 		return 0;
 	}
+	if (centisec > 199)
+	{
+		exfat_error("bad centiseconds count %hhu", centisec);
+		return 0;
+	}
 
 	/* every 4th year between 1904 and 2096 is leap */
 	unix_time += year * SEC_IN_YEAR + LEAP_YEARS(year) * SEC_IN_DAY;
@@ -108,6 +113,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	unix_time += min * SEC_IN_MIN;
 	/* exFAT represents time with 2 sec granularity */
 	unix_time += twosec * 2;
+	unix_time += centisec / 100;
 
 	/* exFAT stores timestamps in local time, so we correct it to UTC */
 	unix_time += timezone;
@@ -115,7 +121,8 @@ time_t exfat_exfat2unix(le16_t date, le16_t time)
 	return unix_time;
 }
 
-void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time)
+void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
+		uint8_t* centisec)
 {
 	time_t shift = EPOCH_DIFF_SEC + timezone;
 	uint16_t day, month, year;
@@ -153,6 +160,8 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time)
 
 	*date = cpu_to_le16(day | (month << 5) | (year << 9));
 	*time = cpu_to_le16(twosec | (min << 5) | (hour << 11));
+	if (centisec)
+		*centisec = (unix_time % 2) * 100;
 }
 
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
