@@ -10,7 +10,8 @@ If there are no binary packages for your OS or you want to get the most recent v
   * `gcc`.
 Under Mac OS X you need to install:
   * XCode (can be found on a Mac OS X installation DVD shipped with your Mac, includes `subversion`),
-  * MacFUSE (can be downloaded [http://code.google.com/p/macfuse/downloads here]).
+  * [http://code.google.com/p/macfuse/downloads MacFUSE],
+  * [http://www.scons.org/ scons].
 
 = Getting the Source =
 
