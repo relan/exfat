@@ -29,10 +29,10 @@ if not env['CCFLAGS']:
 		env['CCFLAGS'] = '-Wall -O2 -ggdb'
 env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
 env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
-# Define __DARWIN_64_BIT_INO_T=0 is needed for Snow Leopard support because
-# in it's headers inode numbers are 64-bit by default, but libfuse operates
-# 32-bit inode numbers. It's also possible to link against libfuse_ino64
-# instead.
+# __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
+# numbers are 64-bit by default, but libfuse operates 32-bit ones. This define
+# forces 32-bit inode declaration in system headers, but it's also possible to
+# link against libfuse_ino64 instead.
 if platform.system() == 'Darwin':
 	env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
 env.Append(CPPPATH = ['libexfat'])
