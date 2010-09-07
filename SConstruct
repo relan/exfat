@@ -35,6 +35,7 @@ env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 # link against libfuse_ino64 instead.
 if platform.system() == 'Darwin':
 	env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
+	env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
 env.Append(CPPPATH = ['libexfat'])
 env.Append(LINKFLAGS = '')
 
