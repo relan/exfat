@@ -227,13 +227,10 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 
 static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 {
-	const uint64_t block_count = le64_to_cpu(ef.sb->block_count);
-
-	sfs->f_bsize = BLOCK_SIZE(*ef.sb);
+	sfs->f_bsize = CLUSTER_SIZE(*ef.sb);
 	sfs->f_frsize = CLUSTER_SIZE(*ef.sb);
-	sfs->f_blocks = block_count;
-	sfs->f_bavail = (fsblkcnt_t) exfat_count_free_clusters(&ef) *
-			(CLUSTER_SIZE(*ef.sb) / BLOCK_SIZE(*ef.sb));
+	sfs->f_blocks = le64_to_cpu(ef.sb->block_count) >> ef.sb->bpc_bits;
+	sfs->f_bavail = exfat_count_free_clusters(&ef);
 	sfs->f_bfree = sfs->f_bavail;
 	sfs->f_namemax = EXFAT_NAME_MAX;
 
