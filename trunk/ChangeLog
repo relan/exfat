@@ -1,3 +1,10 @@
+0.9.3 (2010-09-25)
+
+* Directories now can shrink.
+* Improved timestamps resolution from 2 sec to 1 sec.
+* Fixed timestamps displaying under Mac OS X when compiled for i386 or ppc.
+* Fixed FS size displaying for non-GNU systems.
+
 0.9.2 (2010-07-24)
 
 * Fixed a bug which could cause the whole directory to become unreadable after renaming a file in it.
