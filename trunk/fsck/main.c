@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "usage: %s <spec>\n", argv[0]);
 		return 1;
 	}
-	printf("exfatck %u.%u.%u\n",
+	printf("exfatfsck %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
 	if (exfat_mount(&ef, argv[1], "ro") != 0)
