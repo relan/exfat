@@ -40,8 +40,8 @@ env.Append(CPPPATH = ['libexfat'])
 env.Append(LINKFLAGS = '')
 
 env.Library('libexfat/exfat', Glob('libexfat/*.c'))
-fsck = env.Program('fsck/exfatck', Glob('fsck/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
 mount = env.Program('fuse/mount.exfat-fuse', Glob('fuse/*.c'), LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
+fsck = env.Program('fsck/exfatfsck', Glob('fsck/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
 
 def get_destdir():
 	try:
