@@ -44,22 +44,6 @@ static void sbck(const struct exfat* ef)
 	const uint64_t total = (uint64_t) le32_to_cpu(ef->sb->cluster_count) *
 		cluster_size;
 
-#if 0 /* low-level info */
-	printf("First block           %8"PRIu64"\n",
-			le64_to_cpu(ef->sb->block_start));
-	printf("Blocks count          %8"PRIu64"\n",
-			le64_to_cpu(ef->sb->block_count));
-	printf("FAT first block       %8u\n",
-			le32_to_cpu(ef->sb->fat_block_start));
-	printf("FAT blocks count      %8u\n",
-			le32_to_cpu(ef->sb->fat_block_count));
-	printf("First cluster block   %8u\n",
-			le32_to_cpu(ef->sb->cluster_block_start));
-	printf("Clusters count        %8u\n",
-			le32_to_cpu(ef->sb->cluster_count));
-	printf("First cluster of root %8u\n",
-			le32_to_cpu(ef->sb->rootdir_cluster));
-#endif
 	printf("Block size            %8u bytes\n", block_size);
 	printf("Cluster size          %8u bytes\n", cluster_size);
 	printf("Total space           %8"PRIu64" MB\n", bytes2mb(total));
