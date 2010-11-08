@@ -39,15 +39,13 @@ static uint64_t bytes2mb(uint64_t bytes)
 
 static void sbck(const struct exfat* ef)
 {
-	const uint32_t block_size = (1 << ef->sb->block_bits); /* in bytes */
-	const uint32_t cluster_size = CLUSTER_SIZE(*ef->sb); /* in bytes */
 	const uint64_t total = (uint64_t) le32_to_cpu(ef->sb->cluster_count) *
-		cluster_size;
+			CLUSTER_SIZE(*ef->sb);
 
-	printf("Block size            %8u bytes\n", block_size);
-	printf("Cluster size          %8u bytes\n", cluster_size);
-	printf("Total space           %8"PRIu64" MB\n", bytes2mb(total));
-	printf("Used space            %8hhu%%\n", ef->sb->allocated_percent);
+	printf("Block size             %8u bytes\n", BLOCK_SIZE(*ef->sb));
+	printf("Cluster size           %8u bytes\n", CLUSTER_SIZE(*ef->sb));
+	printf("Total space            %8"PRIu64" MB\n", bytes2mb(total));
+	printf("Used space             %8hhu%%\n", ef->sb->allocated_percent);
 }
 
 static void nodeck(struct exfat* ef, struct exfat_node* node)
