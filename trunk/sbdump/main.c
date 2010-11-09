@@ -46,8 +46,8 @@ static void dump_sb(const struct exfat_super_block* sb)
 			le32_to_cpu(sb->rootdir_cluster));
 	printf("Volume serial number    0x%08x\n",
 			le32_to_cpu(sb->volume_serial));
-	printf("FS version                     %hu.%hu\n",
-			le16_to_cpu(sb->version) >> 8, le16_to_cpu(sb->version) & 0xff);
+	printf("FS version                     %hhu.%hhu\n",
+			sb->version.major, sb->version.minor);
 	printf("Volume state                0x%04hx\n",
 			le16_to_cpu(sb->volume_state));
 	printf("Block size                %8u\n",

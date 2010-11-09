@@ -96,7 +96,6 @@ static void parse_options(struct exfat* ef, const char* options)
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
-	uint16_t fs_version;
 	int rc;
 
 	tzset();
@@ -128,13 +127,12 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		exfat_error("exFAT file system is not found");
 		return -EIO;
 	}
-	fs_version = le16_to_cpu(ef->sb->version);
-	if (fs_version != 0x0100)
+	if (ef->sb->version.major != 1 || ef->sb->version.minor != 0)
 	{
 		close(ef->fd);
+		exfat_error("unsupported exFAT version: %hhu.%hhu",
+				ef->sb->version.major, ef->sb->version.minor);
 		free(ef->sb);
-		exfat_error("unsupported exFAT version: %hu.%hu",
-				fs_version >> 8, fs_version & 0xff);
 		return -EIO;
 	}
 	if (ef->sb->fat_count != 1)
