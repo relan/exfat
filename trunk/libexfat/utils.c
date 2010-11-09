@@ -228,3 +228,19 @@ le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name)
 	}
 	return cpu_to_le16(hash);
 }
+
+void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb)
+{
+	size_t i;
+	const char* units[] = {"bytes", "KB", "MB", "GB", "TB", "PB"};
+	uint64_t divisor = 1;
+
+	for (i = 0; i < sizeof(units) / sizeof(units[0]) - 1; i++)
+	{
+		if ((value + divisor / 2) / divisor < 1024)
+			break;
+		divisor *= 1024;
+	}
+	hb->value = (value + divisor / 2) / divisor;
+	hb->unit = units[i];
+}

@@ -100,6 +100,12 @@ struct exfat_iterator
 	struct exfat_node* current;
 };
 
+struct exfat_human_bytes
+{
+	uint64_t value;
+	const char* unit;
+};
+
 extern int exfat_errors;
 
 void exfat_bug(const char* format, ...)
@@ -147,6 +153,7 @@ uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
 		const struct exfat_entry_meta2* meta2, const le16_t* name);
 le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name);
+void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb);
 
 int utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
 		size_t insize);
