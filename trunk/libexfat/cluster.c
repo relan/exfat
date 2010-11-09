@@ -22,10 +22,6 @@
 #include <errno.h>
 #include <string.h>
 
-#define BMAP_GET(bitmap, index) ((bitmap)[(index) / 8] & (1u << ((index) % 8)))
-#define BMAP_SET(bitmap, index) (bitmap)[(index) / 8] |= (1u << ((index) % 8))
-#define BMAP_CLR(bitmap, index) (bitmap)[(index) / 8] &= ~(1u << ((index) % 8))
-
 /*
  * Block to absolute offset.
  */
