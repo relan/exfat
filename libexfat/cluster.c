@@ -381,7 +381,7 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	return 0;
 }
 
-uint32_t exfat_count_free_clusters(struct exfat* ef)
+uint32_t exfat_count_free_clusters(const struct exfat* ef)
 {
 	uint32_t free_clusters = 0;
 	uint32_t i;
