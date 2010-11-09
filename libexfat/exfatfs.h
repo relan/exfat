@@ -44,7 +44,12 @@ struct exfat_super_block
 	le32_t cluster_count;			/* 0x5C total clusters count */
 	le32_t rootdir_cluster;			/* 0x60 first cluster of the root dir */
 	le32_t volume_serial;			/* 0x64 volume serial number */
-	le16_t version;					/* 0x68 FS version */
+	struct							/* 0x68 FS version */
+	{
+		uint8_t minor;
+		uint8_t major;
+	}
+	version;
 	le16_t volume_state;			/* 0x6A volume state flags */
 	uint8_t block_bits;				/* 0x6C block size as (1 << n) */
 	uint8_t bpc_bits;				/* 0x6D blocks per cluster as (1 << n) */
