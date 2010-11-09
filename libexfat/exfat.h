@@ -43,6 +43,13 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
 
+#define BMAP_GET(bitmap, index) \
+	(((uint8_t*) bitmap)[(index) / 8] & (1u << ((index) % 8)))
+#define BMAP_SET(bitmap, index) \
+	((uint8_t*) bitmap)[(index) / 8] |= (1u << ((index) % 8))
+#define BMAP_CLR(bitmap, index) \
+	((uint8_t*) bitmap)[(index) / 8] &= ~(1u << ((index) % 8))
+
 struct exfat_node
 {
 	struct exfat_node* parent;
