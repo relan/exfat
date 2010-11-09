@@ -26,25 +26,7 @@
 
 #define exfat_debug(format, ...)
 
-#define MB (1024 * 1024)
-
 uint64_t files_count, directories_count;
-
-static uint64_t bytes2mb(uint64_t bytes)
-{
-	return (bytes + MB / 2) / MB;
-}
-
-static void sbck(const struct exfat* ef)
-{
-	const uint64_t total = (uint64_t) le32_to_cpu(ef->sb->cluster_count) *
-			CLUSTER_SIZE(*ef->sb);
-
-	printf("Block size             %8u bytes\n", BLOCK_SIZE(*ef->sb));
-	printf("Cluster size           %8u bytes\n", CLUSTER_SIZE(*ef->sb));
-	printf("Total space            %8"PRIu64" MB\n", bytes2mb(total));
-	printf("Used space             %8hhu%%\n", ef->sb->allocated_percent);
-}
 
 static void nodeck(struct exfat* ef, struct exfat_node* node)
 {
@@ -127,7 +109,7 @@ static void dirck(struct exfat* ef, const char* path)
 
 static void fsck(struct exfat* ef)
 {
-	sbck(ef);
+	exfat_print_info(ef->sb, exfat_count_free_clusters(ef));
 	dirck(ef, "");
 }
 
