@@ -28,8 +28,6 @@
 
 #define MB (1024 * 1024)
 
-#define BMAP_GET(bitmap, index) ((bitmap)[(index) / 8] & (1u << ((index) % 8)))
-
 uint64_t files_count, directories_count;
 
 static uint64_t bytes2mb(uint64_t bytes)
