@@ -20,6 +20,8 @@
 
 #include "exfat.h"
 #include <string.h>
+#include <stdio.h>
+#include <inttypes.h>
 #define _XOPEN_SOURCE /* for timezone in Linux */
 #include <time.h>
 
@@ -243,4 +245,25 @@ void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb)
 	}
 	hb->value = (value + divisor / 2) / divisor;
 	hb->unit = units[i];
+}
+
+void exfat_print_info(const struct exfat_super_block* sb,
+		uint32_t free_clusters)
+{
+	struct exfat_human_bytes hb;
+	off_t total_space = (off_t) le64_to_cpu(sb->block_count) * BLOCK_SIZE(*sb);
+	off_t avail_space = (off_t) free_clusters * CLUSTER_SIZE(*sb);
+
+	printf("File system version           %hhu.%hhu\n",
+			sb->version.major, sb->version.minor);
+	exfat_humanize_bytes(BLOCK_SIZE(*sb), &hb);
+	printf("Block size             %8"PRIu64" %s\n", hb.value, hb.unit);
+	exfat_humanize_bytes(CLUSTER_SIZE(*sb), &hb);
+	printf("Cluster size           %8"PRIu64" %s\n", hb.value, hb.unit);
+	exfat_humanize_bytes(total_space, &hb);
+	printf("Volume size            %8"PRIu64" %s\n", hb.value, hb.unit);
+	exfat_humanize_bytes(total_space - avail_space, &hb);
+	printf("Used space             %8"PRIu64" %s\n", hb.value, hb.unit);
+	exfat_humanize_bytes(avail_space, &hb);
+	printf("Available space        %8"PRIu64" %s\n", hb.value, hb.unit);
 }
