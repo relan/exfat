@@ -219,7 +219,8 @@ void exfat_unmount(struct exfat* ef)
 	ef->zero_block = NULL;
 	free(ef->cmap.chunk);
 	ef->cmap.chunk = NULL;
-	close(ef->fd);
+	if (close(ef->fd) < 0)
+		exfat_error("close failed");
 	ef->fd = 0;
 	free(ef->sb);
 	ef->sb = NULL;
