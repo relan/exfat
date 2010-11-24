@@ -33,7 +33,7 @@ off_t fat_alignment(void)
 
 off_t fat_size(void)
 {
-	return (off_t) le32_to_cpu(sb.cluster_count) * sizeof(cluster_t);
+	return (off_t) le32_to_cpu(sb.fat_block_count) * BLOCK_SIZE(sb);
 }
 
 static cluster_t fat_write_entry(cluster_t cluster, cluster_t value, int fd)
