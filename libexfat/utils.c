@@ -211,6 +211,28 @@ le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
 	return cpu_to_le16(checksum);
 }
 
+uint32_t exfat_vbr_start_checksum(const void* block, size_t size)
+{
+	size_t i;
+	uint32_t sum = 0;
+
+	for (i = 0; i < size; i++)
+		/* skip volume_state and allocated_percent fields */
+		if (i != 0x6a && i != 0x6b && i != 0x70)
+			sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) block)[i];
+	return sum;
+}
+
+uint32_t exfat_vbr_add_checksum(const void* block, size_t size, uint32_t sum)
+{
+	size_t i;
+
+	for (i = 0; i < size; i++)
+		sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) block)[i];
+	return sum;
+}
+
+
 le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name)
 {
 	size_t i;
