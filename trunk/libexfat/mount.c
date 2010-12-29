@@ -94,6 +94,29 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->noatime = match_option(options, "noatime");
 }
 
+static int verify_vbr_checksum(void* block, off_t block_size, int fd)
+{
+	uint32_t vbr_checksum;
+	int i;
+
+	exfat_read_raw(block, block_size, 0, fd);
+	vbr_checksum = exfat_vbr_start_checksum(block, block_size);
+	for (i = 1; i < 11; i++)
+	{
+		exfat_read_raw(block, block_size, i * block_size, fd);
+		vbr_checksum = exfat_vbr_add_checksum(block, block_size, vbr_checksum);
+	}
+	exfat_read_raw(block, block_size, i * block_size, fd);
+	for (i = 0; i < block_size / sizeof(vbr_checksum); i++)
+		if (((const uint32_t*) block)[i] != vbr_checksum)
+		{
+			exfat_error("invalid VBR checksum 0x%x (expected 0x%x)",
+					((const uint32_t*) block)[i], vbr_checksum);
+			return 1;
+		}
+	return 0;
+}
+
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	int rc;
@@ -159,6 +182,14 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		free(ef->sb);
 		exfat_error("failed to allocate zero block");
 		return -ENOMEM;
+	}
+	/* use zero_block as a temporary buffer for VBR checksum verification */
+	if (verify_vbr_checksum(ef->zero_block, BLOCK_SIZE(*ef->sb), ef->fd) != 0)
+	{
+		free(ef->zero_block);
+		close(ef->fd);
+		free(ef->sb);
+		return -EIO;
 	}
 	memset(ef->zero_block, 0, BLOCK_SIZE(*ef->sb));
 
