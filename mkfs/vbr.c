@@ -33,27 +33,6 @@ off_t vbr_size(void)
 	return 12 * BLOCK_SIZE(sb);
 }
 
-static uint32_t vbr_start_checksum(const void* block, size_t size)
-{
-	size_t i;
-	uint32_t sum = 0;
-
-	for (i = 0; i < size; i++)
-		/* skip volume_state and allocated_percent fields */
-		if (i != 0x6a && i != 0x6b && i != 0x70)
-			sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) block)[i];
-	return sum;
-}
-
-static uint32_t vbr_add_checksum(const void* block, size_t size, uint32_t sum)
-{
-	size_t i;
-
-	for (i = 0; i < size; i++)
-		sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) block)[i];
-	return sum;
-}
-
 int vbr_write(off_t base, int fd)
 {
 	uint32_t checksum;
@@ -65,7 +44,7 @@ int vbr_write(off_t base, int fd)
 
 	if (write(fd, &sb, sizeof(struct exfat_super_block)) == -1)
 		return errno;
-	checksum = vbr_start_checksum(&sb, sizeof(struct exfat_super_block));
+	checksum = exfat_vbr_start_checksum(&sb, sizeof(struct exfat_super_block));
 
 	memset(block, 0, BLOCK_SIZE(sb));
 	block[BLOCK_SIZE(sb) / sizeof(block[0]) - 1] = cpu_to_le32(0xaa550000);
@@ -73,16 +52,16 @@ int vbr_write(off_t base, int fd)
 	{
 		if (write(fd, block, BLOCK_SIZE(sb)) == -1)
 			return errno;
-		checksum = vbr_add_checksum(block, BLOCK_SIZE(sb), checksum);
+		checksum = exfat_vbr_add_checksum(block, BLOCK_SIZE(sb), checksum);
 	}
 
 	memset(block, 0, BLOCK_SIZE(sb));
 	if (write(fd, block, BLOCK_SIZE(sb)) == -1)
 		return errno;
-	checksum = vbr_add_checksum(block, BLOCK_SIZE(sb), checksum);
+	checksum = exfat_vbr_add_checksum(block, BLOCK_SIZE(sb), checksum);
 	if (write(fd, block, BLOCK_SIZE(sb)) == -1)
 		return errno;
-	checksum = vbr_add_checksum(block, BLOCK_SIZE(sb), checksum);
+	checksum = exfat_vbr_add_checksum(block, BLOCK_SIZE(sb), checksum);
 
 	for (i = 0; i < BLOCK_SIZE(sb) / sizeof(block[0]); i++)
 		block[i] = cpu_to_le32(checksum);

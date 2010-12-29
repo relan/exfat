@@ -152,6 +152,8 @@ uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
 		const struct exfat_entry_meta2* meta2, const le16_t* name);
+uint32_t exfat_vbr_start_checksum(const void* block, size_t size);
+uint32_t exfat_vbr_add_checksum(const void* block, size_t size, uint32_t sum);
 le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name);
 void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb);
 void exfat_print_info(const struct exfat_super_block* sb,
