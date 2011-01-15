@@ -346,8 +346,8 @@ static int logarithm2(int n)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s <spec> [-s sectors-per-cluster] "
-			"[-n label] [-i volume-id]\n", prog);
+	fprintf(stderr, "Usage: %s [-i volume-id] [-n label] "
+			"[-s sectors-per-cluster] <device>\n", prog);
 	exit(1);
 }
 
