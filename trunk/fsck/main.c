@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
 
 	if (argc != 2)
 	{
-		fprintf(stderr, "usage: %s <spec>\n", argv[0]);
+		fprintf(stderr, "Usage: %s <device>\n", argv[0]);
 		return 1;
 	}
 	printf("exfatfsck %u.%u.%u\n",

@@ -254,7 +254,7 @@ static void fuse_exfat_destroy(void* unused)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s <spec> <mountpoint> [-o options]\n", prog);
+	fprintf(stderr, "Usage: %s [-d] [-o options] <device> <dir>\n", prog);
 	exit(1);
 }
 
