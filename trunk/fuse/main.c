@@ -27,6 +27,9 @@
 #include <exfat.h>
 #include <inttypes.h>
 #include <limits.h>
+#include <sys/types.h>
+#include <pwd.h>
+#include <unistd.h>
 
 #define exfat_debug(format, ...)
 
@@ -315,6 +318,23 @@ static char* add_fsname_option(char* options, const char* spec)
 	return add_option(options, "fsname", spec_abs);
 }
 
+static char* add_user_option(char* options)
+{
+	struct passwd* pw;
+
+	if (getuid() == 0)
+		return options;
+
+	pw = getpwuid(getuid());
+	if (pw == NULL || pw->pw_name == NULL)
+	{
+		free(options);
+		exfat_error("failed to determine username");
+		return NULL;
+	}
+	return add_option(options, "user", pw->pw_name);
+}
+
 int main(int argc, char* argv[])
 {
 	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
@@ -366,6 +386,10 @@ int main(int argc, char* argv[])
 		usage(argv[0]);
 	}
 	mount_options = add_fsname_option(mount_options, spec);
+	if (mount_options == NULL)
+		return 1;
+
+	mount_options = add_user_option(mount_options);
 	if (mount_options == NULL)
 		return 1;
 
