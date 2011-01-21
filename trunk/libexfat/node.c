@@ -152,6 +152,13 @@ static void init_node_meta2(struct exfat_node* node,
 		node->flags |= EXFAT_ATTRIB_CONTIGUOUS;
 }
 
+static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
+		const struct iterator* it)
+{
+	return (const struct exfat_entry*)
+			(it->chunk + it->offset % CLUSTER_SIZE(*ef->sb));
+}
+
 /*
  * Reads one entry in directory at position pointed by iterator and fills
  * node structure.
@@ -177,8 +184,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 	{
 		/* every directory (even empty one) occupies at least one cluster and
 		   must contain EOD entry */
-		entry = (const struct exfat_entry*)
-				(it->chunk + it->offset % CLUSTER_SIZE(*ef->sb));
+		entry = get_entry_ptr(ef, it);
 
 		switch (entry->type)
 		{
@@ -668,8 +674,7 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 			*cluster = it.cluster;
 			*offset = it.offset;
 		}
-		entry = (const struct exfat_entry*)
-				(it.chunk + it.offset % CLUSTER_SIZE(*ef->sb));
+		entry = get_entry_ptr(ef, &it);
 		if (entry->type == EXFAT_ENTRY_EOD)
 		{
 			rc = grow_directory(ef, dir,
@@ -958,8 +963,7 @@ static int find_label(struct exfat* ef, cluster_t* cluster, off_t* offset)
 
 	for (;;)
 	{
-		entry = (const struct exfat_entry*)
-				(it.chunk + it.offset % CLUSTER_SIZE(*ef->sb));
+		entry = get_entry_ptr(ef, &it);
 
 		if (entry->type == EXFAT_ENTRY_EOD)
 		{
