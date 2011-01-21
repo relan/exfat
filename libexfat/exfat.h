@@ -85,6 +85,8 @@ struct exfat
 		int dirty;
 	}
 	cmap;
+	char label[EXFAT_ENAME_MAX * 6 + 1]; /* a character can occupy up to
+											6 bytes in UTF-8 */
 	void* zero_block;
 	int dmask, fmask;
 	uid_t uid;
@@ -178,6 +180,8 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path);
 void exfat_utimes(struct exfat_node* node, const struct timespec tv[2]);
 void exfat_update_atime(struct exfat_node* node);
 void exfat_update_mtime(struct exfat_node* node);
+const char* exfat_get_label(struct exfat* ef);
+int exfat_set_label(struct exfat* ef, const char* label);
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
