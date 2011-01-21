@@ -180,18 +180,12 @@ static le16_t* wchar_to_utf16(le16_t* output, wchar_t wc, size_t outsize)
 	if (wc <= 0xffff) /* if character is from BMP */
 	{
 		if (outsize == 0)
-		{
-			exfat_error("name is too long");
 			return NULL;
-		}
 		output[0] = cpu_to_le16(wc);
 		return output + 1;
 	}
 	if (outsize < 2)
-	{
-		exfat_error("name is too long");
 		return NULL;
-	}
 	output[0] = cpu_to_le16(0xd800 | ((wc >> 10) & 0x3ff));
 	output[1] = cpu_to_le16(0xdc00 | (wc & 0x3ff));
 	return output + 2;
