@@ -687,7 +687,7 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 		else
 			contiguous++;
 		if (contiguous == subentries)
-			break;	/* suitable slot it found */
+			break;	/* suitable slot is found */
 		if (fetch_next_entry(ef, dir, &it) != 0)
 		{
 			closedir(&it);
