@@ -348,6 +348,9 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("too long label (%hhu chars)", label->length);
 				return -EIO;
 			}
+			if (utf16_to_utf8(ef->label, label->name,
+						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
+				return -EIO;
 			break;
 
 		default:
@@ -936,4 +939,75 @@ void exfat_update_mtime(struct exfat_node* node)
 {
 	node->mtime = time(NULL);
 	node->flags |= EXFAT_ATTRIB_DIRTY;
+}
+
+const char* exfat_get_label(struct exfat* ef)
+{
+	return ef->label;
+}
+
+static int find_label(struct exfat* ef, cluster_t* cluster, off_t* offset)
+{
+	struct iterator it;
+	int rc;
+	const struct exfat_entry* entry;
+
+	rc = opendir(ef, ef->root, &it);
+	if (rc != 0)
+		return rc;
+
+	for (;;)
+	{
+		entry = (const struct exfat_entry*)
+				(it.chunk + it.offset % CLUSTER_SIZE(*ef->sb));
+
+		if (entry->type == EXFAT_ENTRY_EOD)
+		{
+			closedir(&it);
+			return -ENOENT;
+		}
+		if (entry->type == EXFAT_ENTRY_LABEL)
+		{
+			*cluster = it.cluster;
+			*offset = it.offset;
+			closedir(&it);
+			return 0;
+		}
+
+		if (fetch_next_entry(ef, ef->root, &it) != 0)
+		{
+			closedir(&it);
+			return -EIO;
+		}
+	}
+}
+
+int exfat_set_label(struct exfat* ef, const char* label)
+{
+	le16_t label_utf16[EXFAT_ENAME_MAX + 1];
+	int rc;
+	cluster_t cluster;
+	off_t offset;
+	struct exfat_entry_label entry;
+
+	memset(label_utf16, 0, sizeof(label_utf16));
+	rc = utf8_to_utf16(label_utf16, label, EXFAT_ENAME_MAX, strlen(label));
+	if (rc != 0)
+		return rc;
+
+	rc = find_label(ef, &cluster, &offset);
+	if (rc == -ENOENT)
+		rc = find_slot(ef, ef->root, &cluster, &offset, 1);
+	if (rc != 0)
+		return rc;
+
+	entry.type = EXFAT_ENTRY_LABEL;
+	entry.length = utf16_length(label_utf16);
+	memcpy(entry.name, label_utf16, sizeof(entry.name));
+	if (entry.length == 0)
+		entry.type ^= EXFAT_ENTRY_VALID;
+
+	exfat_write_raw(&entry, sizeof(struct exfat_entry_label),
+			co2o(ef, cluster, offset), ef->fd);
+	return 0;
 }
