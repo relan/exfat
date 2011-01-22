@@ -27,35 +27,35 @@
 
 static void dump_sb(const struct exfat_super_block* sb)
 {
-	printf("First block               %8"PRIu64"\n",
+	printf("First block               %10"PRIu64"\n",
 			le64_to_cpu(sb->block_start));
-	printf("Blocks count              %8"PRIu64"\n",
+	printf("Blocks count              %10"PRIu64"\n",
 			le64_to_cpu(sb->block_count));
-	printf("FAT first block           %8u\n",
+	printf("FAT first block           %10u\n",
 			le32_to_cpu(sb->fat_block_start));
-	printf("FAT blocks count          %8u\n",
+	printf("FAT blocks count          %10u\n",
 			le32_to_cpu(sb->fat_block_count));
-	printf("First cluster block       %8u\n",
+	printf("First cluster block       %10u\n",
 			le32_to_cpu(sb->cluster_block_start));
-	printf("Clusters count            %8u\n",
+	printf("Clusters count            %10u\n",
 			le32_to_cpu(sb->cluster_count));
-	printf("Root directory cluster    %8u\n",
+	printf("Root directory cluster    %10u\n",
 			le32_to_cpu(sb->rootdir_cluster));
-	printf("Volume serial number    0x%08x\n",
+	printf("Volume serial number      0x%08x\n",
 			le32_to_cpu(sb->volume_serial));
-	printf("FS version                     %hhu.%hhu\n",
+	printf("FS version                       %hhu.%hhu\n",
 			sb->version.major, sb->version.minor);
-	printf("Volume state                0x%04hx\n",
+	printf("Volume state                  0x%04hx\n",
 			le16_to_cpu(sb->volume_state));
-	printf("Block size                %8u\n",
+	printf("Block size                %10u\n",
 			BLOCK_SIZE(*sb));
-	printf("Cluster size              %8u\n",
+	printf("Cluster size              %10u\n",
 			CLUSTER_SIZE(*sb));
-	printf("FATs count                %8hhu\n",
+	printf("FATs count                %10hhu\n",
 			sb->fat_count);
-	printf("Drive number                  0x%02hhx\n",
+	printf("Drive number                    0x%02hhx\n",
 			sb->drive_no);
-	printf("Allocated space           %7hhu%%\n",
+	printf("Allocated space           %9hhu%%\n",
 			sb->allocated_percent);
 }
 
