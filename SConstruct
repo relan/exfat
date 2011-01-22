@@ -41,7 +41,7 @@ env.Append(LINKFLAGS = '')
 
 env.Library('libexfat/exfat', Glob('libexfat/*.c'))
 mount = env.Program('fuse/mount.exfat-fuse', Glob('fuse/*.c'), LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
-sbdump = env.Program('sbdump/sbdump', Glob('sbdump/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
+dump = env.Program('dump/dumpexfat', Glob('dump/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
 fsck = env.Program('fsck/exfatfsck', Glob('fsck/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
 mkfs = env.Program('mkfs/mkexfatfs', Glob('mkfs/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
 label = env.Program('label/exfatlabel', Glob('label/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
@@ -69,4 +69,4 @@ Alias('install',
 		Install(dir = get_destdir(), source = mount),
 		symlink(dir = get_destdir()))
 
-Default([mount, sbdump, fsck, mkfs, label])
+Default([mount, dump, fsck, mkfs, label])
