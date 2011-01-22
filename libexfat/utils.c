@@ -279,13 +279,13 @@ void exfat_print_info(const struct exfat_super_block* sb,
 	printf("File system version           %hhu.%hhu\n",
 			sb->version.major, sb->version.minor);
 	exfat_humanize_bytes(BLOCK_SIZE(*sb), &hb);
-	printf("Block size             %8"PRIu64" %s\n", hb.value, hb.unit);
+	printf("Block size           %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(CLUSTER_SIZE(*sb), &hb);
-	printf("Cluster size           %8"PRIu64" %s\n", hb.value, hb.unit);
+	printf("Cluster size         %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(total_space, &hb);
-	printf("Volume size            %8"PRIu64" %s\n", hb.value, hb.unit);
+	printf("Volume size          %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(total_space - avail_space, &hb);
-	printf("Used space             %8"PRIu64" %s\n", hb.value, hb.unit);
+	printf("Used space           %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(avail_space, &hb);
-	printf("Available space        %8"PRIu64" %s\n", hb.value, hb.unit);
+	printf("Available space      %10"PRIu64" %s\n", hb.value, hb.unit);
 }
