@@ -1,9 +1,8 @@
 /*
 	main.c (08.11.10)
-	A small utility that prints exFAT super block contents in human-readable
-	format. Useless for end users.
+	Prints detailed information about exFAT volume.
 
-	Copyright (C) 2009, 2010  Andrew Nayenko
+	Copyright (C) 2010  Andrew Nayenko
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
