@@ -31,7 +31,7 @@ static void print_generic_info(const struct exfat_super_block* sb)
 			le32_to_cpu(sb->volume_serial));
 	printf("FS version                       %hhu.%hhu\n",
 			sb->version.major, sb->version.minor);
-	printf("Block size                %10u\n",
+	printf("Sector size               %10u\n",
 			BLOCK_SIZE(*sb));
 	printf("Cluster size              %10u\n",
 			CLUSTER_SIZE(*sb));
@@ -39,7 +39,7 @@ static void print_generic_info(const struct exfat_super_block* sb)
 
 static void print_block_info(const struct exfat_super_block* sb)
 {
-	printf("Blocks count              %10"PRIu64"\n",
+	printf("Sectors count             %10"PRIu64"\n",
 			le64_to_cpu(sb->block_count));
 }
 
@@ -51,13 +51,13 @@ static void print_cluster_info(const struct exfat_super_block* sb)
 
 static void print_other_info(const struct exfat_super_block* sb)
 {
-	printf("First block               %10"PRIu64"\n",
+	printf("First sector              %10"PRIu64"\n",
 			le64_to_cpu(sb->block_start));
-	printf("FAT first block           %10u\n",
+	printf("FAT first sector          %10u\n",
 			le32_to_cpu(sb->fat_block_start));
-	printf("FAT blocks count          %10u\n",
+	printf("FAT sectors count         %10u\n",
 			le32_to_cpu(sb->fat_block_count));
-	printf("First cluster block       %10u\n",
+	printf("First cluster sector      %10u\n",
 			le32_to_cpu(sb->cluster_block_start));
 	printf("Root directory cluster    %10u\n",
 			le32_to_cpu(sb->rootdir_cluster));
@@ -120,7 +120,7 @@ static int dump_full(const char* spec)
 	printf("Volume label         %15s\n", exfat_get_label(&ef));
 	print_generic_info(ef.sb);
 	print_block_info(ef.sb);
-	printf("Free blocks               %10"PRIu64"\n", free_blocks);
+	printf("Free sectors              %10"PRIu64"\n", free_blocks);
 	print_cluster_info(ef.sb);
 	printf("Free clusters             %10u\n", free_clusters);
 	print_other_info(ef.sb);
