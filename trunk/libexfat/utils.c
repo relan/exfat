@@ -279,7 +279,7 @@ void exfat_print_info(const struct exfat_super_block* sb,
 	printf("File system version           %hhu.%hhu\n",
 			sb->version.major, sb->version.minor);
 	exfat_humanize_bytes(BLOCK_SIZE(*sb), &hb);
-	printf("Block size           %10"PRIu64" %s\n", hb.value, hb.unit);
+	printf("Sector size          %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(CLUSTER_SIZE(*sb), &hb);
 	printf("Cluster size         %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(total_space, &hb);
