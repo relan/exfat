@@ -89,6 +89,12 @@ static int init_sb(off_t volume_size, int block_bits, int bpc_bits,
 			DIV_ROUND_UP(cbm_size(), CLUSTER_SIZE(sb)) +
 			DIV_ROUND_UP(uct_size(), CLUSTER_SIZE(sb)) +
 			DIV_ROUND_UP(rootdir_size(), CLUSTER_SIZE(sb));
+	if (clusters_max < ((le32_to_cpu(sb.fat_block_start) +
+			le32_to_cpu(sb.fat_block_count)) >> bpc_bits) + allocated_clusters)
+	{
+		exfat_error("too small volume (%"PRIu64" bytes)", volume_size);
+		return 1;
+	}
 	exfat_print_info(&sb, le32_to_cpu(sb.cluster_count) -
 			allocated_clusters);
 	return 0;
@@ -300,7 +306,11 @@ static int mkfs(const char* spec, int block_bits, int bpc_bits,
 		return 1;
 	}
 
-	init_sb(volume_size, block_bits, bpc_bits, volume_serial);
+	if (init_sb(volume_size, block_bits, bpc_bits, volume_serial) != 0)
+	{
+		close(fd);
+		return 1;
+	}
 
 	printf("Creating... %2u%%", 0);
 	fflush(stdout);
