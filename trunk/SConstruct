@@ -23,6 +23,8 @@ import platform
 import SCons
 
 env = Environment(**ARGUMENTS)
+destdir = env.get('DESTDIR', '/sbin');
+targets = []
 
 if not env['CCFLAGS']:
 	if env['CC'] == 'gcc':
@@ -39,34 +41,39 @@ if platform.system() == 'Darwin':
 env.Append(CPPPATH = ['libexfat'])
 env.Append(LINKFLAGS = '')
 
-env.Library('libexfat/exfat', Glob('libexfat/*.c'))
-mount = env.Program('fuse/mount.exfat-fuse', Glob('fuse/*.c'), LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
-dump = env.Program('dump/dumpexfat', Glob('dump/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
-fsck = env.Program('fsck/exfatfsck', Glob('fsck/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
-mkfs = env.Program('mkfs/mkexfatfs', Glob('mkfs/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
-label = env.Program('label/exfatlabel', Glob('label/*.c'), LIBS = ['exfat'], LIBPATH = 'libexfat')
-
-def get_destdir():
-	try:
-		destdir = os.environ['DESTDIR']
-	except KeyError:
-		destdir = '/sbin'
-	return destdir
-
-def make_symlink((dir)):
+def make_symlink(dir, target, link_name):
 	workdir = os.getcwd()
 	os.chdir(dir)
 	try:
-		os.remove('mount.exfat')
+		os.remove(link_name)
 	except OSError:
 		pass
-	os.symlink('mount.exfat-fuse', 'mount.exfat')
+	os.symlink(target, link_name)
 	os.chdir(workdir)
 
 symlink = SCons.Action.ActionFactory(make_symlink,
-		lambda dir: 'make_symlink("%s")' % dir)
-Alias('install',
-		Install(dir = get_destdir(), source = mount),
-		symlink(dir = get_destdir()))
+		lambda dir, target, link_name:
+				'make_symlink("%s", "%s", "%s")' % (dir, target, link_name))
 
-Default([mount, dump, fsck, mkfs, label])
+def program(pattern, output, alias = None):
+	sources = Glob(pattern)
+	if not sources:
+		return
+	target = env.Program(output, sources,
+			LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
+	if alias:
+		Alias('install', Install(destdir, target),
+				symlink(destdir, os.path.basename(output), alias))
+	else:
+		Alias('install', Install(destdir, target))
+	targets.append(target)
+
+env.Library('libexfat/exfat', Glob('libexfat/*.c'))
+
+program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat')
+program('dump/*.c', 'dump/dumpexfat')
+program('fsck/*.c', 'fsck/exfatfsck', 'fsck.exfat')
+program('mkfs/*.c', 'mkfs/mkexfatfs', 'mkfs.exfat')
+program('label/*.c', 'label/exfatlabel')
+
+Default(targets)
