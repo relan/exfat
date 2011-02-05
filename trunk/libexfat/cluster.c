@@ -50,6 +50,15 @@ off_t exfat_c2o(const struct exfat* ef, cluster_t cluster)
 }
 
 /*
+ * Block to cluster.
+ */
+static cluster_t b2c(const struct exfat* ef, off_t block)
+{
+	return ((block - le32_to_cpu(ef->sb->cluster_block_start)) >>
+			ef->sb->bpc_bits) + EXFAT_FIRST_DATA_CLUSTER;
+}
+
+/*
  * Size in bytes to size in clusters (rounded upwards).
  */
 static uint32_t bytes2clusters(const struct exfat* ef, uint64_t bytes)
@@ -390,4 +399,46 @@ uint32_t exfat_count_free_clusters(const struct exfat* ef)
 		if (BMAP_GET(ef->cmap.chunk, i) == 0)
 			free_clusters++;
 	return free_clusters;
+}
+
+static int find_used_clusters(const struct exfat* ef,
+		cluster_t* a, cluster_t* b)
+{
+	const cluster_t end = le32_to_cpu(ef->sb->cluster_count);
+
+	/* find first used cluster */
+	for (*a = *b + 1; *a < end; (*a)++)
+		if (BMAP_GET(ef->cmap.chunk, *a - EXFAT_FIRST_DATA_CLUSTER))
+			break;
+	if (*a >= end)
+		return 1;
+
+	/* find last contiguous used cluster */
+	for (*b = *a; *b < end; (*b)++)
+		if (BMAP_GET(ef->cmap.chunk, *b - EXFAT_FIRST_DATA_CLUSTER) == 0)
+		{
+			(*b)--;
+			break;
+		}
+
+	return 0;
+}
+
+int exfat_find_used_blocks(const struct exfat* ef, off_t* a, off_t* b)
+{
+	cluster_t ca, cb;
+
+	if (*a == 0 && *b == 0)
+		ca = cb = EXFAT_FIRST_DATA_CLUSTER - 1;
+	else
+	{
+		ca = b2c(ef, *a);
+		cb = b2c(ef, *b);
+	}
+	if (find_used_clusters(ef, &ca, &cb) != 0)
+		return 1;
+	if (*a != 0 || *b != 0)
+		*a = c2b(ef, ca);
+	*b = c2b(ef, cb) + (CLUSTER_SIZE(*ef->sb) - 1) / BLOCK_SIZE(*ef->sb);
+	return 0;
 }
