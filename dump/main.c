@@ -105,7 +105,17 @@ static int dump_sb(const char* spec)
 	return 0;
 }
 
-static int dump_full(const char* spec)
+static void dump_sectors(struct exfat* ef)
+{
+	off_t a = 0, b = 0;
+
+	printf("Used sectors ");
+	while (exfat_find_used_blocks(ef, &a, &b) == 0)
+		printf(" %"PRIu64"-%"PRIu64, a, b);
+	puts("");
+}
+
+static int dump_full(const char* spec, int used_sectors)
 {
 	struct exfat ef;
 	uint32_t free_clusters;
@@ -124,6 +134,8 @@ static int dump_full(const char* spec)
 	print_cluster_info(ef.sb);
 	printf("Free clusters             %10u\n", free_clusters);
 	print_other_info(ef.sb);
+	if (used_sectors)
+		dump_sectors(&ef);
 
 	exfat_unmount(&ef);
 	return 0;
@@ -131,7 +143,7 @@ static int dump_full(const char* spec)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-s] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-s] [-u] <device>\n", prog);
 	exit(1);
 }
 
@@ -140,11 +152,14 @@ int main(int argc, char* argv[])
 	char** pp;
 	const char* spec = NULL;
 	int sb_only = 0;
+	int used_sectors = 0;
 
 	for (pp = argv + 1; *pp; pp++)
 	{
 		if (strcmp(*pp, "-s") == 0)
 			sb_only = 1;
+		else if (strcmp(*pp, "-u") == 0)
+			used_sectors = 1;
 		else if (spec == NULL)
 			spec = *pp;
 		else
@@ -155,6 +170,6 @@ int main(int argc, char* argv[])
 
 	if (sb_only)
 		return dump_sb(spec);
-	else
-		return dump_full(spec);
+
+	return dump_full(spec, used_sectors);
 }
