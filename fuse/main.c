@@ -347,6 +347,21 @@ static char* add_blksize_option(char* options, long cluster_size)
 	return add_option(options, "blksize", blksize);
 }
 
+static char* add_fuse_options(char* options, const char* spec)
+{
+	options = add_fsname_option(options, spec);
+	if (options == NULL)
+		return NULL;
+	options = add_user_option(options);
+	if (options == NULL)
+		return NULL;
+	options = add_blksize_option(options, CLUSTER_SIZE(*ef.sb));
+	if (options == NULL)
+		return NULL;
+
+	return options;
+}
+
 int main(int argc, char* argv[])
 {
 	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
@@ -404,19 +419,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	mount_options = add_fsname_option(mount_options, spec);
-	if (mount_options == NULL)
-	{
-		exfat_unmount(&ef);
-		return 1;
-	}
-	mount_options = add_user_option(mount_options);
-	if (mount_options == NULL)
-	{
-		exfat_unmount(&ef);
-		return 1;
-	}
-	mount_options = add_blksize_option(mount_options, CLUSTER_SIZE(*ef.sb));
+	mount_options = add_fuse_options(mount_options, spec);
 	if (mount_options == NULL)
 	{
 		exfat_unmount(&ef);
