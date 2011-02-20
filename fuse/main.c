@@ -335,6 +335,18 @@ static char* add_user_option(char* options)
 	return add_option(options, "user", pw->pw_name);
 }
 
+static char* add_blksize_option(char* options, long cluster_size)
+{
+	long page_size = sysconf(_SC_PAGESIZE);
+	char blksize[20];
+
+	if (page_size < 1)
+		page_size = 0x1000;
+
+	snprintf(blksize, sizeof(blksize), "%ld", MIN(page_size, cluster_size));
+	return add_option(options, "blksize", blksize);
+}
+
 int main(int argc, char* argv[])
 {
 	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
@@ -399,6 +411,12 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	mount_options = add_user_option(mount_options);
+	if (mount_options == NULL)
+	{
+		exfat_unmount(&ef);
+		return 1;
+	}
+	mount_options = add_blksize_option(mount_options, CLUSTER_SIZE(*ef.sb));
 	if (mount_options == NULL)
 	{
 		exfat_unmount(&ef);
