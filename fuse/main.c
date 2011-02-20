@@ -385,29 +385,44 @@ int main(int argc, char* argv[])
 		free(mount_options);
 		usage(argv[0]);
 	}
+
+	if (exfat_mount(&ef, spec, mount_options) != 0)
+	{
+		free(mount_options);
+		return 1;
+	}
+
 	mount_options = add_fsname_option(mount_options, spec);
 	if (mount_options == NULL)
+	{
+		exfat_unmount(&ef);
 		return 1;
-
+	}
 	mount_options = add_user_option(mount_options);
 	if (mount_options == NULL)
+	{
+		exfat_unmount(&ef);
 		return 1;
+	}
 
 	/* create arguments for fuse_mount() */
 	if (fuse_opt_add_arg(&mount_args, "exfat") != 0 ||
 		fuse_opt_add_arg(&mount_args, "-o") != 0 ||
 		fuse_opt_add_arg(&mount_args, mount_options) != 0)
 	{
+		exfat_unmount(&ef);
 		free(mount_options);
 		return 1;
 	}
+
+	free(mount_options);
 
 	/* create FUSE mount point */
 	fc = fuse_mount(mount_point, &mount_args);
 	fuse_opt_free_args(&mount_args);
 	if (fc == NULL)
 	{
-		free(mount_options);
+		exfat_unmount(&ef);
 		return 1;
 	}
 
@@ -416,7 +431,7 @@ int main(int argc, char* argv[])
 		(debug && fuse_opt_add_arg(&newfs_args, "-d") != 0))
 	{
 		fuse_unmount(mount_point, fc);
-		free(mount_options);
+		exfat_unmount(&ef);
 		return 1;
 	}
 
@@ -427,7 +442,7 @@ int main(int argc, char* argv[])
 	if (fh == NULL)
 	{
 		fuse_unmount(mount_point, fc);
-		free(mount_options);
+		exfat_unmount(&ef);
 		return 1;
 	}
 
@@ -436,18 +451,9 @@ int main(int argc, char* argv[])
 	{
 		fuse_unmount(mount_point, fc);
 		fuse_destroy(fh);
-		free(mount_options);
+		exfat_unmount(&ef);
 		return 1;
 	}
-
-	if (exfat_mount(&ef, spec, mount_options) != 0)
-	{
-		fuse_unmount(mount_point, fc);
-		fuse_destroy(fh);
-		free(mount_options);
-		return 1;
-	}
-	free(mount_options);
 
 	/* go to background unless "-d" option is passed */
 	fuse_daemonize(debug);
