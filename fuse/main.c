@@ -139,6 +139,7 @@ static int fuse_exfat_open(const char* path, struct fuse_file_info* fi)
 	if (rc != 0)
 		return rc;
 	set_node(fi, node);
+	fi->keep_cache = 1;
 	return 0;
 }
 
