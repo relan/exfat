@@ -36,8 +36,8 @@
 #define EXFAT_ATTRIB_DIRTY      0x40000
 #define EXFAT_ATTRIB_UNLINKED   0x80000
 #define IS_CONTIGUOUS(node) (((node).flags & EXFAT_ATTRIB_CONTIGUOUS) != 0)
-#define BLOCK_SIZE(sb) (1 << (sb).block_bits)
-#define CLUSTER_SIZE(sb) (BLOCK_SIZE(sb) << (sb).bpc_bits)
+#define SECTOR_SIZE(sb) (1 << (sb).sector_bits)
+#define CLUSTER_SIZE(sb) (SECTOR_SIZE(sb) << (sb).spc_bits)
 #define CLUSTER_INVALID(c) ((c) == EXFAT_CLUSTER_BAD || (c) == EXFAT_CLUSTER_END)
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
@@ -87,7 +87,7 @@ struct exfat
 	cmap;
 	char label[EXFAT_ENAME_MAX * 6 + 1]; /* a character can occupy up to
 											6 bytes in UTF-8 */
-	void* zero_block;
+	void* zero_sector;
 	int dmask, fmask;
 	uid_t uid;
 	gid_t gid;
@@ -143,7 +143,7 @@ cluster_t exfat_advance_cluster(const struct exfat* ef,
 void exfat_flush_cmap(struct exfat* ef);
 int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size);
 uint32_t exfat_count_free_clusters(const struct exfat* ef);
-int exfat_find_used_blocks(const struct exfat* ef, off_t* a, off_t* b);
+int exfat_find_used_sectors(const struct exfat* ef, off_t* a, off_t* b);
 
 void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		struct stat* stbuf);
@@ -155,8 +155,8 @@ uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
 		const struct exfat_entry_meta2* meta2, const le16_t* name);
-uint32_t exfat_vbr_start_checksum(const void* block, size_t size);
-uint32_t exfat_vbr_add_checksum(const void* block, size_t size, uint32_t sum);
+uint32_t exfat_vbr_start_checksum(const void* sector, size_t size);
+uint32_t exfat_vbr_add_checksum(const void* sector, size_t size, uint32_t sum);
 le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name);
 void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb);
 void exfat_print_info(const struct exfat_super_block* sb,

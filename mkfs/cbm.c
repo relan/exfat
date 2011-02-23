@@ -58,7 +58,7 @@ int cbm_write(off_t base, int fd)
 		return errno;
 	free(bitmap);
 
-	sb.cluster_block_start = cpu_to_le32(base / BLOCK_SIZE(sb));
+	sb.cluster_sector_start = cpu_to_le32(base / SECTOR_SIZE(sb));
 	bitmap_entry.start_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));
 	bitmap_entry.size = cpu_to_le64(cbm_size());
 	return 0;

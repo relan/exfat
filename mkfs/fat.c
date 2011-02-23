@@ -28,12 +28,12 @@
 
 off_t fat_alignment(void)
 {
-	return (off_t) le32_to_cpu(sb.fat_block_start) * BLOCK_SIZE(sb);
+	return (off_t) le32_to_cpu(sb.fat_sector_start) * SECTOR_SIZE(sb);
 }
 
 off_t fat_size(void)
 {
-	return (off_t) le32_to_cpu(sb.fat_block_count) * BLOCK_SIZE(sb);
+	return (off_t) le32_to_cpu(sb.fat_sector_count) * SECTOR_SIZE(sb);
 }
 
 static cluster_t fat_write_entry(cluster_t cluster, cluster_t value, int fd)
@@ -61,9 +61,9 @@ int fat_write(off_t base, int fd)
 {
 	cluster_t c = 0;
 
-	if (base != le32_to_cpu(sb.fat_block_start) * BLOCK_SIZE(sb))
+	if (base != le32_to_cpu(sb.fat_sector_start) * SECTOR_SIZE(sb))
 		exfat_bug("unexpected FAT location: %"PRIu64" (expected %u)",
-				base, le32_to_cpu(sb.fat_block_start) * BLOCK_SIZE(sb));
+				base, le32_to_cpu(sb.fat_sector_start) * SECTOR_SIZE(sb));
 
 	if (!(c = fat_write_entry(c, 0xfffffff8, fd))) /* media type */
 		return errno;
