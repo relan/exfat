@@ -109,10 +109,10 @@ static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 	}
 	exfat_read_raw(sector, sector_size, i * sector_size, fd);
 	for (i = 0; i < sector_size / sizeof(vbr_checksum); i++)
-		if (((const uint32_t*) sector)[i] != vbr_checksum)
+		if (le32_to_cpu(((const le32_t*) sector)[i]) != vbr_checksum)
 		{
 			exfat_error("invalid VBR checksum 0x%x (expected 0x%x)",
-					((const uint32_t*) sector)[i], vbr_checksum);
+					le32_to_cpu(((const le32_t*) sector)[i]), vbr_checksum);
 			return 1;
 		}
 	return 0;
