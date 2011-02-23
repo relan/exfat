@@ -94,24 +94,25 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->noatime = match_option(options, "noatime");
 }
 
-static int verify_vbr_checksum(void* block, off_t block_size, int fd)
+static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 {
 	uint32_t vbr_checksum;
 	int i;
 
-	exfat_read_raw(block, block_size, 0, fd);
-	vbr_checksum = exfat_vbr_start_checksum(block, block_size);
+	exfat_read_raw(sector, sector_size, 0, fd);
+	vbr_checksum = exfat_vbr_start_checksum(sector, sector_size);
 	for (i = 1; i < 11; i++)
 	{
-		exfat_read_raw(block, block_size, i * block_size, fd);
-		vbr_checksum = exfat_vbr_add_checksum(block, block_size, vbr_checksum);
+		exfat_read_raw(sector, sector_size, i * sector_size, fd);
+		vbr_checksum = exfat_vbr_add_checksum(sector, sector_size,
+				vbr_checksum);
 	}
-	exfat_read_raw(block, block_size, i * block_size, fd);
-	for (i = 0; i < block_size / sizeof(vbr_checksum); i++)
-		if (((const uint32_t*) block)[i] != vbr_checksum)
+	exfat_read_raw(sector, sector_size, i * sector_size, fd);
+	for (i = 0; i < sector_size / sizeof(vbr_checksum); i++)
+		if (((const uint32_t*) sector)[i] != vbr_checksum)
 		{
 			exfat_error("invalid VBR checksum 0x%x (expected 0x%x)",
-					((const uint32_t*) block)[i], vbr_checksum);
+					((const uint32_t*) sector)[i], vbr_checksum);
 			return 1;
 		}
 	return 0;
@@ -166,37 +167,37 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -EIO;
 	}
 	/* officially exFAT supports cluster size up to 32 MB */
-	if ((int) ef->sb->block_bits + (int) ef->sb->bpc_bits > 25)
+	if ((int) ef->sb->sector_bits + (int) ef->sb->spc_bits > 25)
 	{
 		close(ef->fd);
 		free(ef->sb);
 		exfat_error("too big cluster size: 2^%d",
-				(int) ef->sb->block_bits + (int) ef->sb->bpc_bits);
+				(int) ef->sb->sector_bits + (int) ef->sb->spc_bits);
 		return -EIO;
 	}
 
-	ef->zero_block = malloc(BLOCK_SIZE(*ef->sb));
-	if (ef->zero_block == NULL)
+	ef->zero_sector = malloc(SECTOR_SIZE(*ef->sb));
+	if (ef->zero_sector == NULL)
 	{
 		close(ef->fd);
 		free(ef->sb);
-		exfat_error("failed to allocate zero block");
+		exfat_error("failed to allocate zero sector");
 		return -ENOMEM;
 	}
-	/* use zero_block as a temporary buffer for VBR checksum verification */
-	if (verify_vbr_checksum(ef->zero_block, BLOCK_SIZE(*ef->sb), ef->fd) != 0)
+	/* use zero_sector as a temporary buffer for VBR checksum verification */
+	if (verify_vbr_checksum(ef->zero_sector, SECTOR_SIZE(*ef->sb), ef->fd) != 0)
 	{
-		free(ef->zero_block);
+		free(ef->zero_sector);
 		close(ef->fd);
 		free(ef->sb);
 		return -EIO;
 	}
-	memset(ef->zero_block, 0, BLOCK_SIZE(*ef->sb));
+	memset(ef->zero_sector, 0, SECTOR_SIZE(*ef->sb));
 
 	ef->root = malloc(sizeof(struct exfat_node));
 	if (ef->root == NULL)
 	{
-		free(ef->zero_block);
+		free(ef->zero_sector);
 		close(ef->fd);
 		free(ef->sb);
 		exfat_error("failed to allocate root node");
@@ -234,7 +235,7 @@ error:
 	exfat_put_node(ef, ef->root);
 	exfat_reset_cache(ef);
 	free(ef->root);
-	free(ef->zero_block);
+	free(ef->zero_sector);
 	close(ef->fd);
 	free(ef->sb);
 	return -EIO;
@@ -246,8 +247,8 @@ void exfat_unmount(struct exfat* ef)
 	exfat_reset_cache(ef);
 	free(ef->root);
 	ef->root = NULL;
-	free(ef->zero_block);
-	ef->zero_block = NULL;
+	free(ef->zero_sector);
+	ef->zero_sector = NULL;
 	free(ef->cmap.chunk);
 	ef->cmap.chunk = NULL;
 	if (fsync(ef->fd) < 0)

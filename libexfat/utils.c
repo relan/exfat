@@ -211,7 +211,7 @@ le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
 	return cpu_to_le16(checksum);
 }
 
-uint32_t exfat_vbr_start_checksum(const void* block, size_t size)
+uint32_t exfat_vbr_start_checksum(const void* sector, size_t size)
 {
 	size_t i;
 	uint32_t sum = 0;
@@ -219,16 +219,16 @@ uint32_t exfat_vbr_start_checksum(const void* block, size_t size)
 	for (i = 0; i < size; i++)
 		/* skip volume_state and allocated_percent fields */
 		if (i != 0x6a && i != 0x6b && i != 0x70)
-			sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) block)[i];
+			sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) sector)[i];
 	return sum;
 }
 
-uint32_t exfat_vbr_add_checksum(const void* block, size_t size, uint32_t sum)
+uint32_t exfat_vbr_add_checksum(const void* sector, size_t size, uint32_t sum)
 {
 	size_t i;
 
 	for (i = 0; i < size; i++)
-		sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) block)[i];
+		sum = ((sum << 31) | (sum >> 1)) + ((const uint8_t*) sector)[i];
 	return sum;
 }
 
@@ -273,12 +273,12 @@ void exfat_print_info(const struct exfat_super_block* sb,
 		uint32_t free_clusters)
 {
 	struct exfat_human_bytes hb;
-	off_t total_space = (off_t) le64_to_cpu(sb->block_count) * BLOCK_SIZE(*sb);
+	off_t total_space = le64_to_cpu(sb->sector_count) * SECTOR_SIZE(*sb);
 	off_t avail_space = (off_t) free_clusters * CLUSTER_SIZE(*sb);
 
 	printf("File system version           %hhu.%hhu\n",
 			sb->version.major, sb->version.minor);
-	exfat_humanize_bytes(BLOCK_SIZE(*sb), &hb);
+	exfat_humanize_bytes(SECTOR_SIZE(*sb), &hb);
 	printf("Sector size          %10"PRIu64" %s\n", hb.value, hb.unit);
 	exfat_humanize_bytes(CLUSTER_SIZE(*sb), &hb);
 	printf("Cluster size         %10"PRIu64" %s\n", hb.value, hb.unit);

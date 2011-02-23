@@ -233,7 +233,7 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 {
 	sfs->f_bsize = CLUSTER_SIZE(*ef.sb);
 	sfs->f_frsize = CLUSTER_SIZE(*ef.sb);
-	sfs->f_blocks = le64_to_cpu(ef.sb->block_count) >> ef.sb->bpc_bits;
+	sfs->f_blocks = le64_to_cpu(ef.sb->sector_count) >> ef.sb->spc_bits;
 	sfs->f_bavail = exfat_count_free_clusters(&ef);
 	sfs->f_bfree = sfs->f_bavail;
 	sfs->f_namemax = EXFAT_NAME_MAX;
@@ -244,8 +244,8 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 	   b) no such thing as inode;
 	   So here we assume that inode = cluster.
 	*/
-	sfs->f_files = (sfs->f_blocks - sfs->f_bfree) >> ef.sb->bpc_bits;
-	sfs->f_favail = sfs->f_bfree >> ef.sb->bpc_bits;
+	sfs->f_files = (sfs->f_blocks - sfs->f_bfree) >> ef.sb->spc_bits;
+	sfs->f_favail = sfs->f_bfree >> ef.sb->spc_bits;
 	sfs->f_ffree = sfs->f_bavail;
 
 	return 0;
