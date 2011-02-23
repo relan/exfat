@@ -28,10 +28,10 @@ extern struct exfat_entry_label label_entry;
 extern struct exfat_entry_bitmap bitmap_entry;
 extern struct exfat_entry_upcase upcase_entry;
 
-#define OFFSET_TO_BLOCK(off) ((off) >> (sb).block_bits)
-#define BLOCK_TO_CLUSTER(block) \
-	((((block) - le32_to_cpu((sb).cluster_block_start)) >> (sb).bpc_bits) + \
+#define OFFSET_TO_SECTOR(off) ((off) >> (sb).sector_bits)
+#define SECTOR_TO_CLUSTER(sector) \
+	((((sector) - le32_to_cpu((sb).cluster_sector_start)) >> (sb).spc_bits) + \
 		EXFAT_FIRST_DATA_CLUSTER)
-#define OFFSET_TO_CLUSTER(off) BLOCK_TO_CLUSTER(OFFSET_TO_BLOCK(off))
+#define OFFSET_TO_CLUSTER(off) SECTOR_TO_CLUSTER(OFFSET_TO_SECTOR(off))
 
 #endif /* ifndef MKFS_MKEXFAT_H_INCLUDED */

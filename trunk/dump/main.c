@@ -32,15 +32,15 @@ static void print_generic_info(const struct exfat_super_block* sb)
 	printf("FS version                       %hhu.%hhu\n",
 			sb->version.major, sb->version.minor);
 	printf("Sector size               %10u\n",
-			BLOCK_SIZE(*sb));
+			SECTOR_SIZE(*sb));
 	printf("Cluster size              %10u\n",
 			CLUSTER_SIZE(*sb));
 }
 
-static void print_block_info(const struct exfat_super_block* sb)
+static void print_sector_info(const struct exfat_super_block* sb)
 {
 	printf("Sectors count             %10"PRIu64"\n",
-			le64_to_cpu(sb->block_count));
+			le64_to_cpu(sb->sector_count));
 }
 
 static void print_cluster_info(const struct exfat_super_block* sb)
@@ -52,13 +52,13 @@ static void print_cluster_info(const struct exfat_super_block* sb)
 static void print_other_info(const struct exfat_super_block* sb)
 {
 	printf("First sector              %10"PRIu64"\n",
-			le64_to_cpu(sb->block_start));
+			le64_to_cpu(sb->sector_start));
 	printf("FAT first sector          %10u\n",
-			le32_to_cpu(sb->fat_block_start));
+			le32_to_cpu(sb->fat_sector_start));
 	printf("FAT sectors count         %10u\n",
-			le32_to_cpu(sb->fat_block_count));
+			le32_to_cpu(sb->fat_sector_count));
 	printf("First cluster sector      %10u\n",
-			le32_to_cpu(sb->cluster_block_start));
+			le32_to_cpu(sb->cluster_sector_start));
 	printf("Root directory cluster    %10u\n",
 			le32_to_cpu(sb->rootdir_cluster));
 	printf("Volume state                  0x%04hx\n",
@@ -97,7 +97,7 @@ static int dump_sb(const char* spec)
 	}
 
 	print_generic_info(&sb);
-	print_block_info(&sb);
+	print_sector_info(&sb);
 	print_cluster_info(&sb);
 	print_other_info(&sb);
 
@@ -110,7 +110,7 @@ static void dump_sectors(struct exfat* ef)
 	off_t a = 0, b = 0;
 
 	printf("Used sectors ");
-	while (exfat_find_used_blocks(ef, &a, &b) == 0)
+	while (exfat_find_used_sectors(ef, &a, &b) == 0)
 		printf(" %"PRIu64"-%"PRIu64, a, b);
 	puts("");
 }
@@ -119,18 +119,18 @@ static int dump_full(const char* spec, int used_sectors)
 {
 	struct exfat ef;
 	uint32_t free_clusters;
-	uint64_t free_blocks;
+	uint64_t free_sectors;
 
 	if (exfat_mount(&ef, spec, "ro") != 0)
 		return 1;
 
 	free_clusters = exfat_count_free_clusters(&ef);
-	free_blocks = (uint64_t) free_clusters << ef.sb->bpc_bits;
+	free_sectors = (uint64_t) free_clusters << ef.sb->spc_bits;
 
 	printf("Volume label         %15s\n", exfat_get_label(&ef));
 	print_generic_info(ef.sb);
-	print_block_info(ef.sb);
-	printf("Free sectors              %10"PRIu64"\n", free_blocks);
+	print_sector_info(ef.sb);
+	printf("Free sectors              %10"PRIu64"\n", free_sectors);
 	print_cluster_info(ef.sb);
 	printf("Free clusters             %10u\n", free_clusters);
 	print_other_info(ef.sb);

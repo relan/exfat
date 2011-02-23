@@ -23,22 +23,22 @@
 #include <string.h>
 
 /*
- * Block to absolute offset.
+ * Sector to absolute offset.
  */
-static off_t b2o(const struct exfat* ef, off_t block)
+static off_t s2o(const struct exfat* ef, off_t sector)
 {
-	return block << ef->sb->block_bits;
+	return sector << ef->sb->sector_bits;
 }
 
 /*
- * Cluster to block.
+ * Cluster to sector.
  */
-static off_t c2b(const struct exfat* ef, cluster_t cluster)
+static off_t c2s(const struct exfat* ef, cluster_t cluster)
 {
 	if (cluster < EXFAT_FIRST_DATA_CLUSTER)
 		exfat_bug("invalid cluster number %u", cluster);
-	return le32_to_cpu(ef->sb->cluster_block_start) +
-		((off_t) (cluster - EXFAT_FIRST_DATA_CLUSTER) << ef->sb->bpc_bits);
+	return le32_to_cpu(ef->sb->cluster_sector_start) +
+		((off_t) (cluster - EXFAT_FIRST_DATA_CLUSTER) << ef->sb->spc_bits);
 }
 
 /*
@@ -46,16 +46,16 @@ static off_t c2b(const struct exfat* ef, cluster_t cluster)
  */
 off_t exfat_c2o(const struct exfat* ef, cluster_t cluster)
 {
-	return b2o(ef, c2b(ef, cluster));
+	return s2o(ef, c2s(ef, cluster));
 }
 
 /*
- * Block to cluster.
+ * Sector to cluster.
  */
-static cluster_t b2c(const struct exfat* ef, off_t block)
+static cluster_t s2c(const struct exfat* ef, off_t sector)
 {
-	return ((block - le32_to_cpu(ef->sb->cluster_block_start)) >>
-			ef->sb->bpc_bits) + EXFAT_FIRST_DATA_CLUSTER;
+	return ((sector - le32_to_cpu(ef->sb->cluster_sector_start)) >>
+			ef->sb->spc_bits) + EXFAT_FIRST_DATA_CLUSTER;
 }
 
 /*
@@ -78,7 +78,7 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 
 	if (IS_CONTIGUOUS(*node))
 		return cluster + 1;
-	fat_offset = b2o(ef, le32_to_cpu(ef->sb->fat_block_start))
+	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ cluster * sizeof(cluster_t);
 	exfat_read_raw(&next, sizeof(next), fat_offset, ef->fd);
 	return le32_to_cpu(next);
@@ -158,7 +158,7 @@ static void set_next_cluster(const struct exfat* ef, int contiguous,
 
 	if (contiguous)
 		return;
-	fat_offset = b2o(ef, le32_to_cpu(ef->sb->fat_block_start))
+	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ current * sizeof(cluster_t);
 	next_le32 = cpu_to_le32(next);
 	exfat_write_raw(&next_le32, sizeof(next_le32), fat_offset, ef->fd);
@@ -325,19 +325,19 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 
 static void erase_raw(struct exfat* ef, size_t size, off_t offset)
 {
-	exfat_write_raw(ef->zero_block, size, offset, ef->fd);
+	exfat_write_raw(ef->zero_sector, size, offset, ef->fd);
 }
 
 static int erase_range(struct exfat* ef, struct exfat_node* node,
 		uint64_t begin, uint64_t end)
 {
-	uint64_t block_boundary;
+	uint64_t sector_boundary;
 	cluster_t cluster;
 
 	if (begin >= end)
 		return 0;
 
-	block_boundary = (node->size | (BLOCK_SIZE(*ef->sb) - 1)) + 1;
+	sector_boundary = (node->size | (SECTOR_SIZE(*ef->sb) - 1)) + 1;
 	cluster = exfat_advance_cluster(ef, node,
 			node->size / CLUSTER_SIZE(*ef->sb));
 	if (CLUSTER_INVALID(cluster))
@@ -345,17 +345,17 @@ static int erase_range(struct exfat* ef, struct exfat_node* node,
 		exfat_error("invalid cluster in file");
 		return -EIO;
 	}
-	/* erase from the beginning to the closest block boundary */
-	erase_raw(ef, MIN(block_boundary, end) - node->size,
+	/* erase from the beginning to the closest sector boundary */
+	erase_raw(ef, MIN(sector_boundary, end) - node->size,
 			exfat_c2o(ef, cluster) + node->size % CLUSTER_SIZE(*ef->sb));
-	/* erase whole blocks */
-	while (block_boundary < end)
+	/* erase whole sectors */
+	while (sector_boundary < end)
 	{
-		if (block_boundary % CLUSTER_SIZE(*ef->sb) == 0)
+		if (sector_boundary % CLUSTER_SIZE(*ef->sb) == 0)
 			cluster = exfat_next_cluster(ef, node, cluster);
-		erase_raw(ef, BLOCK_SIZE(*ef->sb),
-			exfat_c2o(ef, cluster) + block_boundary % CLUSTER_SIZE(*ef->sb));
-		block_boundary += BLOCK_SIZE(*ef->sb);
+		erase_raw(ef, SECTOR_SIZE(*ef->sb),
+			exfat_c2o(ef, cluster) + sector_boundary % CLUSTER_SIZE(*ef->sb));
+		sector_boundary += SECTOR_SIZE(*ef->sb);
 	}
 	return 0;
 }
@@ -424,7 +424,7 @@ static int find_used_clusters(const struct exfat* ef,
 	return 0;
 }
 
-int exfat_find_used_blocks(const struct exfat* ef, off_t* a, off_t* b)
+int exfat_find_used_sectors(const struct exfat* ef, off_t* a, off_t* b)
 {
 	cluster_t ca, cb;
 
@@ -432,13 +432,13 @@ int exfat_find_used_blocks(const struct exfat* ef, off_t* a, off_t* b)
 		ca = cb = EXFAT_FIRST_DATA_CLUSTER - 1;
 	else
 	{
-		ca = b2c(ef, *a);
-		cb = b2c(ef, *b);
+		ca = s2c(ef, *a);
+		cb = s2c(ef, *b);
 	}
 	if (find_used_clusters(ef, &ca, &cb) != 0)
 		return 1;
 	if (*a != 0 || *b != 0)
-		*a = c2b(ef, ca);
-	*b = c2b(ef, cb) + (CLUSTER_SIZE(*ef->sb) - 1) / BLOCK_SIZE(*ef->sb);
+		*a = c2s(ef, ca);
+	*b = c2s(ef, cb) + (CLUSTER_SIZE(*ef->sb) - 1) / SECTOR_SIZE(*ef->sb);
 	return 0;
 }

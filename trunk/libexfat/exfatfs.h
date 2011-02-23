@@ -28,7 +28,7 @@ typedef uint32_t cluster_t;		/* cluster number */
 #define EXFAT_FIRST_DATA_CLUSTER 2
 
 #define EXFAT_CLUSTER_FREE         0 /* free cluster */
-#define EXFAT_CLUSTER_BAD 0xfffffff7 /* cluster contains bad block */
+#define EXFAT_CLUSTER_BAD 0xfffffff7 /* cluster contains bad sector */
 #define EXFAT_CLUSTER_END 0xffffffff /* final cluster of file or directory */
 
 struct exfat_super_block
@@ -36,11 +36,11 @@ struct exfat_super_block
 	uint8_t jump[3];				/* 0x00 jmp and nop instructions */
 	uint8_t oem_name[8];			/* 0x03 "EXFAT   " */
 	uint8_t	__unused1[53];			/* 0x0B always 0 */
-	le64_t block_start;				/* 0x40 partition first block */
-	le64_t block_count;				/* 0x48 partition blocks count */
-	le32_t fat_block_start;			/* 0x50 FAT first block */
-	le32_t fat_block_count;			/* 0x54 FAT blocks count */
-	le32_t cluster_block_start;		/* 0x58 first cluster block */
+	le64_t sector_start;			/* 0x40 partition first sector */
+	le64_t sector_count;			/* 0x48 partition sectors count */
+	le32_t fat_sector_start;		/* 0x50 FAT first sector */
+	le32_t fat_sector_count;		/* 0x54 FAT sectors count */
+	le32_t cluster_sector_start;	/* 0x58 first cluster sector */
 	le32_t cluster_count;			/* 0x5C total clusters count */
 	le32_t rootdir_cluster;			/* 0x60 first cluster of the root dir */
 	le32_t volume_serial;			/* 0x64 volume serial number */
@@ -51,8 +51,8 @@ struct exfat_super_block
 	}
 	version;
 	le16_t volume_state;			/* 0x6A volume state flags */
-	uint8_t block_bits;				/* 0x6C block size as (1 << n) */
-	uint8_t bpc_bits;				/* 0x6D blocks per cluster as (1 << n) */
+	uint8_t sector_bits;			/* 0x6C sector size as (1 << n) */
+	uint8_t spc_bits;				/* 0x6D sectors per cluster as (1 << n) */
 	uint8_t fat_count;				/* 0x6E always 1 */
 	uint8_t drive_no;				/* 0x6F always 0x80 */
 	uint8_t allocated_percent;		/* 0x70 percentage of allocated space */
