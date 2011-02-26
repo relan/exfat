@@ -52,7 +52,7 @@ struct exfat_structure
 };
 
 static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
-		uint32_t volume_serial)
+		uint32_t volume_serial, int first_sector)
 {
 	uint32_t clusters_max = (volume_size >> sector_bits >> spc_bits);
 	uint32_t fat_sectors = DIV_ROUND_UP(clusters_max * 4, 1 << sector_bits);
@@ -63,7 +63,7 @@ static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 	sb.jump[1] = 0x76;
 	sb.jump[2] = 0x90;
 	memcpy(sb.oem_name, "EXFAT   ", sizeof(sb.oem_name));
-	sb.sector_start = cpu_to_le64(0); /* FIXME */
+	sb.sector_start = cpu_to_le64(first_sector);
 	sb.sector_count = cpu_to_le64(volume_size >> sector_bits);
 	sb.fat_sector_start = cpu_to_le32(128); /* FIXME */
 	sb.fat_sector_count = cpu_to_le32(ROUND_UP(
@@ -265,7 +265,7 @@ static uint32_t get_volume_serial(uint32_t user_defined)
 }
 
 static int mkfs(const char* spec, int sector_bits, int spc_bits,
-		const char* volume_label, uint32_t volume_serial)
+		const char* volume_label, uint32_t volume_serial, int first_sector)
 {
 	int fd;
 	off_t volume_size;
@@ -307,7 +307,8 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 		return 1;
 	}
 
-	if (init_sb(volume_size, sector_bits, spc_bits, volume_serial) != 0)
+	if (init_sb(volume_size, sector_bits, spc_bits, volume_serial,
+				first_sector) != 0)
 	{
 		close(fd);
 		return 1;
@@ -358,6 +359,7 @@ static int logarithm2(int n)
 static void usage(const char* prog)
 {
 	fprintf(stderr, "Usage: %s [-i volume-id] [-n label] "
+			"[-p partition-first-sector] "
 			"[-s sectors-per-cluster] <device>\n", prog);
 	exit(1);
 }
@@ -369,6 +371,7 @@ int main(int argc, char* argv[])
 	int spc_bits = -1;
 	const char* volume_label = NULL;
 	uint32_t volume_serial = 0;
+	int first_sector = 0;
 
 	for (pp = argv + 1; *pp; pp++)
 	{
@@ -399,6 +402,13 @@ int main(int argc, char* argv[])
 				usage(argv[0]);
 			volume_serial = strtol(*pp, NULL, 16);
 		}
+		else if (strcmp(*pp, "-p") == 0)
+		{
+			pp++;
+			if (*pp == NULL)
+				usage(argv[0]);
+			first_sector = atoi(*pp);
+		}
 		else if (**pp == '-')
 		{
 			exfat_error("unrecognized option `%s'", *pp);
@@ -413,5 +423,5 @@ int main(int argc, char* argv[])
 	printf("mkexfatfs %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
-	return mkfs(spec, 9, spc_bits, volume_label, volume_serial);
+	return mkfs(spec, 9, spc_bits, volume_label, volume_serial, first_sector);
 }
