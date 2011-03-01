@@ -19,16 +19,27 @@
 */
 
 #include <stdio.h>
+#include <string.h>
 #include <exfat.h>
 
 int main(int argc, char* argv[])
 {
+	char** pp;
 	struct exfat ef;
 	int rc = 0;
 
+	for (pp = argv + 1; *pp; pp++)
+		if (strcmp(*pp, "-v") == 0)
+		{
+			printf("exfatlabel %u.%u.%u\n", EXFAT_VERSION_MAJOR,
+					EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
+			puts("Copyright (C) 2011  Andrew Nayenko");
+			return 0;
+		}
+
 	if (argc != 2 && argc != 3)
 	{
-		fprintf(stderr, "Usage: %s <device> [label]\n", argv[0]);
+		fprintf(stderr, "Usage: %s [-v] <device> [label]\n", argv[0]);
 		return 1;
 	}
 

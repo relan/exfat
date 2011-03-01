@@ -258,7 +258,7 @@ static void fuse_exfat_destroy(void* unused)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-d] [-o options] <device> <dir>\n", prog);
+	fprintf(stderr, "Usage: %s [-d] [-o options] [-v] <device> <dir>\n", prog);
 	exit(1);
 }
 
@@ -398,6 +398,12 @@ int main(int argc, char* argv[])
 		}
 		else if (strcmp(*pp, "-d") == 0)
 			debug = 1;
+		else if (strcmp(*pp, "-v") == 0)
+		{
+			free(mount_options);
+			puts("Copyright (C) 2009  Andrew Nayenko");
+			return 0;
+		}
 		else if (spec == NULL)
 			spec = *pp;
 		else if (mount_point == NULL)
