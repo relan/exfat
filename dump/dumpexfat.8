@@ -7,10 +7,13 @@
 .SH SYNOPSIS
 .B exfatlabel
 [
-.I \-s
+.B \-s
 ]
 [
-.I \-u
+.B \-u
+]
+[
+.B \-v
 ]
 .I device
 
@@ -29,6 +32,9 @@ systems.
 .B \-u
 Dump ranges of used sectors starting from 0 and separated with spaces. May be
 useful for backup tools.
+.TP
+.BI \-v
+Print version and copyright.
 
 .SH EXIT CODES
 Zero is returned on success. Any other code means an error.

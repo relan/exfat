@@ -6,6 +6,9 @@
 \- get or set an exFAT file system label
 .SH SYNOPSIS
 .B exfatlabel
+[
+.B \-v
+]
 .I device
 [
 .I label
@@ -28,6 +31,12 @@ If
 argument is omitted,
 .B exfatlabel
 just prints current volume name.
+
+.SH COMMAND LINE OPTIONS
+Command line options available:
+.TP
+.BI \-v
+Print version and copyright.
 
 .SH EXIT CODES
 Zero is returned on success. Any other code means an error.
