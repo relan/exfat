@@ -2,7 +2,7 @@
 	main.c (15.08.10)
 	Creates exFAT file system.
 
-	Copyright (C) 2009, 2010  Andrew Nayenko
+	Copyright (C) 2010  Andrew Nayenko
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -360,7 +360,7 @@ static void usage(const char* prog)
 {
 	fprintf(stderr, "Usage: %s [-i volume-id] [-n label] "
 			"[-p partition-first-sector] "
-			"[-s sectors-per-cluster] <device>\n", prog);
+			"[-s sectors-per-cluster] [-v] <device>\n", prog);
 	exit(1);
 }
 
@@ -372,6 +372,9 @@ int main(int argc, char* argv[])
 	const char* volume_label = NULL;
 	uint32_t volume_serial = 0;
 	int first_sector = 0;
+
+	printf("mkexfatfs %u.%u.%u\n",
+			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
 	for (pp = argv + 1; *pp; pp++)
 	{
@@ -409,19 +412,18 @@ int main(int argc, char* argv[])
 				usage(argv[0]);
 			first_sector = atoi(*pp);
 		}
-		else if (**pp == '-')
+		else if (strcmp(*pp, "-v") == 0)
 		{
-			exfat_error("unrecognized option `%s'", *pp);
-			return 1;
+			puts("Copyright (C) 2010  Andrew Nayenko");
+			return 0;
 		}
-		else
+		else if (spec == NULL)
 			spec = *pp;
+		else
+			usage(argv[0]);
 	}
 	if (spec == NULL)
 		usage(argv[0]);
-
-	printf("mkexfatfs %u.%u.%u\n",
-			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
 	return mkfs(spec, 9, spc_bits, volume_label, volume_serial, first_sector);
 }
