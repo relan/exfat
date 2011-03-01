@@ -143,7 +143,7 @@ static int dump_full(const char* spec, int used_sectors)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-s] [-u] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-s] [-u] [-v] <device>\n", prog);
 	exit(1);
 }
 
@@ -154,12 +154,20 @@ int main(int argc, char* argv[])
 	int sb_only = 0;
 	int used_sectors = 0;
 
+	printf("dumpexfat %u.%u.%u\n",
+			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
+
 	for (pp = argv + 1; *pp; pp++)
 	{
 		if (strcmp(*pp, "-s") == 0)
 			sb_only = 1;
 		else if (strcmp(*pp, "-u") == 0)
 			used_sectors = 1;
+		else if (strcmp(*pp, "-v") == 0)
+		{
+			puts("Copyright (C) 2010  Andrew Nayenko");
+			return 0;
+		}
 		else if (spec == NULL)
 			spec = *pp;
 		else

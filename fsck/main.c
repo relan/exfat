@@ -113,22 +113,40 @@ static void fsck(struct exfat* ef)
 	dirck(ef, "");
 }
 
+static void usage(const char* prog)
+{
+	fprintf(stderr, "Usage: %s [-v] <device>\n", prog);
+	exit(1);
+}
+
 int main(int argc, char* argv[])
 {
+	char** pp;
+	const char* spec = NULL;
 	struct exfat ef;
 
-	if (argc != 2)
-	{
-		fprintf(stderr, "Usage: %s <device>\n", argv[0]);
-		return 1;
-	}
 	printf("exfatfsck %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
-	if (exfat_mount(&ef, argv[1], "ro") != 0)
+	for (pp = argv + 1; *pp; pp++)
+	{
+		if (strcmp(*pp, "-v") == 0)
+		{
+			puts("Copyright (C) 2009  Andrew Nayenko");
+			return 0;
+		}
+		else if (spec == NULL)
+			spec = *pp;
+		else
+			usage(argv[0]);
+	}
+	if (spec == NULL)
+		usage(argv[0]);
+
+	if (exfat_mount(&ef, spec, "ro") != 0)
 		return 1;
 
-	printf("Checking file system on %s.\n", argv[1]);
+	printf("Checking file system on %s.\n", spec);
 	fsck(&ef);
 	exfat_unmount(&ef);
 	printf("Totally %"PRIu64" directories and %"PRIu64" files.\n",
