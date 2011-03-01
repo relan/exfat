@@ -12,6 +12,9 @@ mount.exfat-fuse \- mount an exFAT file system
 .B \-o
 .I options
 ]
+[
+.B \-v
+]
 .I device dir
 
 .SH DESCRIPTION
@@ -20,6 +23,7 @@ is a free exFAT file system implementation with write support. exFAT is a
 simple file system created by Microsoft. It is intended to replace FAT32
 removing some of it's limitations. exFAT is a standard FS for SDXC memory
 cards.
+
 .SH COMMAND LINE OPTIONS
 Command line options available:
 .TP
@@ -30,6 +34,10 @@ Enable debug logging and do not detach from shell.
 File system specific options. For more details see
 .B FILE SYSTEM OPTIONS
 section below.
+.TP
+.BI \-v
+Print version and copyright.
+
 .SH FILE SYSTEM OPTIONS
 .TP
 .BI umask= value
@@ -57,9 +65,12 @@ Mount the file system in read only mode.
 .TP
 .BI noatime
 Do not update access time when file is read.
+
 .SH EXIT CODES
 Zero is returned on successful mount. Any other code means an error.
+
 .SH AUTHOR
 Andrew Nayenko
+
 .SH SEE ALSO
 .BR mount (8)

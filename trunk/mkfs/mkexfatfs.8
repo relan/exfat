@@ -22,6 +22,9 @@
 .B \-s
 .I sectors-per-cluster
 ]
+[
+.B \-v
+]
 .I device
 
 .SH DESCRIPTION
@@ -51,6 +54,9 @@ exceed 32 MB. Default cluster sizes are:
 4 KB if volume size is less than 256 MB,
 32 KB if volume size is from 256 MB to 32 GB,
 128 KB if volume size is 32 GB or larger.
+.TP
+.BI \-v
+Print version and copyright.
 
 .SH EXIT CODES
 Zero is returned on successful creation. Any other code means an error.
