@@ -1,3 +1,12 @@
+0.9.4 (2011-03-05)
+
+* Introduced exfat-utils: dumpexfat, exfatfsck, mkexfatfs, exfatlabel.
+* Fixed "Invalid argument" error while mounting a volume from a disk with sector size greater than 512 bytes.
+* Wait for all data to be flushed to disk on unmount.
+* Kernel cache is no longer flushed on open. This can slightly improve read performance by avoiding extra read requests from kernel to user-space.
+* Allow to unmount volumes as user (fusermount -u) if they were mounted from the very same user [Tino Lange].
+* Errors and warnings are now duplicated to syslog.
+
 0.9.3 (2010-09-25)
 
 * Directories now can shrink.
