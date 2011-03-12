@@ -55,12 +55,14 @@ symlink = SCons.Action.ActionFactory(make_symlink,
 		lambda dir, target, link_name:
 				'make_symlink("%s", "%s", "%s")' % (dir, target, link_name))
 
-def program(pattern, output, alias = None):
+def program(pattern, output, alias = None, lib = None):
 	sources = Glob(pattern)
 	if not sources:
 		return
-	target = env.Program(output, sources,
-			LIBS = ['exfat', 'fuse'], LIBPATH = 'libexfat')
+	libs = ['exfat']
+	if lib:
+		libs.append(lib)
+	target = env.Program(output, sources, LIBS = libs, LIBPATH = 'libexfat')
 	if alias:
 		Alias('install', Install(destdir, target),
 				symlink(destdir, os.path.basename(output), alias))
@@ -70,7 +72,7 @@ def program(pattern, output, alias = None):
 
 env.Library('libexfat/exfat', Glob('libexfat/*.c'))
 
-program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat')
+program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat', ['fuse'])
 program('dump/*.c', 'dump/dumpexfat')
 program('fsck/*.c', 'fsck/exfatfsck', 'fsck.exfat')
 program('mkfs/*.c', 'mkfs/mkexfatfs', 'mkfs.exfat')
