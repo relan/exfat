@@ -34,11 +34,15 @@ off_t rootdir_size(void)
 
 int rootdir_write(off_t base, int fd)
 {
+	const struct exfat_entry eod_entry = {EXFAT_ENTRY_EOD};
+
 	if (write(fd, &label_entry, sizeof(struct exfat_entry)) == -1)
 		return 1;
 	if (write(fd, &bitmap_entry, sizeof(struct exfat_entry)) == -1)
 		return 1;
 	if (write(fd, &upcase_entry, sizeof(struct exfat_entry)) == -1)
+		return 1;
+	if (write(fd, &eod_entry, sizeof(struct exfat_entry)) == -1)
 		return 1;
 
 	sb.rootdir_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));
