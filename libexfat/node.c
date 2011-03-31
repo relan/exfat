@@ -362,7 +362,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		default:
 			if (entry->type & EXFAT_ENTRY_VALID)
 			{
-				exfat_error("unknown entry type 0x%hhu", entry->type);
+				exfat_error("unknown entry type 0x%hhx", entry->type);
 				goto error;
 			}
 			break;
