@@ -103,14 +103,22 @@ static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 
 static int erase_device(int fd)
 {
-	uint64_t erase_sectors = (uint64_t)
-			le32_to_cpu(sb.fat_sector_start) +
-			le32_to_cpu(sb.fat_sector_count) +
-			DIV_ROUND_UP(cbm_size(), 1 << sb.sector_bits) +
-			DIV_ROUND_UP(uct_size(), 1 << sb.sector_bits) +
-			DIV_ROUND_UP(rootdir_size(), 1 << sb.sector_bits);
-	uint64_t i;
+	off_t erase_size;
+	off_t erase_sectors;
+	off_t i;
 	void* sector;
+
+	erase_size = ((uint64_t)
+			le32_to_cpu(sb.fat_sector_start) +
+			le32_to_cpu(sb.fat_sector_count)) * SECTOR_SIZE(sb);
+	erase_size = ROUND_UP(erase_size, cbm_alignment());
+	erase_size += cbm_size();
+	erase_size = ROUND_UP(erase_size, uct_alignment());
+	erase_size += uct_size();
+	erase_size = ROUND_UP(erase_size, rootdir_alignment());
+	erase_size += rootdir_size();
+
+	erase_sectors = erase_size / SECTOR_SIZE(sb);
 
 	if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
 	{
