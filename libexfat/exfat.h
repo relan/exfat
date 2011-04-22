@@ -119,6 +119,7 @@ void exfat_warn(const char* format, ...)
 void exfat_debug(const char* format, ...)
 	__attribute__((format(printf, 1, 2)));
 
+int exfat_open(const char* spec, int ro);
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
 void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd);
 ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
