@@ -19,9 +19,7 @@
 */
 
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <sys/time.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <stdio.h>
@@ -285,12 +283,9 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 		return 1;
 	}
 
-	fd = open(spec_abs, O_RDWR);
+	fd = exfat_open(spec_abs, 0);
 	if (fd < 0)
-	{
-		exfat_error("failed to open special file `%s'", spec_abs);
 		return 1;
-	}
 
 	volume_size = lseek(fd, 0, SEEK_END);
 	if (volume_size == (off_t) -1)
