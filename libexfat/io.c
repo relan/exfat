@@ -22,12 +22,41 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/uio.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #define __USE_UNIX98 /* for pread() in Linux */
 #include <unistd.h>
 
 #if _FILE_OFFSET_BITS != 64
 	#error You should define _FILE_OFFSET_BITS=64
 #endif
+
+int exfat_open(const char* spec, int ro)
+{
+	int fd;
+	struct stat stbuf;
+
+	fd = open(spec, ro ? O_RDONLY : O_RDWR);
+	if (fd < 0)
+	{
+		exfat_error("failed to open `%s'", spec);
+		return -1;
+	}
+	if (fstat(fd, &stbuf) != 0)
+	{
+		close(fd);
+		exfat_error("failed to fstat `%s'", spec);
+		return -1;
+	}
+	if (!S_ISBLK(stbuf.st_mode) && !S_ISREG(stbuf.st_mode))
+	{
+		close(fd);
+		exfat_error("`%s' is neither a block device, nor a regular file",
+				spec);
+		return -1;
+	}
+	return fd;
+}
 
 void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd)
 {
