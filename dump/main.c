@@ -76,12 +76,10 @@ static int dump_sb(const char* spec)
 	int fd;
 	struct exfat_super_block sb;
 
-	fd = open(spec, O_RDONLY);
+	fd = exfat_open(spec, 1);
 	if (fd < 0)
-	{
-		exfat_error("failed to open `%s'", spec);
 		return 1;
-	}
+
 	if (read(fd, &sb, sizeof(struct exfat_super_block))
 			!= sizeof(struct exfat_super_block))
 	{

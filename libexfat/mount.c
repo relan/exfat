@@ -22,10 +22,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #define _XOPEN_SOURCE /* for tzset() in Linux */
 #include <time.h>
 
@@ -121,7 +119,6 @@ static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	int rc;
-	struct stat stbuf;
 
 	tzset();
 	memset(ef, 0, sizeof(struct exfat));
@@ -136,26 +133,10 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 
 	parse_options(ef, options);
 
-	ef->fd = open(spec, ef->ro ? O_RDONLY : O_RDWR);
+	ef->fd = exfat_open(spec, ef->ro);
 	if (ef->fd < 0)
 	{
 		free(ef->sb);
-		exfat_error("failed to open `%s'", spec);
-		return -EIO;
-	}
-	if (fstat(ef->fd, &stbuf) != 0)
-	{
-		close(ef->fd);
-		free(ef->sb);
-		exfat_error("failed to fstat `%s'", spec);
-		return -EIO;
-	}
-	if (!S_ISBLK(stbuf.st_mode) && !S_ISREG(stbuf.st_mode))
-	{
-		close(ef->fd);
-		free(ef->sb);
-		exfat_error("`%s' is neither a block device, nor a regular file",
-				spec);
 		return -EIO;
 	}
 
