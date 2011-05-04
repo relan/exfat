@@ -43,7 +43,10 @@ int vbr_write(off_t base, int fd)
 		return errno;
 
 	if (write(fd, &sb, sizeof(struct exfat_super_block)) == -1)
+	{
+		free(sector);
 		return errno;
+	}
 	checksum = exfat_vbr_start_checksum(&sb, sizeof(struct exfat_super_block));
 
 	memset(sector, 0, SECTOR_SIZE(sb));
@@ -51,22 +54,34 @@ int vbr_write(off_t base, int fd)
 	for (i = 0; i < 8; i++)
 	{
 		if (write(fd, sector, SECTOR_SIZE(sb)) == -1)
+		{
+			free(sector);
 			return errno;
+		}
 		checksum = exfat_vbr_add_checksum(sector, SECTOR_SIZE(sb), checksum);
 	}
 
 	memset(sector, 0, SECTOR_SIZE(sb));
 	if (write(fd, sector, SECTOR_SIZE(sb)) == -1)
+	{
+		free(sector);
 		return errno;
+	}
 	checksum = exfat_vbr_add_checksum(sector, SECTOR_SIZE(sb), checksum);
 	if (write(fd, sector, SECTOR_SIZE(sb)) == -1)
+	{
+		free(sector);
 		return errno;
+	}
 	checksum = exfat_vbr_add_checksum(sector, SECTOR_SIZE(sb), checksum);
 
 	for (i = 0; i < SECTOR_SIZE(sb) / sizeof(sector[0]); i++)
 		sector[i] = cpu_to_le32(checksum);
 	if (write(fd, sector, SECTOR_SIZE(sb)) == -1)
+	{
+		free(sector);
 		return errno;
+	}
 
 	free(sector);
 	return 0;
