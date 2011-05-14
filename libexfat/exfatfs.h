@@ -132,13 +132,13 @@ struct exfat_entry_meta1			/* file or directory info (part 1) */
 }
 __attribute__((__packed__));
 
-#define EXFAT_FLAG_FRAGMENTED 1
-#define EXFAT_FLAG_CONTIGUOUS 3
+#define EXFAT_FLAG_ALWAYS1		(1u << 0)
+#define EXFAT_FLAG_CONTIGUOUS	(1u << 1)
 
 struct exfat_entry_meta2			/* file or directory info (part 2) */
 {
 	uint8_t type;					/* EXFAT_ENTRY_FILE_INFO */
-	uint8_t flag;					/* fragmented or contiguous */
+	uint8_t flags;					/* combination of EXFAT_FLAG_xxx */
 	uint8_t __unknown1;
 	uint8_t name_length;
 	le16_t name_hash;
