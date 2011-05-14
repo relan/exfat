@@ -148,7 +148,7 @@ static void init_node_meta2(struct exfat_node* node,
 	node->size = le64_to_cpu(meta2->size);
 	node->start_cluster = le32_to_cpu(meta2->start_cluster);
 	node->fptr_cluster = node->start_cluster;
-	if (meta2->flag == EXFAT_FLAG_CONTIGUOUS)
+	if (meta2->flags & EXFAT_FLAG_CONTIGUOUS)
 		node->flags |= EXFAT_ATTRIB_CONTIGUOUS;
 }
 
@@ -233,6 +233,11 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			meta2 = (const struct exfat_entry_meta2*) entry;
+			if (meta2->flags & ~(EXFAT_FLAG_ALWAYS1 | EXFAT_FLAG_CONTIGUOUS))
+			{
+				exfat_error("unknown flags in meta2 (0x%hhx)", meta2->flags);
+				goto error;
+			}
 			init_node_meta2(*node, meta2);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 			/* There are two fields that contain file size. Maybe they plan
@@ -245,6 +250,13 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("real size does not equal to size "
 						"(%"PRIu64" != %"PRIu64")",
 						le64_to_cpu(meta2->real_size), (*node)->size);
+				goto error;
+			}
+			/* empty files must be marked as non-contiguous */
+			if ((*node)->size == 0 && (meta2->flags & EXFAT_FLAG_CONTIGUOUS))
+			{
+				exfat_error("empty file marked as contiguous (0x%hhx)",
+						meta2->flags);
 				goto error;
 			}
 			/* directories must be aligned on at cluster boundary */
@@ -493,11 +505,10 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
 	meta2.size = meta2.real_size = cpu_to_le64(node->size);
 	meta2.start_cluster = cpu_to_le32(node->start_cluster);
-	/* empty files must be marked as fragmented */
+	meta2.flags = EXFAT_FLAG_ALWAYS1;
+	/* empty files must not be marked as contiguous */
 	if (node->size != 0 && IS_CONTIGUOUS(*node))
-		meta2.flag = EXFAT_FLAG_CONTIGUOUS;
-	else
-		meta2.flag = EXFAT_FLAG_FRAGMENTED;
+		meta2.flags |= EXFAT_FLAG_CONTIGUOUS;
 	/* name hash remains unchanged, no need to recalculate it */
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
@@ -733,7 +744,7 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 
 	memset(&meta2, 0, sizeof(meta2));
 	meta2.type = EXFAT_ENTRY_FILE_INFO;
-	meta2.flag = EXFAT_FLAG_FRAGMENTED;
+	meta2.flags = EXFAT_FLAG_ALWAYS1;
 	meta2.name_length = name_length;
 	meta2.name_hash = exfat_calc_name_hash(ef, node->name);
 	meta2.start_cluster = cpu_to_le32(EXFAT_CLUSTER_FREE);
