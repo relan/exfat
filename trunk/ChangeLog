@@ -1,3 +1,10 @@
+0.9.5 (2011-05-15)
+
+* Fixed erasing of the root directory cluster when creating a new FS with
+mkexfatfs. This bug could cause mkexfatfs to produce invalid FS.
+* Utilities are not linked with libfuse anymore.
+* Ensure that the path being opened is either a device or a regular file.
+
 0.9.4 (2011-03-05)
 
 * Introduced exfat-utils: dumpexfat, exfatfsck, mkexfatfs, exfatlabel.
