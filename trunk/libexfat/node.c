@@ -108,6 +108,12 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 	/* fetch the next cluster if needed */
 	if ((it->offset & (CLUSTER_SIZE(*ef->sb) - 1)) == 0)
 	{
+		if (it->offset >= parent->size)
+		{
+			exfat_error("missing EOD entry (0x%"PRIx64", 0x%"PRIx64")",
+					it->offset, parent->size);
+			return 1;
+		}
 		it->cluster = exfat_next_cluster(ef, parent, it->cluster);
 		if (CLUSTER_INVALID(it->cluster))
 		{
