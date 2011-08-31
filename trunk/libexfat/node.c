@@ -172,6 +172,7 @@ static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
 static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		struct exfat_node** node, struct iterator* it)
 {
+	int rc = -EIO;
 	const struct exfat_entry* entry;
 	const struct exfat_entry_meta1* meta1;
 	const struct exfat_entry_meta2* meta2;
@@ -217,13 +218,16 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (continuations < 2)
 			{
 				exfat_error("too few continuations (%hhu)", continuations);
-				return -EIO;
+				goto error;
 			}
 			reference_checksum = le16_to_cpu(meta1->checksum);
 			actual_checksum = exfat_start_checksum(meta1);
 			*node = allocate_node();
 			if (*node == NULL)
-				return -ENOMEM;
+			{
+				rc = -ENOMEM;
+				goto error;
+			}
 			/* new node has zero reference counter */
 			(*node)->entry_cluster = it->cluster;
 			(*node)->entry_offset = it->offset;
@@ -296,7 +300,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				{
 					exfat_error("invalid checksum (0x%hx != 0x%hx)",
 							actual_checksum, reference_checksum);
-					return -EIO;
+					goto error;
 				}
 				if (fetch_next_entry(ef, parent, it) != 0)
 					goto error;
@@ -311,7 +315,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (CLUSTER_INVALID(le32_to_cpu(upcase->start_cluster)))
 			{
 				exfat_error("invalid cluster in upcase table");
-				return -EIO;
+				goto error;
 			}
 			if (le64_to_cpu(upcase->size) == 0 ||
 				le64_to_cpu(upcase->size) > 0xffff * sizeof(uint16_t) ||
@@ -319,14 +323,15 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			{
 				exfat_error("bad upcase table size (%"PRIu64" bytes)",
 						le64_to_cpu(upcase->size));
-				return -EIO;
+				goto error;
 			}
 			ef->upcase = malloc(le64_to_cpu(upcase->size));
 			if (ef->upcase == NULL)
 			{
 				exfat_error("failed to allocate upcase table (%"PRIu64" bytes)",
 						le64_to_cpu(upcase->size));
-				return -ENOMEM;
+				rc = -ENOMEM;
+				goto error;
 			}
 			ef->upcase_chars = le64_to_cpu(upcase->size) / sizeof(le16_t);
 
@@ -339,7 +344,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (CLUSTER_INVALID(le32_to_cpu(bitmap->start_cluster)))
 			{
 				exfat_error("invalid cluster in clusters bitmap");
- 				return -EIO;
+				goto error;
 			}
 			ef->cmap.size = le32_to_cpu(ef->sb->cluster_count) -
 				EXFAT_FIRST_DATA_CLUSTER;
@@ -348,7 +353,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("invalid clusters bitmap size: %"PRIu64
 						" (expected at least %u)",
 						le64_to_cpu(bitmap->size), (ef->cmap.size + 7) / 8);
-				return -EIO;
+				goto error;
 			}
 			ef->cmap.start_cluster = le32_to_cpu(bitmap->start_cluster);
 			/* FIXME bitmap can be rather big, up to 512 MB */
@@ -358,7 +363,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			{
 				exfat_error("failed to allocate clusters bitmap chunk "
 						"(%"PRIu64" bytes)", le64_to_cpu(bitmap->size));
-				return -ENOMEM;
+				rc = -ENOMEM;
+				goto error;
 			}
 
 			exfat_read_raw(ef->cmap.chunk, le64_to_cpu(bitmap->size),
@@ -370,11 +376,11 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (label->length > EXFAT_ENAME_MAX)
 			{
 				exfat_error("too long label (%hhu chars)", label->length);
-				return -EIO;
+				goto error;
 			}
 			if (utf16_to_utf8(ef->label, label->name,
 						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
-				return -EIO;
+				goto error;
 			break;
 
 		default:
@@ -394,7 +400,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 error:
 	free(*node);
 	*node = NULL;
-	return -EIO;
+	return rc;
 }
 
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
