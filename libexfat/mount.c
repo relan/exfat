@@ -173,28 +173,29 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -EIO;
 	}
 
-	ef->zero_sector = malloc(SECTOR_SIZE(*ef->sb));
-	if (ef->zero_sector == NULL)
+	ef->zero_cluster = malloc(CLUSTER_SIZE(*ef->sb));
+	if (ef->zero_cluster == NULL)
 	{
 		close(ef->fd);
 		free(ef->sb);
 		exfat_error("failed to allocate zero sector");
 		return -ENOMEM;
 	}
-	/* use zero_sector as a temporary buffer for VBR checksum verification */
-	if (verify_vbr_checksum(ef->zero_sector, SECTOR_SIZE(*ef->sb), ef->fd) != 0)
+	/* use zero_cluster as a temporary buffer for VBR checksum verification */
+	if (verify_vbr_checksum(ef->zero_cluster, SECTOR_SIZE(*ef->sb),
+			ef->fd) != 0)
 	{
-		free(ef->zero_sector);
+		free(ef->zero_cluster);
 		close(ef->fd);
 		free(ef->sb);
 		return -EIO;
 	}
-	memset(ef->zero_sector, 0, SECTOR_SIZE(*ef->sb));
+	memset(ef->zero_cluster, 0, CLUSTER_SIZE(*ef->sb));
 
 	ef->root = malloc(sizeof(struct exfat_node));
 	if (ef->root == NULL)
 	{
-		free(ef->zero_sector);
+		free(ef->zero_cluster);
 		close(ef->fd);
 		free(ef->sb);
 		exfat_error("failed to allocate root node");
@@ -232,7 +233,7 @@ error:
 	exfat_put_node(ef, ef->root);
 	exfat_reset_cache(ef);
 	free(ef->root);
-	free(ef->zero_sector);
+	free(ef->zero_cluster);
 	close(ef->fd);
 	free(ef->sb);
 	return -EIO;
@@ -244,8 +245,8 @@ void exfat_unmount(struct exfat* ef)
 	exfat_reset_cache(ef);
 	free(ef->root);
 	ef->root = NULL;
-	free(ef->zero_sector);
-	ef->zero_sector = NULL;
+	free(ef->zero_cluster);
+	ef->zero_cluster = NULL;
 	free(ef->cmap.chunk);
 	ef->cmap.chunk = NULL;
 	if (fsync(ef->fd) < 0)

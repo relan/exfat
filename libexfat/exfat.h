@@ -87,7 +87,7 @@ struct exfat
 	cmap;
 	char label[EXFAT_ENAME_MAX * 6 + 1]; /* a character can occupy up to
 											6 bytes in UTF-8 */
-	void* zero_sector;
+	void* zero_cluster;
 	int dmask, fmask;
 	uid_t uid;
 	gid_t gid;
