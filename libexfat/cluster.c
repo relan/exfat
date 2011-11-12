@@ -325,37 +325,38 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 
 static void erase_raw(struct exfat* ef, size_t size, off_t offset)
 {
-	exfat_write_raw(ef->zero_sector, size, offset, ef->fd);
+	exfat_write_raw(ef->zero_cluster, size, offset, ef->fd);
 }
 
 static int erase_range(struct exfat* ef, struct exfat_node* node,
 		uint64_t begin, uint64_t end)
 {
-	uint64_t sector_boundary;
+	uint64_t cluster_boundary;
 	cluster_t cluster;
 
 	if (begin >= end)
 		return 0;
 
-	sector_boundary = (node->size | (SECTOR_SIZE(*ef->sb) - 1)) + 1;
+	cluster_boundary = (begin | (CLUSTER_SIZE(*ef->sb) - 1)) + 1;
 	cluster = exfat_advance_cluster(ef, node,
-			node->size / CLUSTER_SIZE(*ef->sb));
+			begin / CLUSTER_SIZE(*ef->sb));
 	if (CLUSTER_INVALID(cluster))
 	{
 		exfat_error("invalid cluster in file");
 		return -EIO;
 	}
-	/* erase from the beginning to the closest sector boundary */
-	erase_raw(ef, MIN(sector_boundary, end) - node->size,
-			exfat_c2o(ef, cluster) + node->size % CLUSTER_SIZE(*ef->sb));
-	/* erase whole sectors */
-	while (sector_boundary < end)
+	/* erase from the beginning to the closest cluster boundary */
+	erase_raw(ef, MIN(cluster_boundary, end) - begin,
+			exfat_c2o(ef, cluster) + begin % CLUSTER_SIZE(*ef->sb));
+	/* erase whole clusters */
+	while (cluster_boundary < end)
 	{
-		if (sector_boundary % CLUSTER_SIZE(*ef->sb) == 0)
-			cluster = exfat_next_cluster(ef, node, cluster);
-		erase_raw(ef, SECTOR_SIZE(*ef->sb),
-			exfat_c2o(ef, cluster) + sector_boundary % CLUSTER_SIZE(*ef->sb));
-		sector_boundary += SECTOR_SIZE(*ef->sb);
+		cluster = exfat_next_cluster(ef, node, cluster);
+		/* the cluster cannot be invalid because we have just allocated it */
+		if (CLUSTER_INVALID(cluster))
+			exfat_bug("invalid cluster in file");
+		erase_raw(ef, CLUSTER_SIZE(*ef->sb), exfat_c2o(ef, cluster));
+		cluster_boundary += CLUSTER_SIZE(*ef->sb);
 	}
 	return 0;
 }
