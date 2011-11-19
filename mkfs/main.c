@@ -275,15 +275,8 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 {
 	int fd;
 	off_t volume_size;
-	char spec_abs[PATH_MAX];
 
-	if (realpath(spec, spec_abs) == NULL)
-	{
-		exfat_error("failed to get absolute path for `%s'", spec);
-		return 1;
-	}
-
-	fd = exfat_open(spec_abs, 0);
+	fd = exfat_open(spec, 0);
 	if (fd < 0)
 		return 1;
 
@@ -336,13 +329,13 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	if (fsync(fd) < 0)
 	{
 		close(fd);
-		exfat_error("fsync failed for `%s'", spec_abs);
+		exfat_error("fsync failed");
 		return 1;
 	}
 	puts("done.");
 	if (close(fd) < 0)
 	{
-		exfat_error("close failed for `%s'", spec_abs);
+		exfat_error("close failed");
 		return 1;
 	}
 	printf("File system created successfully.\n");
