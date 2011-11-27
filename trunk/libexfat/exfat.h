@@ -92,6 +92,7 @@ struct exfat
 	uid_t uid;
 	gid_t gid;
 	int ro;
+	int ro_fallback;
 	int noatime;
 };
 

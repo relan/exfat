@@ -127,7 +127,15 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 
 	ef->fd = exfat_open(spec, ef->ro);
 	if (ef->fd < 0)
-		return -EIO;
+	{
+		if (ef->ro || !match_option(options, "ro_fallback"))
+			return -EIO;
+		ef->fd = exfat_open(spec, 1);
+		if (ef->fd < 0)
+			return -EIO;
+		exfat_warn("device is write-protected, mounting read-only");
+		ef->ro_fallback = ef->ro = 1;
+	}
 
 	ef->sb = malloc(sizeof(struct exfat_super_block));
 	if (ef->sb == NULL)
