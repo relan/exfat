@@ -39,7 +39,8 @@ int exfat_open(const char* spec, int ro)
 	fd = open(spec, ro ? O_RDONLY : O_RDWR);
 	if (fd < 0)
 	{
-		exfat_error("failed to open `%s'", spec);
+		exfat_error("failed to open `%s' in read-%s mode", spec,
+				ro ? "only" : "write");
 		return -1;
 	}
 	if (fstat(fd, &stbuf) != 0)
