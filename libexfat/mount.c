@@ -123,22 +123,20 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	tzset();
 	memset(ef, 0, sizeof(struct exfat));
 
-	ef->sb = malloc(sizeof(struct exfat_super_block));
-	if (ef->sb == NULL)
-	{
-		exfat_error("memory allocation failed");
-		return -ENOMEM;
-	}
-	memset(ef->sb, 0, sizeof(struct exfat_super_block));
-
 	parse_options(ef, options);
 
 	ef->fd = exfat_open(spec, ef->ro);
 	if (ef->fd < 0)
-	{
-		free(ef->sb);
 		return -EIO;
+
+	ef->sb = malloc(sizeof(struct exfat_super_block));
+	if (ef->sb == NULL)
+	{
+		close(ef->fd);
+		exfat_error("memory allocation failed");
+		return -ENOMEM;
 	}
+	memset(ef->sb, 0, sizeof(struct exfat_super_block));
 
 	exfat_read_raw(ef->sb, sizeof(struct exfat_super_block), 0, ef->fd);
 	if (memcmp(ef->sb->oem_name, "EXFAT   ", 8) != 0)
