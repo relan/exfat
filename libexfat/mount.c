@@ -133,7 +133,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	if (ef->sb == NULL)
 	{
 		close(ef->fd);
-		exfat_error("memory allocation failed");
+		exfat_error("failed to allocate memory for the super block");
 		return -ENOMEM;
 	}
 	memset(ef->sb, 0, sizeof(struct exfat_super_block));
