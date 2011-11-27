@@ -37,7 +37,7 @@
 	#error FUSE 2.6 or later is required
 #endif
 
-const char* default_options = "allow_other,blkdev";
+const char* default_options = "ro_fallback,allow_other,blkdev";
 
 struct exfat ef;
 
@@ -424,6 +424,16 @@ int main(int argc, char* argv[])
 	{
 		free(mount_options);
 		return 1;
+	}
+
+	if (ef.ro_fallback)
+	{
+		mount_options = add_option(mount_options, "ro", NULL);
+		if (mount_options == NULL)
+		{
+			exfat_unmount(&ef);
+			return 1;
+		}
 	}
 
 	mount_options = add_fuse_options(mount_options, spec);
