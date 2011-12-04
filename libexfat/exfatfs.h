@@ -31,6 +31,8 @@ typedef uint32_t cluster_t;		/* cluster number */
 #define EXFAT_CLUSTER_BAD 0xfffffff7 /* cluster contains bad sector */
 #define EXFAT_CLUSTER_END 0xffffffff /* final cluster of file or directory */
 
+#define EXFAT_STATE_MOUNTED 2
+
 struct exfat_super_block
 {
 	uint8_t jump[3];				/* 0x00 jmp and nop instructions */

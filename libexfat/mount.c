@@ -116,6 +116,30 @@ static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 	return 0;
 }
 
+static int commit_super_block(const struct exfat* ef)
+{
+	exfat_write_raw(ef->sb, sizeof(struct exfat_super_block), 0, ef->fd);
+	if (fsync(ef->fd) < 0)
+	{
+		exfat_error("fsync failed");
+		return 1;
+	}
+	return 0;
+}
+
+static int prepare_super_block(const struct exfat* ef)
+{
+	if (le16_to_cpu(ef->sb->volume_state) & EXFAT_STATE_MOUNTED)
+		exfat_warn("volume was not unmounted cleanly");
+
+	if (ef->ro)
+		return 0;
+
+	ef->sb->volume_state = cpu_to_le16(
+			le16_to_cpu(ef->sb->volume_state) | EXFAT_STATE_MOUNTED);
+	return commit_super_block(ef);
+}
+
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	int rc;
@@ -233,6 +257,9 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		goto error;
 	}
 
+	if (prepare_super_block(ef) != 0)
+		goto error;
+
 	return 0;
 
 error:
@@ -245,21 +272,30 @@ error:
 	return -EIO;
 }
 
+static void finalize_super_block(struct exfat* ef)
+{
+	if (ef->ro)
+		return;
+
+	ef->sb->volume_state = cpu_to_le16(
+			le16_to_cpu(ef->sb->volume_state) & ~EXFAT_STATE_MOUNTED);
+	commit_super_block(ef);
+}
+
 void exfat_unmount(struct exfat* ef)
 {
 	exfat_put_node(ef, ef->root);
 	exfat_reset_cache(ef);
 	free(ef->root);
 	ef->root = NULL;
+	finalize_super_block(ef);
+	if (close(ef->fd) < 0)	/* close descriptor immediately after fsync */
+		exfat_error("close failed");
+	ef->fd = 0;
 	free(ef->zero_cluster);
 	ef->zero_cluster = NULL;
 	free(ef->cmap.chunk);
 	ef->cmap.chunk = NULL;
-	if (fsync(ef->fd) < 0)
-		exfat_error("fsync failed");
-	if (close(ef->fd) < 0)
-		exfat_error("close failed");
-	ef->fd = 0;
 	free(ef->sb);
 	ef->sb = NULL;
 	free(ef->upcase);
