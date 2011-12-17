@@ -35,3 +35,7 @@ You need util-linux-ng 2.18 or later to mount exFAT volumes automatically. Anywa
 sudo mount.exfat-fuse /dev/sdXn /mnt/exfat
 }}}
 where `/dev/sdXn` is the volume special file, `/mnt/exfat` is a mountpoint.
+
+= Feedback =
+
+If you have any questions, issues, suggestions, bug reports, patches, etc. please send an e-mail to the [mailto:exfat@googlegroups.com mailing list] ([http://groups.google.ru/group/exfat archive]). Do not use the comment field at the bottom of this page, it's for commenting this article itself.
