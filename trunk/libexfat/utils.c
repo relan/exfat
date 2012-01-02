@@ -41,7 +41,9 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		CLUSTER_SIZE(*ef->sb) / 512;
 	stbuf->st_mtime = node->mtime;
 	stbuf->st_atime = node->atime;
-	stbuf->st_ctime = 0; /* unapplicable */
+	/* set ctime to mtime to ensure we don't break programs that rely on ctime
+	   (e.g. rsync) */
+	stbuf->st_ctime = node->mtime;
 }
 
 #define SEC_IN_MIN 60ll
