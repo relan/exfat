@@ -260,14 +260,20 @@ void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb)
 	size_t i;
 	const char* units[] = {"bytes", "KB", "MB", "GB", "TB", "PB"};
 	uint64_t divisor = 1;
+	uint64_t temp = 0;
 
-	for (i = 0; i < sizeof(units) / sizeof(units[0]) - 1; i++)
+	for (i = 0; i < sizeof(units) / sizeof(units[0]) - 1; i++, divisor *= 1024)
 	{
-		if ((value + divisor / 2) / divisor < 1024)
+		temp = (value + divisor / 2) / divisor;
+
+		if (temp == 0)
 			break;
-		divisor *= 1024;
+		if (temp / 1024 * 1024 == temp)
+			continue;
+		if (temp < 10240)
+			break;
 	}
-	hb->value = (value + divisor / 2) / divisor;
+	hb->value = temp;
 	hb->unit = units[i];
 }
 
