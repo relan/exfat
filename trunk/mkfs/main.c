@@ -102,9 +102,14 @@ static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 static int erase_device(int fd)
 {
 	off_t erase_size;
-	off_t erase_sectors;
+	off_t erase_blocks;
+	long block_size;
+	void* block;
 	off_t i;
-	void* sector;
+
+	block_size = sysconf(_SC_PAGESIZE);
+	if (block_size < 1)
+		block_size = 0x1000;
 
 	erase_size = ((uint64_t)
 			le32_to_cpu(sb.fat_sector_start) +
@@ -116,7 +121,7 @@ static int erase_device(int fd)
 	erase_size = ROUND_UP(erase_size, rootdir_alignment());
 	erase_size += rootdir_size();
 
-	erase_sectors = erase_size / SECTOR_SIZE(sb);
+	erase_blocks = DIV_ROUND_UP(erase_size, block_size);
 
 	if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
 	{
@@ -124,29 +129,29 @@ static int erase_device(int fd)
 		return 1;
 	}
 
-	sector = malloc(SECTOR_SIZE(sb));
-	if (sector == NULL)
+	block = malloc(block_size);
+	if (block == NULL)
 	{
-		exfat_error("failed to allocate erase sector");
+		exfat_error("failed to allocate erase block");
 		return 1;
 	}
-	memset(sector, 0, SECTOR_SIZE(sb));
+	memset(block, 0, block_size);
 
-	for (i = 0; i < erase_sectors; i++)
+	for (i = 0; i < erase_blocks; i++)
 	{
-		if (write(fd, sector, SECTOR_SIZE(sb)) == -1)
+		if (write(fd, block, block_size) == -1)
 		{
-			free(sector);
-			exfat_error("failed to erase sector %"PRIu64, i);
+			free(block);
+			exfat_error("failed to erase block %"PRIu64, i);
 			return 1;
 		}
-		if (i * 100 / erase_sectors != (i + 1) * 100 / erase_sectors)
+		if (i * 100 / erase_blocks != (i + 1) * 100 / erase_blocks)
 		{
-			printf("\b\b\b%2"PRIu64"%%", (i + 1) * 100 / erase_sectors);
+			printf("\b\b\b%2"PRIu64"%%", (i + 1) * 100 / erase_blocks);
 			fflush(stdout);
 		}
 	}
-	free(sector);
+	free(block);
 	return 0;
 }
 
