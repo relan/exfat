@@ -1,3 +1,14 @@
+0.9.6 (2012-01-14)
+
+* Fixed write performance regression introduced in 0.9.4.
+* Mount in read-only mode if the device is write-protected.
+* Set ctime to mtime to ensure we don't break programs that rely on ctime
+(e.g. rsync considered that all files are outdated) [Eldad Zack].
+* Indicate that FS in not clean when it was not cleanly unmounted.
+* Utilities are now compatible with GNU/Hurd.
+* Fixed several memory leaks that could occur on error handling paths.
+* Improved handling of corrupted file systems.
+
 0.9.5 (2011-05-15)
 
 * Fixed erasing of the root directory cluster when creating a new FS with
