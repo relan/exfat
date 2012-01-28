@@ -108,12 +108,10 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 	/* fetch the next cluster if needed */
 	if ((it->offset & (CLUSTER_SIZE(*ef->sb) - 1)) == 0)
 	{
+		/* reached the end of directory; the caller should check this
+		   condition too */
 		if (it->offset >= parent->size)
-		{
-			exfat_error("missing EOD entry (0x%"PRIx64", 0x%"PRIx64")",
-					it->offset, parent->size);
-			return 1;
-		}
+			return 0;
 		it->cluster = exfat_next_cluster(ef, parent, it->cluster);
 		if (CLUSTER_INVALID(it->cluster))
 		{
@@ -189,21 +187,19 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 
 	for (;;)
 	{
-		/* every directory (even empty one) occupies at least one cluster and
-		   must contain EOD entry */
-		entry = get_entry_ptr(ef, it);
-
-		switch (entry->type)
+		if (it->offset >= parent->size)
 		{
-		case EXFAT_ENTRY_EOD:
 			if (continuations != 0)
 			{
-				exfat_error("expected %hhu continuations before EOD",
-						continuations);
+				exfat_error("expected %hhu continuations", continuations);
 				goto error;
 			}
 			return -ENOENT; /* that's OK, means end of directory */
+		}
 
+		entry = get_entry_ptr(ef, it);
+		switch (entry->type)
+		{
 		case EXFAT_ENTRY_FILE:
 			if (continuations != 0)
 			{
@@ -582,10 +578,8 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 {
 	const struct exfat_node* node;
 	const struct exfat_node* last_node;
-	uint64_t entries = 1; /* a directory always has at leat 1 entry (EOD) */
+	uint64_t entries = 0;
 	uint64_t new_size;
-	struct exfat_entry eod;
-	off_t eod_offset;
 	int rc;
 
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
@@ -618,21 +612,13 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 
 	new_size = DIV_ROUND_UP(entries * sizeof(struct exfat_entry),
 				 CLUSTER_SIZE(*ef->sb)) * CLUSTER_SIZE(*ef->sb);
+	if (new_size == 0) /* directory always has at least 1 cluster */
+		new_size = CLUSTER_SIZE(*ef->sb);
 	if (new_size == dir->size)
 		return 0;
 	rc = exfat_truncate(ef, dir, new_size);
 	if (rc != 0)
 		return rc;
-
-	/* put EOD entry at the end of the last cluster */
-	memset(&eod, 0, sizeof(eod));
-	eod_offset = new_size - sizeof(struct exfat_entry);
-	if (last_node)
-		exfat_write_raw(&eod, sizeof(eod),
-				co2o(ef, last_node->entry_cluster, eod_offset), ef->fd);
-	else
-		exfat_write_raw(&eod, sizeof(eod),
-				co2o(ef, dir->start_cluster, eod_offset), ef->fd);
 	return 0;
 }
 
@@ -698,24 +684,22 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 			*offset = it.offset;
 		}
 		entry = get_entry_ptr(ef, &it);
-		if (entry->type == EXFAT_ENTRY_EOD)
-		{
-			rc = grow_directory(ef, dir,
-					it.offset + sizeof(struct exfat_entry), /* actual size */
-					(subentries - contiguous) * sizeof(struct exfat_entry));
-			if (rc != 0)
-			{
-				closedir(&it);
-				return rc;
-			}
-			break;
-		}
 		if (entry->type & EXFAT_ENTRY_VALID)
 			contiguous = 0;
 		else
 			contiguous++;
 		if (contiguous == subentries)
 			break;	/* suitable slot is found */
+		if (it.offset + sizeof(struct exfat_entry) >= dir->size)
+		{
+			rc = grow_directory(ef, dir, dir->size,
+					(subentries - contiguous) * sizeof(struct exfat_entry));
+			if (rc != 0)
+			{
+				closedir(&it);
+				return rc;
+			}
+		}
 		if (fetch_next_entry(ef, dir, &it) != 0)
 		{
 			closedir(&it);
@@ -978,7 +962,6 @@ static int find_label(struct exfat* ef, cluster_t* cluster, off_t* offset)
 {
 	struct iterator it;
 	int rc;
-	const struct exfat_entry* entry;
 
 	rc = opendir(ef, ef->root, &it);
 	if (rc != 0)
@@ -986,14 +969,13 @@ static int find_label(struct exfat* ef, cluster_t* cluster, off_t* offset)
 
 	for (;;)
 	{
-		entry = get_entry_ptr(ef, &it);
-
-		if (entry->type == EXFAT_ENTRY_EOD)
+		if (it.offset >= ef->root->size)
 		{
 			closedir(&it);
 			return -ENOENT;
 		}
-		if (entry->type == EXFAT_ENTRY_LABEL)
+
+		if (get_entry_ptr(ef, &it)->type == EXFAT_ENTRY_LABEL)
 		{
 			*cluster = it.cluster;
 			*offset = it.offset;
