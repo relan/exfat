@@ -66,7 +66,6 @@ __attribute__((__packed__));
 #define EXFAT_ENTRY_VALID     0x80
 #define EXFAT_ENTRY_CONTINUED 0x40
 
-#define EXFAT_ENTRY_EOD       (0x00)
 #define EXFAT_ENTRY_BITMAP    (0x01 | EXFAT_ENTRY_VALID)
 #define EXFAT_ENTRY_UPCASE    (0x02 | EXFAT_ENTRY_VALID)
 #define EXFAT_ENTRY_LABEL     (0x03 | EXFAT_ENTRY_VALID)

@@ -40,8 +40,6 @@ int rootdir_write(off_t base, int fd)
 		return 1;
 	if (write(fd, &upcase_entry, sizeof(struct exfat_entry)) == -1)
 		return 1;
-	/* No need to write EOD entry because the whole rootdir cluster was
-	   erased by erase_device(). */
 	sb.rootdir_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));
 	return 0;
 }
