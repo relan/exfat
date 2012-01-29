@@ -182,7 +182,6 @@ static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 	}
 
 	ef->cmap.dirty = 1;
-	/* FIXME update percentage of used space */
 	return cluster;
 }
 
