@@ -195,7 +195,6 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 
 	BMAP_CLR(ef->cmap.chunk, cluster - EXFAT_FIRST_DATA_CLUSTER);
 	ef->cmap.dirty = 1;
-	/* FIXME update percentage of used space */
 }
 
 static void make_noncontiguous(const struct exfat* ef, cluster_t first,
