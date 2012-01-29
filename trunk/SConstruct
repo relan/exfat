@@ -36,6 +36,8 @@ if 'CCFLAGS' in os.environ:
 if not conf.env['CCFLAGS']:
 	if conf.env['CC'] == 'gcc':
 		conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb')
+	elif conf.env['CC'] == 'clang':
+		conf.env.Replace(CCFLAGS = '-Wall -O2 -g')
 conf.env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
 conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 # __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
