@@ -23,23 +23,33 @@ import platform
 import SCons
 
 env = Environment(**ARGUMENTS)
+conf = Configure(env)
+
 destdir = env.get('DESTDIR', '/sbin');
 targets = []
 
-if not env['CCFLAGS']:
-	if env['CC'] == 'gcc':
-		env['CCFLAGS'] = '-Wall -O2 -ggdb'
-env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
-env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
+if 'CC' in os.environ:
+	conf.env.Replace(CC = os.environ['CC'])
+if 'CCFLAGS' in os.environ:
+	conf.env.Replace(CCFLAGS = os.environ['CCFLAGS'])
+# Set default CCFLAGS for known compilers
+if not conf.env['CCFLAGS']:
+	if conf.env['CC'] == 'gcc':
+		conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb')
+conf.env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
+conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 # __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
 # numbers are 64-bit by default, but libfuse operates 32-bit ones. This define
 # forces 32-bit inode declaration in system headers, but it's also possible to
 # link against libfuse_ino64 instead.
 if platform.system() == 'Darwin':
-	env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
-	env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
-env.Append(CPPPATH = ['libexfat'])
-env.Append(LINKFLAGS = '')
+	conf.env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
+	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
+conf.env.Append(CPPPATH = ['libexfat'])
+if 'LDFLAGS' in os.environ:
+	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
+
+env = conf.Finish()
 
 def make_symlink(dir, target, link_name):
 	workdir = os.getcwd()
