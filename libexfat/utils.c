@@ -79,13 +79,13 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
 	uint16_t ndate = le16_to_cpu(date);
 	uint16_t ntime = le16_to_cpu(time);
 
-	uint16_t day    = ndate & 0x1f;     /* 5 bits, 1-31 */
-	uint16_t month  = ndate >> 5 & 0xf; /* 4 bits, 1-12 */
-	uint16_t year   = ndate >> 9;       /* 7 bits, 1-127 (+1980) */
+	uint16_t day    = ndate & 0x1f;      /* 5 bits, 1-31 */
+	uint16_t month  = ndate >> 5 & 0xf;  /* 4 bits, 1-12 */
+	uint16_t year   = ndate >> 9;        /* 7 bits, 1-127 (+1980) */
 
-	uint16_t twosec = ntime & 0x1f;     /* 5 bits, 0-29 (2 sec granularity) */
-	uint16_t min    = ntime >> 5 & 0xf; /* 6 bits, 0-59 */
-	uint16_t hour   = ntime >> 11;      /* 5 bits, 0-23 */
+	uint16_t twosec = ntime & 0x1f;      /* 5 bits, 0-29 (2 sec granularity) */
+	uint16_t min    = ntime >> 5 & 0xf;  /* 6 bits, 0-59 */
+	uint16_t hour   = ntime >> 11;       /* 5 bits, 0-23 */
 
 	if (day == 0 || month == 0 || month > 12)
 	{
