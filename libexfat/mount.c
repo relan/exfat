@@ -18,13 +18,13 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _XOPEN_SOURCE /* for tzset() in Linux */
 #include "exfat.h"
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
-#define _XOPEN_SOURCE /* for tzset() in Linux */
 #include <time.h>
 
 static uint64_t rootdir_size(const struct exfat* ef)
