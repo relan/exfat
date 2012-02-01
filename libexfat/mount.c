@@ -18,7 +18,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _XOPEN_SOURCE /* for tzset() in Linux */
 #include "exfat.h"
 #include <string.h>
 #include <stdlib.h>
