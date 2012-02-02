@@ -149,9 +149,6 @@ int exfat_find_used_sectors(const struct exfat* ef, off_t* a, off_t* b);
 
 void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		struct stat* stbuf);
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec);
-void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
-		uint8_t* centisec);
 void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n);
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
@@ -188,5 +185,9 @@ int exfat_set_label(struct exfat* ef, const char* label);
 
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
+
+time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec);
+void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
+		uint8_t* centisec);
 
 #endif /* ifndef EXFAT_H_INCLUDED */
