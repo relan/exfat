@@ -24,7 +24,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <time.h>
 
 static uint64_t rootdir_size(const struct exfat* ef)
 {
@@ -143,7 +142,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	int rc;
 
-	tzset();
+	exfat_tzset();
 	memset(ef, 0, sizeof(struct exfat));
 
 	parse_options(ef, options);

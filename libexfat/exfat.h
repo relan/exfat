@@ -189,5 +189,6 @@ void exfat_unmount(struct exfat* ef);
 time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 		uint8_t* centisec);
+void exfat_tzset(void);
 
 #endif /* ifndef EXFAT_H_INCLUDED */
