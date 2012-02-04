@@ -20,6 +20,10 @@
 
 #include "exfat.h"
 
+/* timezone offset from UTC in seconds; positive for western timezones,
+   negative for eastern ones */
+static long exfat_timezone;
+
 #define SEC_IN_MIN 60ll
 #define SEC_IN_HOUR (60 * SEC_IN_MIN)
 #define SEC_IN_DAY (24 * SEC_IN_HOUR)
@@ -94,7 +98,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
 	unix_time += centisec / 100;
 
 	/* exFAT stores timestamps in local time, so we correct it to UTC */
-	unix_time += timezone;
+	unix_time += exfat_timezone;
 
 	return unix_time;
 }
@@ -102,7 +106,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 		uint8_t* centisec)
 {
-	time_t shift = EPOCH_DIFF_SEC + timezone;
+	time_t shift = EPOCH_DIFF_SEC + exfat_timezone;
 	uint16_t day, month, year;
 	uint16_t twosec, min, hour;
 	int days;
@@ -140,4 +144,13 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 	*time = cpu_to_le16(twosec | (min << 5) | (hour << 11));
 	if (centisec)
 		*centisec = (unix_time % 2) * 100;
+}
+
+void exfat_tzset(void)
+{
+	time_t now;
+
+	tzset();
+	now = time(NULL);
+	exfat_timezone = mktime(gmtime(&now)) - now;
 }
