@@ -735,8 +735,7 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 			&meta1.crtime_cs);
 	meta1.adate = meta1.mdate = meta1.crdate;
 	meta1.atime = meta1.mtime = meta1.crtime;
-	/* crtime_cs and mtime_cs contain addition to the time in centiseconds;
-	   just ignore those fields because we operate with 2 sec resolution */
+	meta1.mtime_cs = meta1.crtime_cs; /* there is no atime_cs */
 
 	memset(&meta2, 0, sizeof(meta2));
 	meta2.type = EXFAT_ENTRY_FILE_INFO;
