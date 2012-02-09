@@ -6,7 +6,7 @@
 If there are no binary packages for your OS or you want to get the most recent version, you should compile from source. To do this under GNU/Linux you need to install the following packages:
   * `subversion` (if you wish to get the source from the repository, see below),
   * `scons`,
-  * `fuse-devel` (or `fuse-dev`),
+  * `fuse-devel` (or `libfuse-dev`),
   * `gcc`.
 
 = Getting the Source =
