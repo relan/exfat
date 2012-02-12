@@ -59,21 +59,21 @@ int exfat_open(const char* spec, int ro)
 	return fd;
 }
 
-void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd)
+void exfat_pread(int fd, void* buffer, size_t size, off_t offset)
 {
 	if (pread(fd, buffer, size, offset) != size)
 		exfat_bug("failed to read %zu bytes from file at %"PRIu64, size,
 				(uint64_t) offset);
 }
 
-void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd)
+void exfat_pwrite(int fd, const void* buffer, size_t size, off_t offset)
 {
 	if (pwrite(fd, buffer, size, offset) != size)
 		exfat_bug("failed to write %zu bytes to file at %"PRIu64, size,
 				(uint64_t) offset);
 }
 
-ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
+ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		void* buffer, size_t size, off_t offset)
 {
 	cluster_t cluster;
@@ -102,7 +102,7 @@ ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
 			return -1;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
-		exfat_read_raw(bufp, lsize, exfat_c2o(ef, cluster) + loffset, ef->fd);
+		exfat_pread(ef->fd, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;
@@ -113,7 +113,7 @@ ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
 	return size - remainder;
 }
 
-ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
+ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		const void* buffer, size_t size, off_t offset)
 {
 	cluster_t cluster;
@@ -146,7 +146,7 @@ ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
 			return -1;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
-		exfat_write_raw(bufp, lsize, exfat_c2o(ef, cluster) + loffset, ef->fd);
+		exfat_pwrite(ef->fd, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;

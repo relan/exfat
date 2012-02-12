@@ -95,15 +95,15 @@ static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 	uint32_t vbr_checksum;
 	int i;
 
-	exfat_read_raw(sector, sector_size, 0, fd);
+	exfat_pread(fd, sector, sector_size, 0);
 	vbr_checksum = exfat_vbr_start_checksum(sector, sector_size);
 	for (i = 1; i < 11; i++)
 	{
-		exfat_read_raw(sector, sector_size, i * sector_size, fd);
+		exfat_pread(fd, sector, sector_size, i * sector_size);
 		vbr_checksum = exfat_vbr_add_checksum(sector, sector_size,
 				vbr_checksum);
 	}
-	exfat_read_raw(sector, sector_size, i * sector_size, fd);
+	exfat_pread(fd, sector, sector_size, i * sector_size);
 	for (i = 0; i < sector_size / sizeof(vbr_checksum); i++)
 		if (le32_to_cpu(((const le32_t*) sector)[i]) != vbr_checksum)
 		{
@@ -116,7 +116,7 @@ static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 
 static int commit_super_block(const struct exfat* ef)
 {
-	exfat_write_raw(ef->sb, sizeof(struct exfat_super_block), 0, ef->fd);
+	exfat_pwrite(ef->fd, ef->sb, sizeof(struct exfat_super_block), 0);
 	if (fsync(ef->fd) < 0)
 	{
 		exfat_error("fsync failed");
@@ -168,7 +168,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	}
 	memset(ef->sb, 0, sizeof(struct exfat_super_block));
 
-	exfat_read_raw(ef->sb, sizeof(struct exfat_super_block), 0, ef->fd);
+	exfat_pread(ef->fd, ef->sb, sizeof(struct exfat_super_block), 0);
 	if (memcmp(ef->sb->oem_name, "EXFAT   ", 8) != 0)
 	{
 		close(ef->fd);
