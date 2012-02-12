@@ -121,11 +121,11 @@ void exfat_debug(const char* format, ...)
 	__attribute__((format(printf, 1, 2)));
 
 int exfat_open(const char* spec, int ro);
-void exfat_read_raw(void* buffer, size_t size, off_t offset, int fd);
-void exfat_write_raw(const void* buffer, size_t size, off_t offset, int fd);
-ssize_t exfat_read(const struct exfat* ef, struct exfat_node* node,
+void exfat_pread(int fd, void* buffer, size_t size, off_t offset);
+void exfat_pwrite(int fd, const void* buffer, size_t size, off_t offset);
+ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
-ssize_t exfat_write(struct exfat* ef, struct exfat_node* node,
+ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		const void* buffer, size_t size, off_t offset);
 
 int exfat_opendir(struct exfat* ef, struct exfat_node* dir,

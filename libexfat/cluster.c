@@ -80,7 +80,7 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 		return cluster + 1;
 	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ cluster * sizeof(cluster_t);
-	exfat_read_raw(&next, sizeof(next), fat_offset, ef->fd);
+	exfat_pread(ef->fd, &next, sizeof(next), fat_offset);
 	return le32_to_cpu(next);
 }
 
@@ -145,8 +145,8 @@ static cluster_t find_bit_and_set(uint8_t* bitmap, cluster_t start,
 
 void exfat_flush_cmap(struct exfat* ef)
 {
-	exfat_write_raw(ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
-			exfat_c2o(ef, ef->cmap.start_cluster), ef->fd);
+	exfat_pwrite(ef->fd, ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
+			exfat_c2o(ef, ef->cmap.start_cluster));
 	ef->cmap.dirty = 0;
 }
 
@@ -161,7 +161,7 @@ static void set_next_cluster(const struct exfat* ef, int contiguous,
 	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ current * sizeof(cluster_t);
 	next_le32 = cpu_to_le32(next);
-	exfat_write_raw(&next_le32, sizeof(next_le32), fat_offset, ef->fd);
+	exfat_pwrite(ef->fd, &next_le32, sizeof(next_le32), fat_offset);
 }
 
 static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
@@ -323,7 +323,7 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 
 static void erase_raw(struct exfat* ef, size_t size, off_t offset)
 {
-	exfat_write_raw(ef->zero_cluster, size, offset, ef->fd);
+	exfat_pwrite(ef->fd, ef->zero_cluster, size, offset);
 }
 
 static int erase_range(struct exfat* ef, struct exfat_node* node,
