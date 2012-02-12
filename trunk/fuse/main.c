@@ -153,14 +153,14 @@ static int fuse_exfat_read(const char* path, char* buffer, size_t size,
 		off_t offset, struct fuse_file_info* fi)
 {
 	exfat_debug("[fuse_exfat_read] %s (%zu bytes)", path, size);
-	return exfat_read(&ef, get_node(fi), buffer, size, offset);
+	return exfat_generic_pread(&ef, get_node(fi), buffer, size, offset);
 }
 
 static int fuse_exfat_write(const char* path, const char* buffer, size_t size,
 		off_t offset, struct fuse_file_info* fi)
 {
 	exfat_debug("[fuse_exfat_write] %s (%zu bytes)", path, size);
-	return exfat_write(&ef, get_node(fi), buffer, size, offset);
+	return exfat_generic_pwrite(&ef, get_node(fi), buffer, size, offset);
 }
 
 static int fuse_exfat_unlink(const char* path)
