@@ -45,18 +45,28 @@ int exfat_open(const char* spec, int ro)
 	}
 	if (fstat(fd, &stbuf) != 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		exfat_error("failed to fstat `%s'", spec);
 		return -1;
 	}
 	if (!S_ISBLK(stbuf.st_mode) && !S_ISREG(stbuf.st_mode))
 	{
-		close(fd);
+		exfat_close(fd);
 		exfat_error("`%s' is neither a block device, nor a regular file",
 				spec);
 		return -1;
 	}
 	return fd;
+}
+
+int exfat_close(int fd)
+{
+	if (close(fd) != 0)
+	{
+		exfat_error("close failed");
+		return 1;
+	}
+	return 0;
 }
 
 void exfat_pread(int fd, void* buffer, size_t size, off_t offset)
