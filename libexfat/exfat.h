@@ -122,6 +122,7 @@ void exfat_debug(const char* format, ...)
 
 int exfat_open(const char* spec, int ro);
 int exfat_close(int fd);
+int exfat_fsync(int fd);
 void exfat_pread(int fd, void* buffer, size_t size, off_t offset);
 void exfat_pwrite(int fd, const void* buffer, size_t size, off_t offset);
 ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,

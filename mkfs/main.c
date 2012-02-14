@@ -331,10 +331,9 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 
 	printf("Flushing... ");
 	fflush(stdout);
-	if (fsync(fd) < 0)
+	if (exfat_fsync(fd) != 0)
 	{
 		exfat_close(fd);
-		exfat_error("fsync failed");
 		return 1;
 	}
 	puts("done.");
