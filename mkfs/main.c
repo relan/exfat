@@ -254,7 +254,7 @@ static int set_volume_label(int fd, const char* volume_label)
 	if (utf8_to_utf16(tmp, volume_label, EXFAT_ENAME_MAX,
 				strlen(volume_label)) != 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		return 1;
 	}
 	memcpy(label_entry.name, tmp, EXFAT_ENAME_MAX * sizeof(le16_t));
@@ -288,7 +288,7 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	volume_size = lseek(fd, 0, SEEK_END);
 	if (volume_size == (off_t) -1)
 	{
-		close(fd);
+		exfat_close(fd);
 		exfat_error("seek failed");
 		return 1;
 	}
@@ -296,14 +296,14 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 
 	if (set_volume_label(fd, volume_label) != 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		return 1;
 	}
 
 	volume_serial = get_volume_serial(volume_serial);
 	if (volume_serial == 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		exfat_error("failed to get current time to form volume id");
 		return 1;
 	}
@@ -311,7 +311,7 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	if (init_sb(volume_size, sector_bits, spc_bits, volume_serial,
 				first_sector) != 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		return 1;
 	}
 
@@ -319,12 +319,12 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	fflush(stdout);
 	if (erase_device(fd) != 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		return 1;
 	}
 	if (write_structures(fd) != 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		return 1;
 	}
 	puts("\b\b\b\bdone.");
@@ -333,16 +333,13 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	fflush(stdout);
 	if (fsync(fd) < 0)
 	{
-		close(fd);
+		exfat_close(fd);
 		exfat_error("fsync failed");
 		return 1;
 	}
 	puts("done.");
-	if (close(fd) < 0)
-	{
-		exfat_error("close failed");
+	if (exfat_close(fd) != 0)
 		return 1;
-	}
 	printf("File system created successfully.\n");
 	return 0;
 }
