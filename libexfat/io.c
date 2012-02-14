@@ -69,6 +69,16 @@ int exfat_close(int fd)
 	return 0;
 }
 
+int exfat_fsync(int fd)
+{
+	if (fsync(fd) != 0)
+	{
+		exfat_error("fsync failed");
+		return 1;
+	}
+	return 0;
+}
+
 void exfat_pread(int fd, void* buffer, size_t size, off_t offset)
 {
 	if (pread(fd, buffer, size, offset) != size)

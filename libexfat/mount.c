@@ -117,12 +117,7 @@ static int verify_vbr_checksum(void* sector, off_t sector_size, int fd)
 static int commit_super_block(const struct exfat* ef)
 {
 	exfat_pwrite(ef->fd, ef->sb, sizeof(struct exfat_super_block), 0);
-	if (fsync(ef->fd) < 0)
-	{
-		exfat_error("fsync failed");
-		return 1;
-	}
-	return 0;
+	return exfat_fsync(ef->fd);
 }
 
 static int prepare_super_block(const struct exfat* ef)
