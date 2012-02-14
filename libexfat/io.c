@@ -18,13 +18,13 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define _XOPEN_SOURCE 500 /* for pread() and pwrite() in Linux */
 #include "exfat.h"
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#define __USE_UNIX98 /* for pread() in Linux */
 #include <unistd.h>
 
 #if _FILE_OFFSET_BITS != 64
