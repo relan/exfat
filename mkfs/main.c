@@ -243,7 +243,7 @@ static int get_spc_bits(int user_defined, off_t volume_size)
 		return 8;	/* 128 KB */
 }
 
-static int set_volume_label(int fd, const char* volume_label)
+static int set_volume_label(const char* volume_label)
 {
 	le16_t tmp[EXFAT_ENAME_MAX + 1];
 
@@ -253,10 +253,7 @@ static int set_volume_label(int fd, const char* volume_label)
 	memset(tmp, 0, sizeof(tmp));
 	if (utf8_to_utf16(tmp, volume_label, EXFAT_ENAME_MAX,
 				strlen(volume_label)) != 0)
-	{
-		exfat_close(fd);
 		return 1;
-	}
 	memcpy(label_entry.name, tmp, EXFAT_ENAME_MAX * sizeof(le16_t));
 	label_entry.length = utf16_length(tmp);
 	label_entry.type |= EXFAT_ENTRY_VALID;
@@ -294,7 +291,7 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	}
 	spc_bits = get_spc_bits(spc_bits, volume_size);
 
-	if (set_volume_label(fd, volume_label) != 0)
+	if (set_volume_label(volume_label) != 0)
 	{
 		exfat_close(fd);
 		return 1;
