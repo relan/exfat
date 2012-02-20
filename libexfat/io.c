@@ -79,6 +79,16 @@ int exfat_fsync(int fd)
 	return 0;
 }
 
+ssize_t exfat_read(int fd, void* buffer, size_t size)
+{
+	return read(fd, buffer, size);
+}
+
+ssize_t exfat_write(int fd, const void* buffer, size_t size)
+{
+	return write(fd, buffer, size);
+}
+
 void exfat_pread(int fd, void* buffer, size_t size, off_t offset)
 {
 	if (pread(fd, buffer, size, offset) != size)
