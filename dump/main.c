@@ -80,8 +80,7 @@ static int dump_sb(const char* spec)
 	if (fd < 0)
 		return 1;
 
-	if (read(fd, &sb, sizeof(struct exfat_super_block))
-			!= sizeof(struct exfat_super_block))
+	if (exfat_read(fd, &sb, sizeof(struct exfat_super_block)) < 0)
 	{
 		exfat_close(fd);
 		exfat_error("failed to read from `%s'", spec);
