@@ -54,7 +54,7 @@ int cbm_write(off_t base, int fd)
 			BMAP_SET(bitmap, i);
 		else
 			BMAP_CLR(bitmap, i);
-	if (write(fd, bitmap, bitmap_size) == -1)
+	if (exfat_write(fd, bitmap, bitmap_size) < 0)
 		return errno;
 	free(bitmap);
 
