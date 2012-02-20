@@ -39,7 +39,7 @@ off_t fat_size(void)
 static cluster_t fat_write_entry(cluster_t cluster, cluster_t value, int fd)
 {
 	le32_t fat_entry = cpu_to_le32(value);
-	if (write(fd, &fat_entry, sizeof(fat_entry)) == -1)
+	if (exfat_write(fd, &fat_entry, sizeof(fat_entry)) < 0)
 		return 0;
 	return cluster + 1;
 }

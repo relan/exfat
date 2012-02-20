@@ -45,7 +45,7 @@ static le32_t uct_checksum(void)
 
 int uct_write(off_t base, int fd)
 {
-	if (write(fd, upcase_table, sizeof(upcase_table)) == -1)
+	if (exfat_write(fd, upcase_table, sizeof(upcase_table)) < 0)
 		return errno;
 	upcase_entry.checksum = uct_checksum();
 	upcase_entry.start_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));

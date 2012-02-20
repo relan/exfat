@@ -34,11 +34,11 @@ off_t rootdir_size(void)
 
 int rootdir_write(off_t base, int fd)
 {
-	if (write(fd, &label_entry, sizeof(struct exfat_entry)) == -1)
+	if (exfat_write(fd, &label_entry, sizeof(struct exfat_entry)) < 0)
 		return 1;
-	if (write(fd, &bitmap_entry, sizeof(struct exfat_entry)) == -1)
+	if (exfat_write(fd, &bitmap_entry, sizeof(struct exfat_entry)) < 0)
 		return 1;
-	if (write(fd, &upcase_entry, sizeof(struct exfat_entry)) == -1)
+	if (exfat_write(fd, &upcase_entry, sizeof(struct exfat_entry)) < 0)
 		return 1;
 	sb.rootdir_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));
 	return 0;
