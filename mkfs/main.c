@@ -139,7 +139,7 @@ static int erase_device(int fd)
 
 	for (i = 0; i < erase_blocks; i++)
 	{
-		if (write(fd, block, block_size) == -1)
+		if (exfat_write(fd, block, block_size) < 0)
 		{
 			free(block);
 			exfat_error("failed to erase block %"PRIu64, i);
