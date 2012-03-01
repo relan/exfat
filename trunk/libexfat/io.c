@@ -79,6 +79,11 @@ int exfat_fsync(int fd)
 	return 0;
 }
 
+off_t exfat_seek(int fd, off_t offset, int whence)
+{
+	return lseek(fd, offset, whence);
+}
+
 ssize_t exfat_read(int fd, void* buffer, size_t size)
 {
 	return read(fd, buffer, size);

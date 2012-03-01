@@ -123,6 +123,7 @@ void exfat_debug(const char* format, ...)
 int exfat_open(const char* spec, int ro);
 int exfat_close(int fd);
 int exfat_fsync(int fd);
+off_t exfat_seek(int fd, off_t offset, int whence);
 ssize_t exfat_read(int fd, void* buffer, size_t size);
 ssize_t exfat_write(int fd, const void* buffer, size_t size);
 void exfat_pread(int fd, void* buffer, size_t size, off_t offset);
