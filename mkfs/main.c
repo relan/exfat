@@ -123,7 +123,7 @@ static int erase_device(int fd)
 
 	erase_blocks = DIV_ROUND_UP(erase_size, block_size);
 
-	if (lseek(fd, 0, SEEK_SET) == (off_t) -1)
+	if (exfat_seek(fd, 0, SEEK_SET) == (off_t) -1)
 	{
 		exfat_error("seek failed");
 		return 1;
@@ -189,7 +189,7 @@ static off_t write_structure(int fd, struct exfat_structure* structure,
 	off_t alignment = structure->get_alignment();
 	off_t base = ROUND_UP(current, alignment);
 
-	if (lseek(fd, base, SEEK_SET) == (off_t) -1)
+	if (exfat_seek(fd, base, SEEK_SET) == (off_t) -1)
 	{
 		exfat_error("seek to %"PRIu64" failed", base);
 		return -1;
@@ -282,7 +282,7 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	if (fd < 0)
 		return 1;
 
-	volume_size = lseek(fd, 0, SEEK_END);
+	volume_size = exfat_seek(fd, 0, SEEK_END);
 	if (volume_size == (off_t) -1)
 	{
 		exfat_close(fd);
