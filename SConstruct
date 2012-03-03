@@ -40,6 +40,10 @@ if not conf.env['CCFLAGS']:
 		conf.env.Replace(CCFLAGS = '-Wall -O2 -g')
 conf.env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
 conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
+conf.env.Append(CPPPATH = ['libexfat'])
+if 'LDFLAGS' in os.environ:
+	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
+
 # __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
 # numbers are 64-bit by default, but libfuse operates 32-bit ones. This define
 # forces 32-bit inode declaration in system headers, but it's also possible to
@@ -47,9 +51,6 @@ conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 if platform.system() == 'Darwin':
 	conf.env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
 	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
-conf.env.Append(CPPPATH = ['libexfat'])
-if 'LDFLAGS' in os.environ:
-	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
 
 env = conf.Finish()
 
