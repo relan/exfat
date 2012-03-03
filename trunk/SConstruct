@@ -27,6 +27,7 @@ conf = Configure(env)
 
 destdir = env.get('DESTDIR', '/sbin');
 targets = []
+libs = ['exfat']
 
 if 'CC' in os.environ:
 	conf.env.Replace(CC = os.environ['CC'])
@@ -73,13 +74,10 @@ symlink = SCons.Action.ActionFactory(make_symlink,
 		lambda dir, target, link_name:
 				'make_symlink("%s", "%s", "%s")' % (dir, target, link_name))
 
-def program(pattern, output, alias = None, lib = None):
+def program(pattern, output, alias, libs):
 	sources = Glob(pattern)
 	if not sources:
 		return
-	libs = ['exfat']
-	if lib:
-		libs.append(lib)
 	target = env.Program(output, sources, LIBS = libs)
 	if alias:
 		Alias('install', Install(destdir, target),
@@ -90,10 +88,10 @@ def program(pattern, output, alias = None, lib = None):
 
 env.Library('libexfat/exfat', Glob('libexfat/*.c'))
 
-program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat', ['fuse'])
-program('dump/*.c', 'dump/dumpexfat')
-program('fsck/*.c', 'fsck/exfatfsck', 'fsck.exfat')
-program('mkfs/*.c', 'mkfs/mkexfatfs', 'mkfs.exfat')
-program('label/*.c', 'label/exfatlabel')
+program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat', [libs + ['fuse']])
+program('dump/*.c', 'dump/dumpexfat', None, libs)
+program('fsck/*.c', 'fsck/exfatfsck', 'fsck.exfat', libs)
+program('mkfs/*.c', 'mkfs/mkexfatfs', 'mkfs.exfat', libs)
+program('label/*.c', 'label/exfatlabel', None, libs)
 
 Default(targets)
