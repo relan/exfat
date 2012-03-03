@@ -36,28 +36,30 @@ off_t fat_size(void)
 	return (off_t) le32_to_cpu(sb.fat_sector_count) * SECTOR_SIZE(sb);
 }
 
-static cluster_t fat_write_entry(cluster_t cluster, cluster_t value, int fd)
+static cluster_t fat_write_entry(struct exfat_dev* dev, cluster_t cluster,
+		cluster_t value)
 {
 	le32_t fat_entry = cpu_to_le32(value);
-	if (exfat_write(fd, &fat_entry, sizeof(fat_entry)) < 0)
+	if (exfat_write(dev, &fat_entry, sizeof(fat_entry)) < 0)
 		return 0;
 	return cluster + 1;
 }
 
-static cluster_t fat_write_entries(cluster_t cluster, uint64_t length, int fd)
+static cluster_t fat_write_entries(struct exfat_dev* dev, cluster_t cluster,
+		uint64_t length)
 {
 	cluster_t end = cluster + DIV_ROUND_UP(length, CLUSTER_SIZE(sb));
 
 	while (cluster < end - 1)
 	{
-		cluster = fat_write_entry(cluster, cluster + 1, fd);
+		cluster = fat_write_entry(dev, cluster, cluster + 1);
 		if (cluster == 0)
 			return 0;
 	}
-	return fat_write_entry(cluster, EXFAT_CLUSTER_END, fd);
+	return fat_write_entry(dev, cluster, EXFAT_CLUSTER_END);
 }
 
-int fat_write(off_t base, int fd)
+int fat_write(struct exfat_dev* dev, off_t base)
 {
 	cluster_t c = 0;
 
@@ -65,15 +67,15 @@ int fat_write(off_t base, int fd)
 		exfat_bug("unexpected FAT location: %"PRIu64" (expected %u)",
 				base, le32_to_cpu(sb.fat_sector_start) * SECTOR_SIZE(sb));
 
-	if (!(c = fat_write_entry(c, 0xfffffff8, fd))) /* media type */
+	if (!(c = fat_write_entry(dev, c, 0xfffffff8))) /* media type */
 		return errno;
-	if (!(c = fat_write_entry(c, 0xffffffff, fd))) /* some weird constant */
+	if (!(c = fat_write_entry(dev, c, 0xffffffff))) /* some weird constant */
 		return errno;
-	if (!(c = fat_write_entries(c, cbm_size(), fd)))
+	if (!(c = fat_write_entries(dev, c, cbm_size())))
 		return errno;
-	if (!(c = fat_write_entries(c, uct_size(), fd)))
+	if (!(c = fat_write_entries(dev, c, uct_size())))
 		return errno;
-	if (!(c = fat_write_entries(c, rootdir_size(), fd)))
+	if (!(c = fat_write_entries(dev, c, rootdir_size())))
 		return errno;
 
 	return 0;

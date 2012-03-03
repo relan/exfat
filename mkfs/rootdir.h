@@ -23,6 +23,6 @@
 
 off_t rootdir_alignment(void);
 off_t rootdir_size(void);
-int rootdir_write(off_t base, int fd);
+int rootdir_write(struct exfat_dev* dev, off_t base);
 
 #endif /* ifndef MKFS_ROOTDIR_H_INCLUDED */

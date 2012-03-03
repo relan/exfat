@@ -46,7 +46,7 @@ struct exfat_structure
 	int order;
 	off_t (*get_alignment)(void);
 	off_t (*get_size)(void);
-	int (*write_data)(off_t, int);
+	int (*write_data)(struct exfat_dev*, off_t);
 };
 
 static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
@@ -99,7 +99,7 @@ static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 	return 0;
 }
 
-static int erase_device(int fd)
+static int erase_device(struct exfat_dev* dev)
 {
 	off_t erase_size;
 	off_t erase_blocks;
@@ -123,7 +123,7 @@ static int erase_device(int fd)
 
 	erase_blocks = DIV_ROUND_UP(erase_size, block_size);
 
-	if (exfat_seek(fd, 0, SEEK_SET) == (off_t) -1)
+	if (exfat_seek(dev, 0, SEEK_SET) == (off_t) -1)
 	{
 		exfat_error("seek failed");
 		return 1;
@@ -139,7 +139,7 @@ static int erase_device(int fd)
 
 	for (i = 0; i < erase_blocks; i++)
 	{
-		if (exfat_write(fd, block, block_size) < 0)
+		if (exfat_write(dev, block, block_size) < 0)
 		{
 			free(block);
 			exfat_error("failed to erase block %"PRIu64, i);
@@ -183,20 +183,20 @@ static struct exfat_structure structures[] =
 };
 #undef FS_OBJECT
 
-static off_t write_structure(int fd, struct exfat_structure* structure,
-		off_t current)
+static off_t write_structure(struct exfat_dev* dev,
+		struct exfat_structure* structure, off_t current)
 {
 	off_t alignment = structure->get_alignment();
 	off_t base = ROUND_UP(current, alignment);
 
-	if (exfat_seek(fd, base, SEEK_SET) == (off_t) -1)
+	if (exfat_seek(dev, base, SEEK_SET) == (off_t) -1)
 	{
 		exfat_error("seek to %"PRIu64" failed", base);
 		return -1;
 	}
 	if (structure->order > 0)
 	{
-		int rc = structure->write_data(base, fd);
+		int rc = structure->write_data(dev, base);
 		if (rc != 0)
 		{
 			exfat_error("%s creation failed: %s", structure->name,
@@ -208,7 +208,7 @@ static off_t write_structure(int fd, struct exfat_structure* structure,
 	return base + structure->get_size();
 }
 
-static int write_structures(int fd)
+static int write_structures(struct exfat_dev* dev)
 {
 	off_t current;
 	size_t i;
@@ -220,7 +220,7 @@ static int write_structures(int fd)
 		remainder = 0;
 		for (i = 0; i < sizeof(structures) / sizeof(structures[0]); i++)
 		{
-			current = write_structure(fd, &structures[i], current);
+			current = write_structure(dev, &structures[i], current);
 			if (current == (off_t) -1)
 				return 1;
 			remainder += structures[i].order;
@@ -275,17 +275,17 @@ static uint32_t get_volume_serial(uint32_t user_defined)
 static int mkfs(const char* spec, int sector_bits, int spc_bits,
 		const char* volume_label, uint32_t volume_serial, int first_sector)
 {
-	int fd;
+	struct exfat_dev* dev;
 	off_t volume_size;
 
-	fd = exfat_open(spec, 0);
-	if (fd < 0)
+	dev = exfat_open(spec, 0);
+	if (dev == NULL)
 		return 1;
 
-	volume_size = exfat_seek(fd, 0, SEEK_END);
+	volume_size = exfat_seek(dev, 0, SEEK_END);
 	if (volume_size == (off_t) -1)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		exfat_error("seek failed");
 		return 1;
 	}
@@ -293,14 +293,14 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 
 	if (set_volume_label(volume_label) != 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		return 1;
 	}
 
 	volume_serial = get_volume_serial(volume_serial);
 	if (volume_serial == 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		exfat_error("failed to get current time to form volume id");
 		return 1;
 	}
@@ -308,33 +308,33 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 	if (init_sb(volume_size, sector_bits, spc_bits, volume_serial,
 				first_sector) != 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		return 1;
 	}
 
 	printf("Creating... %2u%%", 0);
 	fflush(stdout);
-	if (erase_device(fd) != 0)
+	if (erase_device(dev) != 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		return 1;
 	}
-	if (write_structures(fd) != 0)
+	if (write_structures(dev) != 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		return 1;
 	}
 	puts("\b\b\b\bdone.");
 
 	printf("Flushing... ");
 	fflush(stdout);
-	if (exfat_fsync(fd) != 0)
+	if (exfat_fsync(dev) != 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		return 1;
 	}
 	puts("done.");
-	if (exfat_close(fd) != 0)
+	if (exfat_close(dev) != 0)
 		return 1;
 	printf("File system created successfully.\n");
 	return 0;

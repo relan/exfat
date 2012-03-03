@@ -73,22 +73,22 @@ static void print_other_info(const struct exfat_super_block* sb)
 
 static int dump_sb(const char* spec)
 {
-	int fd;
+	struct exfat_dev* dev;
 	struct exfat_super_block sb;
 
-	fd = exfat_open(spec, 1);
-	if (fd < 0)
+	dev = exfat_open(spec, 1);
+	if (dev == NULL)
 		return 1;
 
-	if (exfat_read(fd, &sb, sizeof(struct exfat_super_block)) < 0)
+	if (exfat_read(dev, &sb, sizeof(struct exfat_super_block)) < 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		exfat_error("failed to read from `%s'", spec);
 		return 1;
 	}
 	if (memcmp(sb.oem_name, "EXFAT   ", sizeof(sb.oem_name)) != 0)
 	{
-		exfat_close(fd);
+		exfat_close(dev);
 		exfat_error("exFAT file system is not found on `%s'", spec);
 		return 1;
 	}
@@ -98,7 +98,7 @@ static int dump_sb(const char* spec)
 	print_cluster_info(&sb);
 	print_other_info(&sb);
 
-	exfat_close(fd);
+	exfat_close(dev);
 	return 0;
 }
 
