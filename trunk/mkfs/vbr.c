@@ -33,7 +33,7 @@ off_t vbr_size(void)
 	return 12 * SECTOR_SIZE(sb);
 }
 
-int vbr_write(off_t base, int fd)
+int vbr_write(struct exfat_dev* dev, off_t base)
 {
 	uint32_t checksum;
 	le32_t* sector = malloc(SECTOR_SIZE(sb));
@@ -42,7 +42,7 @@ int vbr_write(off_t base, int fd)
 	if (sector == NULL)
 		return errno;
 
-	if (exfat_write(fd, &sb, sizeof(struct exfat_super_block)) < 0)
+	if (exfat_write(dev, &sb, sizeof(struct exfat_super_block)) < 0)
 	{
 		free(sector);
 		return errno;
@@ -53,7 +53,7 @@ int vbr_write(off_t base, int fd)
 	sector[SECTOR_SIZE(sb) / sizeof(sector[0]) - 1] = cpu_to_le32(0xaa550000);
 	for (i = 0; i < 8; i++)
 	{
-		if (exfat_write(fd, sector, SECTOR_SIZE(sb)) < 0)
+		if (exfat_write(dev, sector, SECTOR_SIZE(sb)) < 0)
 		{
 			free(sector);
 			return errno;
@@ -62,13 +62,13 @@ int vbr_write(off_t base, int fd)
 	}
 
 	memset(sector, 0, SECTOR_SIZE(sb));
-	if (exfat_write(fd, sector, SECTOR_SIZE(sb)) < 0)
+	if (exfat_write(dev, sector, SECTOR_SIZE(sb)) < 0)
 	{
 		free(sector);
 		return errno;
 	}
 	checksum = exfat_vbr_add_checksum(sector, SECTOR_SIZE(sb), checksum);
-	if (exfat_write(fd, sector, SECTOR_SIZE(sb)) < 0)
+	if (exfat_write(dev, sector, SECTOR_SIZE(sb)) < 0)
 	{
 		free(sector);
 		return errno;
@@ -77,7 +77,7 @@ int vbr_write(off_t base, int fd)
 
 	for (i = 0; i < SECTOR_SIZE(sb) / sizeof(sector[0]); i++)
 		sector[i] = cpu_to_le32(checksum);
-	if (exfat_write(fd, sector, SECTOR_SIZE(sb)) < 0)
+	if (exfat_write(dev, sector, SECTOR_SIZE(sb)) < 0)
 	{
 		free(sector);
 		return errno;

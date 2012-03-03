@@ -23,6 +23,6 @@
 
 off_t fat_alignment(void);
 off_t fat_size(void);
-int fat_write(off_t base, int fd);
+int fat_write(struct exfat_dev* dev, off_t base);
 
 #endif /* ifndef MKFS_FAT_H_INCLUDED */

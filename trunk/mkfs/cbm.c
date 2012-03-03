@@ -36,7 +36,7 @@ off_t cbm_size(void)
 	return DIV_ROUND_UP(le32_to_cpu(sb.cluster_count), CHAR_BIT);
 }
 
-int cbm_write(off_t base, int fd)
+int cbm_write(struct exfat_dev* dev, off_t base)
 {
 	uint32_t allocated_clusters =
 			DIV_ROUND_UP(cbm_size(), CLUSTER_SIZE(sb)) +
@@ -54,7 +54,7 @@ int cbm_write(off_t base, int fd)
 			BMAP_SET(bitmap, i);
 		else
 			BMAP_CLR(bitmap, i);
-	if (exfat_write(fd, bitmap, bitmap_size) < 0)
+	if (exfat_write(dev, bitmap, bitmap_size) < 0)
 		return errno;
 	free(bitmap);
 

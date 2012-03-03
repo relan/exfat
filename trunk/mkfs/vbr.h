@@ -23,6 +23,6 @@
 
 off_t vbr_alignment(void);
 off_t vbr_size(void);
-int vbr_write(off_t base, int fd);
+int vbr_write(struct exfat_dev* dev, off_t base);
 
 #endif /* ifndef MKFS_VBR_H_INCLUDED */
