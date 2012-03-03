@@ -23,6 +23,6 @@
 
 off_t uct_alignment(void);
 off_t uct_size(void);
-int uct_write(off_t base, int fd);
+int uct_write(struct exfat_dev* dev, off_t base);
 
 #endif /* ifndef MKFS_UCT_H_INCLUDED */

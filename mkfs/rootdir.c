@@ -32,13 +32,13 @@ off_t rootdir_size(void)
 	return CLUSTER_SIZE(sb);
 }
 
-int rootdir_write(off_t base, int fd)
+int rootdir_write(struct exfat_dev* dev, off_t base)
 {
-	if (exfat_write(fd, &label_entry, sizeof(struct exfat_entry)) < 0)
+	if (exfat_write(dev, &label_entry, sizeof(struct exfat_entry)) < 0)
 		return 1;
-	if (exfat_write(fd, &bitmap_entry, sizeof(struct exfat_entry)) < 0)
+	if (exfat_write(dev, &bitmap_entry, sizeof(struct exfat_entry)) < 0)
 		return 1;
-	if (exfat_write(fd, &upcase_entry, sizeof(struct exfat_entry)) < 0)
+	if (exfat_write(dev, &upcase_entry, sizeof(struct exfat_entry)) < 0)
 		return 1;
 	sb.rootdir_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));
 	return 0;

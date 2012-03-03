@@ -31,47 +31,64 @@
 	#error You should define _FILE_OFFSET_BITS=64
 #endif
 
-int exfat_open(const char* spec, int ro)
+struct exfat_dev
 {
 	int fd;
+};
+
+struct exfat_dev* exfat_open(const char* spec, int ro)
+{
+	struct exfat_dev* dev;
 	struct stat stbuf;
 
-	fd = open(spec, ro ? O_RDONLY : O_RDWR);
-	if (fd < 0)
+	dev = malloc(sizeof(struct exfat_dev));
+	if (dev == NULL)
 	{
+		exfat_error("failed to allocate memory for device structure");
+		return NULL;
+	}
+
+	dev->fd = open(spec, ro ? O_RDONLY : O_RDWR);
+	if (dev->fd < 0)
+	{
+		free(dev);
 		exfat_error("failed to open `%s' in read-%s mode", spec,
 				ro ? "only" : "write");
-		return -1;
+		return NULL;
 	}
-	if (fstat(fd, &stbuf) != 0)
+	if (fstat(dev->fd, &stbuf) != 0)
 	{
-		exfat_close(fd);
+		close(dev->fd);
+		free(dev);
 		exfat_error("failed to fstat `%s'", spec);
-		return -1;
+		return NULL;
 	}
 	if (!S_ISBLK(stbuf.st_mode) && !S_ISREG(stbuf.st_mode))
 	{
-		exfat_close(fd);
+		close(dev->fd);
+		free(dev);
 		exfat_error("`%s' is neither a block device, nor a regular file",
 				spec);
-		return -1;
+		return NULL;
 	}
-	return fd;
+	return dev;
 }
 
-int exfat_close(int fd)
+int exfat_close(struct exfat_dev* dev)
 {
-	if (close(fd) != 0)
+	if (close(dev->fd) != 0)
 	{
+		free(dev);
 		exfat_error("close failed");
 		return 1;
 	}
+	free(dev);
 	return 0;
 }
 
-int exfat_fsync(int fd)
+int exfat_fsync(struct exfat_dev* dev)
 {
-	if (fsync(fd) != 0)
+	if (fsync(dev->fd) != 0)
 	{
 		exfat_error("fsync failed");
 		return 1;
@@ -79,31 +96,33 @@ int exfat_fsync(int fd)
 	return 0;
 }
 
-off_t exfat_seek(int fd, off_t offset, int whence)
+off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence)
 {
-	return lseek(fd, offset, whence);
+	return lseek(dev->fd, offset, whence);
 }
 
-ssize_t exfat_read(int fd, void* buffer, size_t size)
+ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size)
 {
-	return read(fd, buffer, size);
+	return read(dev->fd, buffer, size);
 }
 
-ssize_t exfat_write(int fd, const void* buffer, size_t size)
+ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size)
 {
-	return write(fd, buffer, size);
+	return write(dev->fd, buffer, size);
 }
 
-void exfat_pread(int fd, void* buffer, size_t size, off_t offset)
+void exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
+		off_t offset)
 {
-	if (pread(fd, buffer, size, offset) != size)
+	if (pread(dev->fd, buffer, size, offset) != size)
 		exfat_bug("failed to read %zu bytes from file at %"PRIu64, size,
 				(uint64_t) offset);
 }
 
-void exfat_pwrite(int fd, const void* buffer, size_t size, off_t offset)
+void exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
+		off_t offset)
 {
-	if (pwrite(fd, buffer, size, offset) != size)
+	if (pwrite(dev->fd, buffer, size, offset) != size)
 		exfat_bug("failed to write %zu bytes to file at %"PRIu64, size,
 				(uint64_t) offset);
 }
@@ -137,7 +156,7 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 			return -1;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
-		exfat_pread(ef->fd, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
+		exfat_pread(ef->dev, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;
@@ -181,7 +200,7 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 			return -1;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
-		exfat_pwrite(ef->fd, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
+		exfat_pwrite(ef->dev, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;

@@ -86,7 +86,7 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		exfat_error("out of memory");
 		return -ENOMEM;
 	}
-	exfat_pread(ef->fd, it->chunk, CLUSTER_SIZE(*ef->sb),
+	exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
 			exfat_c2o(ef, it->cluster));
 	return 0;
 }
@@ -118,7 +118,7 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 			exfat_error("invalid cluster while reading directory");
 			return 1;
 		}
-		exfat_pread(ef->fd, it->chunk, CLUSTER_SIZE(*ef->sb),
+		exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
 				exfat_c2o(ef, it->cluster));
 	}
 	return 0;
@@ -331,7 +331,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			ef->upcase_chars = le64_to_cpu(upcase->size) / sizeof(le16_t);
 
-			exfat_pread(ef->fd, ef->upcase, le64_to_cpu(upcase->size),
+			exfat_pread(ef->dev, ef->upcase, le64_to_cpu(upcase->size),
 					exfat_c2o(ef, le32_to_cpu(upcase->start_cluster)));
 			break;
 
@@ -363,7 +363,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 
-			exfat_pread(ef->fd, ef->cmap.chunk, le64_to_cpu(bitmap->size),
+			exfat_pread(ef->dev, ef->cmap.chunk, le64_to_cpu(bitmap->size),
 					exfat_c2o(ef, ef->cmap.start_cluster));
 			break;
 
@@ -501,14 +501,14 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	next_entry(ef, node->parent, &cluster, &offset);
 	meta2_offset = co2o(ef, cluster, offset);
 
-	exfat_pread(ef->fd, &meta1, sizeof(meta1), meta1_offset);
+	exfat_pread(ef->dev, &meta1, sizeof(meta1), meta1_offset);
 	if (meta1.type != EXFAT_ENTRY_FILE)
 		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
 	meta1.attrib = cpu_to_le16(node->flags);
 	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime, &meta1.mtime_cs);
 	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime, NULL);
 
-	exfat_pread(ef->fd, &meta2, sizeof(meta2), meta2_offset);
+	exfat_pread(ef->dev, &meta2, sizeof(meta2), meta2_offset);
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
 	meta2.size = meta2.real_size = cpu_to_le64(node->size);
@@ -521,8 +521,8 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
-	exfat_pwrite(ef->fd, &meta1, sizeof(meta1), meta1_offset);
-	exfat_pwrite(ef->fd, &meta2, sizeof(meta2), meta2_offset);
+	exfat_pwrite(ef->dev, &meta1, sizeof(meta1), meta1_offset);
+	exfat_pwrite(ef->dev, &meta2, sizeof(meta2), meta2_offset);
 
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
 }
@@ -535,17 +535,17 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 	uint8_t entry_type;
 
 	entry_type = EXFAT_ENTRY_FILE & ~EXFAT_ENTRY_VALID;
-	exfat_pwrite(ef->fd, &entry_type, 1, co2o(ef, cluster, offset));
+	exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
 
 	next_entry(ef, node->parent, &cluster, &offset);
 	entry_type = EXFAT_ENTRY_FILE_INFO & ~EXFAT_ENTRY_VALID;
-	exfat_pwrite(ef->fd, &entry_type, 1, co2o(ef, cluster, offset));
+	exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
 
 	while (name_entries--)
 	{
 		next_entry(ef, node->parent, &cluster, &offset);
 		entry_type = EXFAT_ENTRY_FILE_NAME & ~EXFAT_ENTRY_VALID;
-		exfat_pwrite(ef->fd, &entry_type, 1, co2o(ef, cluster, offset));
+		exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
 	}
 }
 
@@ -746,16 +746,16 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
-	exfat_pwrite(ef->fd, &meta1, sizeof(meta1), co2o(ef, cluster, offset));
+	exfat_pwrite(ef->dev, &meta1, sizeof(meta1), co2o(ef, cluster, offset));
 	next_entry(ef, dir, &cluster, &offset);
-	exfat_pwrite(ef->fd, &meta2, sizeof(meta2), co2o(ef, cluster, offset));
+	exfat_pwrite(ef->dev, &meta2, sizeof(meta2), co2o(ef, cluster, offset));
 	for (i = 0; i < name_entries; i++)
 	{
 		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
 		memcpy(name_entry.name, node->name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		next_entry(ef, dir, &cluster, &offset);
-		exfat_pwrite(ef->fd, &name_entry, sizeof(name_entry),
+		exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
 				co2o(ef, cluster, offset));
 	}
 
@@ -838,10 +838,10 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
 	int i;
 
-	exfat_pread(ef->fd, &meta1, sizeof(meta1),
+	exfat_pread(ef->dev, &meta1, sizeof(meta1),
 			co2o(ef, old_cluster, old_offset));
 	next_entry(ef, node->parent, &old_cluster, &old_offset);
-	exfat_pread(ef->fd, &meta2, sizeof(meta2),
+	exfat_pread(ef->dev, &meta2, sizeof(meta2),
 			co2o(ef, old_cluster, old_offset));
 	meta1.continuations = 1 + name_entries;
 	meta2.name_hash = exfat_calc_name_hash(ef, name);
@@ -853,10 +853,10 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 	node->entry_cluster = new_cluster;
 	node->entry_offset = new_offset;
 
-	exfat_pwrite(ef->fd, &meta1, sizeof(meta1),
+	exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
 			co2o(ef, new_cluster, new_offset));
 	next_entry(ef, dir, &new_cluster, &new_offset);
-	exfat_pwrite(ef->fd, &meta2, sizeof(meta2),
+	exfat_pwrite(ef->dev, &meta2, sizeof(meta2),
 			co2o(ef, new_cluster, new_offset));
 
 	for (i = 0; i < name_entries; i++)
@@ -865,7 +865,7 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		next_entry(ef, dir, &new_cluster, &new_offset);
-		exfat_pwrite(ef->fd, &name_entry, sizeof(name_entry),
+		exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
 				co2o(ef, new_cluster, new_offset));
 	}
 
@@ -1015,7 +1015,7 @@ int exfat_set_label(struct exfat* ef, const char* label)
 	if (entry.length == 0)
 		entry.type ^= EXFAT_ENTRY_VALID;
 
-	exfat_pwrite(ef->fd, &entry, sizeof(struct exfat_entry_label),
+	exfat_pwrite(ef->dev, &entry, sizeof(struct exfat_entry_label),
 			co2o(ef, cluster, offset));
 	return 0;
 }

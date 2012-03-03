@@ -69,10 +69,12 @@ struct exfat_node
 	le16_t name[EXFAT_NAME_MAX + 1];
 };
 
+struct exfat_dev;
+
 struct exfat
 {
+	struct exfat_dev* dev;
 	struct exfat_super_block* sb;
-	int fd;
 	le16_t* upcase;
 	size_t upcase_chars;
 	struct exfat_node* root;
@@ -120,14 +122,16 @@ void exfat_warn(const char* format, ...)
 void exfat_debug(const char* format, ...)
 	__attribute__((format(printf, 1, 2)));
 
-int exfat_open(const char* spec, int ro);
-int exfat_close(int fd);
-int exfat_fsync(int fd);
-off_t exfat_seek(int fd, off_t offset, int whence);
-ssize_t exfat_read(int fd, void* buffer, size_t size);
-ssize_t exfat_write(int fd, const void* buffer, size_t size);
-void exfat_pread(int fd, void* buffer, size_t size, off_t offset);
-void exfat_pwrite(int fd, const void* buffer, size_t size, off_t offset);
+struct exfat_dev* exfat_open(const char* spec, int ro);
+int exfat_close(struct exfat_dev* dev);
+int exfat_fsync(struct exfat_dev* dev);
+off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence);
+ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size);
+ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size);
+void exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
+		off_t offset);
+void exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
+		off_t offset);
 ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
 ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
