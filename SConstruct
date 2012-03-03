@@ -43,6 +43,7 @@ conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 conf.env.Append(CPPPATH = ['libexfat'])
 if 'LDFLAGS' in os.environ:
 	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
+conf.env.Append(LIBPATH = ['libexfat'])
 
 # __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
 # numbers are 64-bit by default, but libfuse operates 32-bit ones. This define
@@ -51,6 +52,10 @@ if 'LDFLAGS' in os.environ:
 if platform.system() == 'Darwin':
 	conf.env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
 	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
+
+if platform.system() == 'FreeBSD':
+	conf.env.Append(CPPPATH = ['/usr/local/include'])
+	conf.env.Append(LIBPATH = ['/usr/local/lib'])
 
 env = conf.Finish()
 
@@ -75,7 +80,7 @@ def program(pattern, output, alias = None, lib = None):
 	libs = ['exfat']
 	if lib:
 		libs.append(lib)
-	target = env.Program(output, sources, LIBS = libs, LIBPATH = 'libexfat')
+	target = env.Program(output, sources, LIBS = libs)
 	if alias:
 		Alias('install', Install(destdir, target),
 				symlink(destdir, os.path.basename(output), alias))
