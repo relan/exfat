@@ -54,7 +54,11 @@ if platform.system() == 'Darwin':
 	conf.env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
 	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
 
+# FreeBSD does not support block devices, only raw devices. Ublio is required
+# for unaligned I/O and caching.
 if platform.system() == 'FreeBSD':
+	conf.env.Append(CPPDEFINES = 'USE_UBLIO')
+	libs.append('ublio')
 	conf.env.Append(CPPPATH = ['/usr/local/include'])
 	conf.env.Append(LIBPATH = ['/usr/local/lib'])
 
