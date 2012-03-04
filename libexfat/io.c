@@ -26,6 +26,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h>
+#ifdef USE_UBLIO
+#include <sys/uio.h>
+#include <ublio.h>
+#endif
 
 #if _FILE_OFFSET_BITS != 64
 	#error You should define _FILE_OFFSET_BITS=64
@@ -34,12 +39,19 @@
 struct exfat_dev
 {
 	int fd;
+#ifdef USE_UBLIO
+	off_t pos;
+	ublio_filehandle_t ufh;
+#endif
 };
 
 struct exfat_dev* exfat_open(const char* spec, int ro)
 {
 	struct exfat_dev* dev;
 	struct stat stbuf;
+#ifdef USE_UBLIO
+	struct ublio_param up;
+#endif
 
 	dev = malloc(sizeof(struct exfat_dev));
 	if (dev == NULL)
@@ -63,7 +75,9 @@ struct exfat_dev* exfat_open(const char* spec, int ro)
 		exfat_error("failed to fstat `%s'", spec);
 		return NULL;
 	}
-	if (!S_ISBLK(stbuf.st_mode) && !S_ISREG(stbuf.st_mode))
+	if (!S_ISBLK(stbuf.st_mode) &&
+		!S_ISCHR(stbuf.st_mode) &&
+		!S_ISREG(stbuf.st_mode))
 	{
 		close(dev->fd);
 		free(dev);
@@ -71,15 +85,38 @@ struct exfat_dev* exfat_open(const char* spec, int ro)
 				spec);
 		return NULL;
 	}
+
+#ifdef USE_UBLIO
+	memset(&up, 0, sizeof(struct ublio_param));
+	up.up_blocksize = 256 * 1024;
+	up.up_items = 64;
+	up.up_grace = 32;
+	up.up_priv = &dev->fd;
+
+	dev->pos = 0;
+	dev->ufh = ublio_open(&up);
+	if (dev->ufh == NULL)
+	{
+		close(dev->fd);
+		free(dev);
+		exfat_error("failed to initialize ublio");
+		return NULL;
+	}
+#endif
+
 	return dev;
 }
 
 int exfat_close(struct exfat_dev* dev)
 {
+#ifdef USE_UBLIO
+	if (ublio_close(dev->ufh) != 0)
+		exfat_error("failed to close ublio");
+#endif
 	if (close(dev->fd) != 0)
 	{
 		free(dev);
-		exfat_error("close failed");
+		exfat_error("failed to close device");
 		return 1;
 	}
 	free(dev);
@@ -88,7 +125,11 @@ int exfat_close(struct exfat_dev* dev)
 
 int exfat_fsync(struct exfat_dev* dev)
 {
+#ifdef USE_UBLIO
+	if (ublio_fsync(dev->ufh) != 0)
+#else
 	if (fsync(dev->fd) != 0)
+#endif
 	{
 		exfat_error("fsync failed");
 		return 1;
@@ -98,23 +139,46 @@ int exfat_fsync(struct exfat_dev* dev)
 
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence)
 {
+#ifdef USE_UBLIO
+	/* XXX SEEK_CUR will be handled incorrectly */
+	return dev->pos = lseek(dev->fd, offset, whence);
+#else
 	return lseek(dev->fd, offset, whence);
+#endif
 }
 
 ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size)
 {
+#ifdef USE_UBLIO
+	ssize_t result = ublio_pread(dev->ufh, buffer, size, dev->pos);
+	if (result >= 0)
+		dev->pos += size;
+	return result;
+#else
 	return read(dev->fd, buffer, size);
+#endif
 }
 
 ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size)
 {
+#ifdef USE_UBLIO
+	ssize_t result = ublio_pwrite(dev->ufh, buffer, size, dev->pos);
+	if (result >= 0)
+		dev->pos += size;
+	return result;
+#else
 	return write(dev->fd, buffer, size);
+#endif
 }
 
 void exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
 		off_t offset)
 {
+#ifdef USE_UBLIO
+	if (ublio_pread(dev->ufh, buffer, size, offset) != size)
+#else
 	if (pread(dev->fd, buffer, size, offset) != size)
+#endif
 		exfat_bug("failed to read %zu bytes from file at %"PRIu64, size,
 				(uint64_t) offset);
 }
@@ -122,7 +186,11 @@ void exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
 void exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
 		off_t offset)
 {
+#ifdef USE_UBLIO
+	if (ublio_pwrite(dev->ufh, buffer, size, offset) != size)
+#else
 	if (pwrite(dev->fd, buffer, size, offset) != size)
+#endif
 		exfat_bug("failed to write %zu bytes to file at %"PRIu64, size,
 				(uint64_t) offset);
 }
