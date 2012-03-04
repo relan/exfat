@@ -81,8 +81,7 @@ struct exfat_dev* exfat_open(const char* spec, int ro)
 	{
 		close(dev->fd);
 		free(dev);
-		exfat_error("`%s' is neither a block device, nor a regular file",
-				spec);
+		exfat_error("`%s' is neither a device, nor a regular file", spec);
 		return NULL;
 	}
 
