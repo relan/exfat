@@ -67,13 +67,13 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
 
 	if (day == 0 || month == 0 || month > 12)
 	{
-		exfat_error("bad date %hu-%02hu-%02hu",
+		exfat_error("bad date %u-%02hu-%02hu",
 				year + EXFAT_EPOCH_YEAR, month, day);
 		return 0;
 	}
 	if (hour > 23 || min > 59 || twosec > 29)
 	{
-		exfat_error("bad time %hu:%02hu:%02hu",
+		exfat_error("bad time %hu:%02hu:%02u",
 				hour, min, twosec * 2);
 		return 0;
 	}
