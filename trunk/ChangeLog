@@ -1,3 +1,14 @@
+0.9.7 (2012-03-08)
+
+* Out-of-the-box FreeBSD support (via ublio library).
+* Fixed "missing EOD entry" error (could happen while reading directory that
+consists of several clusters).
+* Fixed interpretation of minutes field in files timestamps (minutes could be
+displayed incorrectly).
+* Fixed mtime seconds field initialization for newly created file (mtime could
+be 1 sec less than creation time).
+* SConscript now respects CC, CCFLAGS and LDFLAGS environment variables.
+
 0.9.6 (2012-01-14)
 
 * Fixed write performance regression introduced in 0.9.4.
