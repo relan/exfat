@@ -52,9 +52,26 @@ struct exfat_structure
 static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 		uint32_t volume_serial, int first_sector)
 {
-	uint32_t clusters_max = (volume_size >> sector_bits >> spc_bits);
-	uint32_t fat_sectors = DIV_ROUND_UP(clusters_max * 4, 1 << sector_bits);
+	uint32_t clusters_max;
+	uint32_t fat_sectors;
 	uint32_t allocated_clusters;
+
+	if ((volume_size >> sector_bits >> spc_bits) > EXFAT_LAST_DATA_CLUSTER)
+	{
+		struct exfat_human_bytes chb, vhb;
+
+		exfat_humanize_bytes(1 << sector_bits << spc_bits, &chb);
+		exfat_humanize_bytes(volume_size, &vhb);
+		exfat_error("cluster size %"PRIu64" %s is too small for "
+				"%"PRIu64" %s volume",
+				chb.value, chb.unit,
+				vhb.value, vhb.unit);
+		return 1;
+	}
+
+	clusters_max = (volume_size >> sector_bits >> spc_bits);
+	fat_sectors = DIV_ROUND_UP((off_t) clusters_max * sizeof(cluster_t),
+			1 << sector_bits);
 
 	memset(&sb, 0, sizeof(struct exfat_super_block));
 	sb.jump[0] = 0xeb;
