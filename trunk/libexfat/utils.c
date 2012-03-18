@@ -133,11 +133,13 @@ le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name)
 void exfat_humanize_bytes(uint64_t value, struct exfat_human_bytes* hb)
 {
 	size_t i;
-	const char* units[] = {"bytes", "KB", "MB", "GB", "TB", "PB"};
+	/* 16 EB (minus 1 byte) is the largest size that can be represented by
+	   uint64_t */
+	const char* units[] = {"bytes", "KB", "MB", "GB", "TB", "PB", "EB"};
 	uint64_t divisor = 1;
 	uint64_t temp = 0;
 
-	for (i = 0; i < sizeof(units) / sizeof(units[0]) - 1; i++, divisor *= 1024)
+	for (i = 0; ; i++, divisor *= 1024)
 	{
 		temp = (value + divisor / 2) / divisor;
 
