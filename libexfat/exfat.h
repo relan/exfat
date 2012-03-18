@@ -38,7 +38,7 @@
 #define IS_CONTIGUOUS(node) (((node).flags & EXFAT_ATTRIB_CONTIGUOUS) != 0)
 #define SECTOR_SIZE(sb) (1 << (sb).sector_bits)
 #define CLUSTER_SIZE(sb) (SECTOR_SIZE(sb) << (sb).spc_bits)
-#define CLUSTER_INVALID(c) ((c) == EXFAT_CLUSTER_BAD || (c) == EXFAT_CLUSTER_END)
+#define CLUSTER_INVALID(c) ((c) > EXFAT_LAST_DATA_CLUSTER)
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))

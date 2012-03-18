@@ -26,6 +26,7 @@
 typedef uint32_t cluster_t;		/* cluster number */
 
 #define EXFAT_FIRST_DATA_CLUSTER 2
+#define EXFAT_LAST_DATA_CLUSTER 0xfffffff6
 
 #define EXFAT_CLUSTER_FREE         0 /* free cluster */
 #define EXFAT_CLUSTER_BAD 0xfffffff7 /* cluster contains bad sector */
