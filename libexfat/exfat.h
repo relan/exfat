@@ -41,6 +41,7 @@
 #define CLUSTER_INVALID(c) ((c) > EXFAT_LAST_DATA_CLUSTER)
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
 
 #define BMAP_GET(bitmap, index) \
