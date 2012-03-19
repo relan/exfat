@@ -49,6 +49,23 @@ struct exfat_structure
 	int (*write_data)(struct exfat_dev*, off_t);
 };
 
+static int get_spc_bits(int sector_bits, int user_defined, off_t volume_size)
+{
+	int i;
+
+	if (user_defined != -1)
+		return user_defined;
+
+	if (volume_size < 256ull * 1024 * 1024)
+		return MAX(0, 12 - sector_bits);	/* 4 KB */
+	if (volume_size < 32ull * 1024 * 1024 * 1024)
+		return MAX(0, 15 - sector_bits);	/* 32 KB */
+
+	for (i = 17; ; i++)						/* 128 KB or more */
+		if (DIV_ROUND_UP(volume_size, 1 << i) <= EXFAT_LAST_DATA_CLUSTER)
+			return MAX(0, i - sector_bits);
+}
+
 static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 		uint32_t volume_serial, int first_sector)
 {
@@ -63,9 +80,10 @@ static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
 		exfat_humanize_bytes(1 << sector_bits << spc_bits, &chb);
 		exfat_humanize_bytes(volume_size, &vhb);
 		exfat_error("cluster size %"PRIu64" %s is too small for "
-				"%"PRIu64" %s volume",
+				"%"PRIu64" %s volume, try -s %d",
 				chb.value, chb.unit,
-				vhb.value, vhb.unit);
+				vhb.value, vhb.unit,
+				1 << get_spc_bits(sector_bits, -1, volume_size));
 		return 1;
 	}
 
@@ -245,23 +263,6 @@ static int write_structures(struct exfat_dev* dev)
 	}
 	while (remainder > 0);
 	return 0;
-}
-
-static int get_spc_bits(int sector_bits, int user_defined, off_t volume_size)
-{
-	int i;
-
-	if (user_defined != -1)
-		return user_defined;
-
-	if (volume_size < 256ull * 1024 * 1024)
-		return MAX(0, 12 - sector_bits);	/* 4 KB */
-	if (volume_size < 32ull * 1024 * 1024 * 1024)
-		return MAX(0, 15 - sector_bits);	/* 32 KB */
-
-	for (i = 17; ; i++)						/* 128 KB or more */
-		if (DIV_ROUND_UP(volume_size, 1 << i) <= EXFAT_LAST_DATA_CLUSTER)
-			return MAX(0, i - sector_bits);
 }
 
 static int set_volume_label(const char* volume_label)
