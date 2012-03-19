@@ -247,17 +247,21 @@ static int write_structures(struct exfat_dev* dev)
 	return 0;
 }
 
-static int get_spc_bits(int user_defined, off_t volume_size)
+static int get_spc_bits(int sector_bits, int user_defined, off_t volume_size)
 {
+	int i;
+
 	if (user_defined != -1)
 		return user_defined;
 
 	if (volume_size < 256ull * 1024 * 1024)
-		return 3;	/* 4 KB */
-	else if (volume_size < 32ull * 1024 * 1024 * 1024)
-		return 6;	/* 32 KB */
-	else
-		return 8;	/* 128 KB */
+		return MAX(0, 12 - sector_bits);	/* 4 KB */
+	if (volume_size < 32ull * 1024 * 1024 * 1024)
+		return MAX(0, 15 - sector_bits);	/* 32 KB */
+
+	for (i = 17; ; i++)						/* 128 KB or more */
+		if (DIV_ROUND_UP(volume_size, 1 << i) <= EXFAT_LAST_DATA_CLUSTER)
+			return MAX(0, i - sector_bits);
 }
 
 static int set_volume_label(const char* volume_label)
@@ -306,7 +310,7 @@ static int mkfs(const char* spec, int sector_bits, int spc_bits,
 		exfat_error("seek failed");
 		return 1;
 	}
-	spc_bits = get_spc_bits(spc_bits, volume_size);
+	spc_bits = get_spc_bits(sector_bits, spc_bits, volume_size);
 
 	if (set_volume_label(volume_label) != 0)
 	{
