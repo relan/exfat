@@ -21,6 +21,7 @@
 #include "exfat.h"
 #include <stdarg.h>
 #include <syslog.h>
+#include <unistd.h>
 
 int exfat_errors;
 
@@ -40,7 +41,8 @@ void exfat_bug(const char* format, ...)
 	va_end(ap);
 	fputs(".\n", stderr);
 
-	vsyslog(LOG_CRIT, format, aq);
+	if (!isatty(STDERR_FILENO))
+		vsyslog(LOG_CRIT, format, aq);
 	va_end(aq);
 
 	abort();
@@ -63,7 +65,8 @@ void exfat_error(const char* format, ...)
 	va_end(ap);
 	fputs(".\n", stderr);
 
-	vsyslog(LOG_ERR, format, aq);
+	if (!isatty(STDERR_FILENO))
+		vsyslog(LOG_ERR, format, aq);
 	va_end(aq);
 }
 
@@ -84,7 +87,8 @@ void exfat_warn(const char* format, ...)
 	va_end(ap);
 	fputs(".\n", stderr);
 
-	vsyslog(LOG_WARNING, format, aq);
+	if (!isatty(STDERR_FILENO))
+		vsyslog(LOG_WARNING, format, aq);
 	va_end(aq);
 }
 
