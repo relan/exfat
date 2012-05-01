@@ -2,7 +2,7 @@
 	main.c (15.08.10)
 	Creates exFAT file system.
 
-	Copyright (C) 2010  Andrew Nayenko
+	Copyright (C) 2011, 2012  Andrew Nayenko
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -430,7 +430,7 @@ int main(int argc, char* argv[])
 		}
 		else if (strcmp(*pp, "-v") == 0)
 		{
-			puts("Copyright (C) 2010  Andrew Nayenko");
+			puts("Copyright (C) 2011, 2012  Andrew Nayenko");
 			return 0;
 		}
 		else if (spec == NULL)
