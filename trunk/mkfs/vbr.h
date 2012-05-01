@@ -2,7 +2,7 @@
 	vbr.h (09.11.10)
 	Volume Boot Record creation code.
 
-	Copyright (C) 2009, 2010  Andrew Nayenko
+	Copyright (C) 2011, 2012  Andrew Nayenko
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
