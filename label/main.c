@@ -1,5 +1,5 @@
 /*
-	label.c (20.01.11)
+	main.c (20.01.11)
 	Prints or changes exFAT volume label.
 
 	Copyright (C) 2011, 2012  Andrew Nayenko
