@@ -89,6 +89,7 @@ static const le16_t* utf16_to_wchar(const le16_t* input, wchar_t* wc,
 			return NULL;
 		*wc = ((wchar_t) (le16_to_cpu(input[0]) & 0x3ff) << 10);
 		*wc |= (le16_to_cpu(input[1]) & 0x3ff);
+		*wc += 0x10000;
 		return input + 2;
 	}
 	else
@@ -186,6 +187,7 @@ static le16_t* wchar_to_utf16(le16_t* output, wchar_t wc, size_t outsize)
 	}
 	if (outsize < 2)
 		return NULL;
+	wc -= 0x10000;
 	output[0] = cpu_to_le16(0xd800 | ((wc >> 10) & 0x3ff));
 	output[1] = cpu_to_le16(0xdc00 | (wc & 0x3ff));
 	return output + 2;
