@@ -39,6 +39,8 @@ if not conf.env['CCFLAGS']:
 		conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb')
 	elif conf.env['CC'] == 'clang':
 		conf.env.Replace(CCFLAGS = '-Wall -O2 -g')
+if 'CPPFLAGS' in os.environ:
+	conf.env.Replace(CPPFLAGS = os.environ['CPPFLAGS'])
 conf.env.Append(CPPDEFINES = {'FUSE_USE_VERSION': 26})
 conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
 conf.env.Append(CPPPATH = ['libexfat'])
