@@ -32,7 +32,7 @@
 #include <ublio.h>
 #endif
 
-#if _FILE_OFFSET_BITS != 64
+#if !defined(_FILE_OFFSET_BITS) || (_FILE_OFFSET_BITS != 64)
 	#error You should define _FILE_OFFSET_BITS=64
 #endif
 
