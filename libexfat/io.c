@@ -18,7 +18,6 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define _XOPEN_SOURCE 500 /* for pread() and pwrite() in Linux */
 #include "exfat.h"
 #include <inttypes.h>
 #include <sys/types.h>
