@@ -18,6 +18,7 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define FUSE_USE_VERSION 26
 #include <fuse.h>
 #include <errno.h>
 #include <fcntl.h>
