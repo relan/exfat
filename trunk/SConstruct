@@ -36,9 +36,9 @@ if 'CCFLAGS' in os.environ:
 # Set default CCFLAGS for known compilers
 if not conf.env['CCFLAGS']:
 	if conf.env['CC'] == 'gcc':
-		conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb')
+		conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb -std=c99')
 	elif conf.env['CC'] == 'clang':
-		conf.env.Replace(CCFLAGS = '-Wall -O2 -g')
+		conf.env.Replace(CCFLAGS = '-Wall -O2 -g -std=c99')
 if 'CPPFLAGS' in os.environ:
 	conf.env.Replace(CPPFLAGS = os.environ['CPPFLAGS'])
 conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
@@ -46,6 +46,12 @@ conf.env.Append(CPPPATH = ['libexfat'])
 if 'LDFLAGS' in os.environ:
 	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
 conf.env.Append(LIBPATH = ['libexfat'])
+
+# GNU/Linux requires _BSD_SOURCE define for vsyslog(), _XOPEN_SOURCE >= 500 for
+# pread(), pwrite(), snprintf(), strdup(), etc. Everything needed is enabled by
+# _GNU_SOURCE.
+if platform.system() == 'Linux':
+	conf.env.Append(CPPDEFINES = '_GNU_SOURCE');
 
 # __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
 # numbers are 64-bit by default, but libfuse operates 32-bit ones. This define
