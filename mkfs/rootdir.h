@@ -21,8 +21,8 @@
 #ifndef MKFS_ROOTDIR_H_INCLUDED
 #define MKFS_ROOTDIR_H_INCLUDED
 
-off_t rootdir_alignment(void);
-off_t rootdir_size(void);
-int rootdir_write(struct exfat_dev* dev, off_t base);
+#include "mkexfat.h"
+
+extern const struct fs_object rootdir;
 
 #endif /* ifndef MKFS_ROOTDIR_H_INCLUDED */

@@ -25,36 +25,107 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include <errno.h>
 #include <exfat.h>
+#include "mkexfat.h"
 #include "vbr.h"
 #include "fat.h"
 #include "cbm.h"
 #include "uct.h"
 #include "rootdir.h"
 
-#define ROUND_UP(x, d) (DIV_ROUND_UP(x, d) * (d))
-
-struct exfat_super_block sb;
-struct exfat_entry_label label_entry = {EXFAT_ENTRY_LABEL ^ EXFAT_ENTRY_VALID};
-struct exfat_entry_bitmap bitmap_entry = {EXFAT_ENTRY_BITMAP};
-struct exfat_entry_upcase upcase_entry = {EXFAT_ENTRY_UPCASE};
-
-struct exfat_structure
+const struct fs_object* objects[] =
 {
-	const char* name;
-	int order;
-	off_t (*get_alignment)(void);
-	off_t (*get_size)(void);
-	int (*write_data)(struct exfat_dev*, off_t);
+	&vbr,
+	&vbr,
+	&fat,
+	/* clusters heap */
+	&cbm,
+	&uct,
+	&rootdir,
+	NULL,
 };
 
-static int get_spc_bits(int sector_bits, int user_defined, off_t volume_size)
+static struct
+{
+	int sector_bits;
+	int spc_bits;
+	off_t volume_size;
+	le16_t volume_label[EXFAT_ENAME_MAX + 1];
+	uint32_t volume_serial;
+	uint64_t first_sector;
+}
+param;
+
+int get_sector_bits(void)
+{
+	return param.sector_bits;
+}
+
+int get_spc_bits(void)
+{
+	return param.spc_bits;
+}
+
+off_t get_volume_size(void)
+{
+	return param.volume_size;
+}
+
+const le16_t* get_volume_label(void)
+{
+	return param.volume_label;
+}
+
+uint32_t get_volume_serial(void)
+{
+	return param.volume_serial;
+}
+
+uint64_t get_first_sector(void)
+{
+	return param.first_sector;
+}
+
+int get_sector_size(void)
+{
+	return 1 << get_sector_bits();
+}
+
+int get_cluster_size(void)
+{
+	return get_sector_size() << get_spc_bits();
+}
+
+static off_t setup_volume_size(struct exfat_dev* dev)
+{
+	off_t size = exfat_seek(dev, 0, SEEK_END);
+	if (size == (off_t) -1)
+		exfat_error("failed to get volume size");
+	return size;
+}
+
+static int setup_spc_bits(int sector_bits, int user_defined, off_t volume_size)
 {
 	int i;
 
 	if (user_defined != -1)
+	{
+		off_t cluster_size = 1 << sector_bits << user_defined;
+		if (volume_size / cluster_size > EXFAT_LAST_DATA_CLUSTER)
+		{
+			struct exfat_human_bytes chb, vhb;
+
+			exfat_humanize_bytes(cluster_size, &chb);
+			exfat_humanize_bytes(volume_size, &vhb);
+			exfat_error("cluster size %"PRIu64" %s is too small for "
+					"%"PRIu64" %s volume, try -s %d",
+					chb.value, chb.unit,
+					vhb.value, vhb.unit,
+					1 << setup_spc_bits(sector_bits, -1, volume_size));
+			return -1;
+		}
 		return user_defined;
+	}
 
 	if (volume_size < 256ull * 1024 * 1024)
 		return MAX(0, 12 - sector_bits);	/* 4 KB */
@@ -66,223 +137,15 @@ static int get_spc_bits(int sector_bits, int user_defined, off_t volume_size)
 			return MAX(0, i - sector_bits);
 }
 
-static int init_sb(off_t volume_size, int sector_bits, int spc_bits,
-		uint32_t volume_serial, int first_sector)
+static int setup_volume_label(le16_t label[EXFAT_ENAME_MAX + 1], const char* s)
 {
-	uint32_t clusters_max;
-	uint32_t fat_sectors;
-	uint32_t allocated_clusters;
-
-	if ((volume_size >> sector_bits >> spc_bits) > EXFAT_LAST_DATA_CLUSTER)
-	{
-		struct exfat_human_bytes chb, vhb;
-
-		exfat_humanize_bytes(1 << sector_bits << spc_bits, &chb);
-		exfat_humanize_bytes(volume_size, &vhb);
-		exfat_error("cluster size %"PRIu64" %s is too small for "
-				"%"PRIu64" %s volume, try -s %d",
-				chb.value, chb.unit,
-				vhb.value, vhb.unit,
-				1 << get_spc_bits(sector_bits, -1, volume_size));
-		return 1;
-	}
-
-	clusters_max = (volume_size >> sector_bits >> spc_bits);
-	fat_sectors = DIV_ROUND_UP((off_t) clusters_max * sizeof(cluster_t),
-			1 << sector_bits);
-
-	memset(&sb, 0, sizeof(struct exfat_super_block));
-	sb.jump[0] = 0xeb;
-	sb.jump[1] = 0x76;
-	sb.jump[2] = 0x90;
-	memcpy(sb.oem_name, "EXFAT   ", sizeof(sb.oem_name));
-	sb.sector_start = cpu_to_le64(first_sector);
-	sb.sector_count = cpu_to_le64(volume_size >> sector_bits);
-	sb.fat_sector_start = cpu_to_le32(128); /* FIXME */
-	sb.fat_sector_count = cpu_to_le32(ROUND_UP(
-			le32_to_cpu(sb.fat_sector_start) + fat_sectors, 1 << spc_bits) -
-			le32_to_cpu(sb.fat_sector_start));
-	/* cluster_sector_start will be set later */
-	sb.cluster_count = cpu_to_le32(clusters_max -
-			((le32_to_cpu(sb.fat_sector_start) +
-			  le32_to_cpu(sb.fat_sector_count)) >> spc_bits));
-	/* rootdir_cluster will be set later */
-	sb.volume_serial = cpu_to_le32(volume_serial);
-	sb.version.major = 1;
-	sb.version.minor = 0;
-	sb.volume_state = cpu_to_le16(0);
-	sb.sector_bits = sector_bits;
-	sb.spc_bits = spc_bits;
-	sb.fat_count = 1;
-	sb.drive_no = 0x80;
-	sb.allocated_percent = 0;
-	sb.boot_signature = cpu_to_le16(0xaa55);
-
-	allocated_clusters =
-			DIV_ROUND_UP(cbm_size(), CLUSTER_SIZE(sb)) +
-			DIV_ROUND_UP(uct_size(), CLUSTER_SIZE(sb)) +
-			DIV_ROUND_UP(rootdir_size(), CLUSTER_SIZE(sb));
-	if (clusters_max < ((le32_to_cpu(sb.fat_sector_start) +
-			le32_to_cpu(sb.fat_sector_count)) >> spc_bits) +
-			allocated_clusters)
-	{
-		exfat_error("too small volume (%"PRIu64" bytes)", volume_size);
-		return 1;
-	}
-	exfat_print_info(&sb, le32_to_cpu(sb.cluster_count) -
-			allocated_clusters);
-	return 0;
-}
-
-static int erase_device(struct exfat_dev* dev)
-{
-	off_t erase_size;
-	off_t erase_blocks;
-	long block_size;
-	void* block;
-	off_t i;
-
-	block_size = sysconf(_SC_PAGESIZE);
-	if (block_size < 1)
-		block_size = 0x1000;
-
-	erase_size = ((uint64_t)
-			le32_to_cpu(sb.fat_sector_start) +
-			le32_to_cpu(sb.fat_sector_count)) * SECTOR_SIZE(sb);
-	erase_size = ROUND_UP(erase_size, cbm_alignment());
-	erase_size += cbm_size();
-	erase_size = ROUND_UP(erase_size, uct_alignment());
-	erase_size += uct_size();
-	erase_size = ROUND_UP(erase_size, rootdir_alignment());
-	erase_size += rootdir_size();
-
-	erase_blocks = DIV_ROUND_UP(erase_size, block_size);
-
-	if (exfat_seek(dev, 0, SEEK_SET) == (off_t) -1)
-	{
-		exfat_error("seek failed");
-		return 1;
-	}
-
-	block = malloc(block_size);
-	if (block == NULL)
-	{
-		exfat_error("failed to allocate erase block");
-		return 1;
-	}
-	memset(block, 0, block_size);
-
-	for (i = 0; i < erase_blocks; i++)
-	{
-		if (exfat_write(dev, block, block_size) < 0)
-		{
-			free(block);
-			exfat_error("failed to erase block %"PRIu64, i);
-			return 1;
-		}
-		if (i * 100 / erase_blocks != (i + 1) * 100 / erase_blocks)
-		{
-			printf("\b\b\b%2"PRIu64"%%", (i + 1) * 100 / erase_blocks);
-			fflush(stdout);
-		}
-	}
-	free(block);
-	return 0;
-}
-
-/*
- * exFAT layout:
- * - Volume Boot Record (VBR)
- *   - Main Boot Sector (MBR)
- *   - Main Extended Boot Sectors (MEBS)
- *   - OEM Parameters
- *   - Reserved sector
- *   - Checksum sector
- * - Volume Boot Record copy
- * - File Allocation Table (FAT)
- * - Clusters heap
- *   - Clusters bitmap
- *   - Upper case table
- *   - Root directory
- */
-#define FS_OBJECT(order, name) \
-	{#name, order, name##_alignment, name##_size, name##_write}
-static struct exfat_structure structures[] =
-{
-	FS_OBJECT(3, vbr),
-	FS_OBJECT(3, vbr),
-	FS_OBJECT(2, fat),
-	FS_OBJECT(1, cbm),
-	FS_OBJECT(1, uct),
-	FS_OBJECT(1, rootdir)
-};
-#undef FS_OBJECT
-
-static off_t write_structure(struct exfat_dev* dev,
-		struct exfat_structure* structure, off_t current)
-{
-	off_t alignment = structure->get_alignment();
-	off_t base = ROUND_UP(current, alignment);
-
-	if (exfat_seek(dev, base, SEEK_SET) == (off_t) -1)
-	{
-		exfat_error("seek to %"PRIu64" failed", base);
-		return -1;
-	}
-	if (structure->order > 0)
-	{
-		int rc = structure->write_data(dev, base);
-		if (rc != 0)
-		{
-			exfat_error("%s creation failed: %s", structure->name,
-					strerror(rc));
-			return -1;
-		}
-		structure->order--;
-	}
-	return base + structure->get_size();
-}
-
-static int write_structures(struct exfat_dev* dev)
-{
-	off_t current;
-	size_t i;
-	int remainder;
-
-	do
-	{
-		current = 0;
-		remainder = 0;
-		for (i = 0; i < sizeof(structures) / sizeof(structures[0]); i++)
-		{
-			current = write_structure(dev, &structures[i], current);
-			if (current == (off_t) -1)
-				return 1;
-			remainder += structures[i].order;
-		}
-	}
-	while (remainder > 0);
-	return 0;
-}
-
-static int set_volume_label(const char* volume_label)
-{
-	le16_t tmp[EXFAT_ENAME_MAX + 1];
-
-	if (volume_label == NULL)
+	memset(label, 0, sizeof(label));
+	if (s == NULL)
 		return 0;
-
-	memset(tmp, 0, sizeof(tmp));
-	if (utf8_to_utf16(tmp, volume_label, EXFAT_ENAME_MAX,
-				strlen(volume_label)) != 0)
-		return 1;
-	memcpy(label_entry.name, tmp, EXFAT_ENAME_MAX * sizeof(le16_t));
-	label_entry.length = utf16_length(tmp);
-	label_entry.type |= EXFAT_ENTRY_VALID;
-	return 0;
+	return utf8_to_utf16(label, s, EXFAT_ENAME_MAX, strlen(s));
 }
 
-static uint32_t get_volume_serial(uint32_t user_defined)
+static uint32_t setup_volume_serial(uint32_t user_defined)
 {
 	struct timeval now;
 
@@ -290,76 +153,36 @@ static uint32_t get_volume_serial(uint32_t user_defined)
 		return user_defined;
 
 	if (gettimeofday(&now, NULL) != 0)
+	{
+		exfat_error("failed to form volume id");
 		return 0;
+	}
 	return (now.tv_sec << 20) | now.tv_usec;
 }
 
-static int mkfs(const char* spec, int sector_bits, int spc_bits,
-		const char* volume_label, uint32_t volume_serial, int first_sector)
+static int setup(struct exfat_dev* dev, int sector_bits, int spc_bits,
+		const char* volume_label, uint32_t volume_serial,
+		uint64_t first_sector)
 {
-	struct exfat_dev* dev;
-	off_t volume_size;
+	param.sector_bits = sector_bits;
+	param.first_sector = first_sector;
 
-	dev = exfat_open(spec, 0);
-	if (dev == NULL)
+	param.volume_size = setup_volume_size(dev);
+	if (param.volume_size == (off_t) -1)
 		return 1;
 
-	volume_size = exfat_seek(dev, 0, SEEK_END);
-	if (volume_size == (off_t) -1)
-	{
-		exfat_close(dev);
-		exfat_error("seek failed");
+	param.spc_bits = setup_spc_bits(sector_bits, spc_bits, param.volume_size);
+	if (param.spc_bits == -1)
 		return 1;
-	}
-	spc_bits = get_spc_bits(sector_bits, spc_bits, volume_size);
 
-	if (set_volume_label(volume_label) != 0)
-	{
-		exfat_close(dev);
+	if (setup_volume_label(param.volume_label, volume_label) != 0)
 		return 1;
-	}
 
-	volume_serial = get_volume_serial(volume_serial);
-	if (volume_serial == 0)
-	{
-		exfat_close(dev);
-		exfat_error("failed to get current time to form volume id");
+	param.volume_serial = setup_volume_serial(volume_serial);
+	if (param.volume_serial == 0)
 		return 1;
-	}
 
-	if (init_sb(volume_size, sector_bits, spc_bits, volume_serial,
-				first_sector) != 0)
-	{
-		exfat_close(dev);
-		return 1;
-	}
-
-	printf("Creating... %2u%%", 0);
-	fflush(stdout);
-	if (erase_device(dev) != 0)
-	{
-		exfat_close(dev);
-		return 1;
-	}
-	if (write_structures(dev) != 0)
-	{
-		exfat_close(dev);
-		return 1;
-	}
-	puts("\b\b\b\bdone.");
-
-	printf("Flushing... ");
-	fflush(stdout);
-	if (exfat_fsync(dev) != 0)
-	{
-		exfat_close(dev);
-		return 1;
-	}
-	puts("done.");
-	if (exfat_close(dev) != 0)
-		return 1;
-	printf("File system created successfully.\n");
-	return 0;
+	return mkfs(dev, param.volume_size);
 }
 
 static int logarithm2(int n)
@@ -387,7 +210,8 @@ int main(int argc, char* argv[])
 	int spc_bits = -1;
 	const char* volume_label = NULL;
 	uint32_t volume_serial = 0;
-	int first_sector = 0;
+	uint64_t first_sector = 0;
+	struct exfat_dev* dev;
 
 	printf("mkexfatfs %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
@@ -412,7 +236,6 @@ int main(int argc, char* argv[])
 			if (*pp == NULL)
 				usage(argv[0]);
 			volume_label = *pp;
-			/* TODO check length */
 		}
 		else if (strcmp(*pp, "-i") == 0)
 		{
@@ -426,7 +249,7 @@ int main(int argc, char* argv[])
 			pp++;
 			if (*pp == NULL)
 				usage(argv[0]);
-			first_sector = atoi(*pp);
+			first_sector = strtoll(*pp, NULL, 10);
 		}
 		else if (strcmp(*pp, "-v") == 0)
 		{
@@ -441,5 +264,17 @@ int main(int argc, char* argv[])
 	if (spec == NULL)
 		usage(argv[0]);
 
-	return mkfs(spec, 9, spc_bits, volume_label, volume_serial, first_sector);
+	dev = exfat_open(spec, 0);
+	if (dev == NULL)
+		return 1;
+	if (setup(dev, 9, spc_bits, volume_label, volume_serial,
+				first_sector) != 0)
+	{
+		exfat_close(dev);
+		return 1;
+	}
+	if (exfat_close(dev) != 0)
+		return 1;
+	printf("File system created successfully.\n");
+	return 0;
 }

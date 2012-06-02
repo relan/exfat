@@ -18,36 +18,39 @@
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <unistd.h>
 #include <limits.h>
-#include <inttypes.h>
-#include <errno.h>
-#include "mkexfat.h"
+#include "cbm.h"
+#include "fat.h"
 #include "uct.h"
 #include "rootdir.h"
 
-off_t cbm_alignment(void)
+static off_t cbm_alignment(void)
 {
-	return CLUSTER_SIZE(sb);
+	return get_cluster_size();
 }
 
-off_t cbm_size(void)
+static off_t cbm_size(void)
 {
-	return DIV_ROUND_UP(le32_to_cpu(sb.cluster_count), CHAR_BIT);
+	return DIV_ROUND_UP(
+			(get_volume_size() - get_position(&cbm)) / get_cluster_size(),
+			CHAR_BIT);
 }
 
-int cbm_write(struct exfat_dev* dev, off_t base)
+static int cbm_write(struct exfat_dev* dev)
 {
 	uint32_t allocated_clusters =
-			DIV_ROUND_UP(cbm_size(), CLUSTER_SIZE(sb)) +
-			DIV_ROUND_UP(uct_size(), CLUSTER_SIZE(sb)) +
-			DIV_ROUND_UP(rootdir_size(), CLUSTER_SIZE(sb));
+			DIV_ROUND_UP(cbm.get_size(), get_cluster_size()) +
+			DIV_ROUND_UP(uct.get_size(), get_cluster_size()) +
+			DIV_ROUND_UP(rootdir.get_size(), get_cluster_size());
 	size_t bitmap_size = DIV_ROUND_UP(allocated_clusters, CHAR_BIT);
 	uint8_t* bitmap = malloc(bitmap_size);
 	size_t i;
 
 	if (bitmap == NULL)
-		return errno;
+	{
+		exfat_error("failed to allocate bitmap of %zu bytes", bitmap_size);
+		return 1;
+	}
 
 	for (i = 0; i < bitmap_size * CHAR_BIT; i++)
 		if (i < allocated_clusters)
@@ -55,11 +58,17 @@ int cbm_write(struct exfat_dev* dev, off_t base)
 		else
 			BMAP_CLR(bitmap, i);
 	if (exfat_write(dev, bitmap, bitmap_size) < 0)
-		return errno;
+	{
+		exfat_error("failed to write bitmap of %zu bytes", bitmap_size);
+		return 1;
+	}
 	free(bitmap);
-
-	sb.cluster_sector_start = cpu_to_le32(base / SECTOR_SIZE(sb));
-	bitmap_entry.start_cluster = cpu_to_le32(OFFSET_TO_CLUSTER(base));
-	bitmap_entry.size = cpu_to_le64(cbm_size());
 	return 0;
 }
+
+const struct fs_object cbm =
+{
+	.get_alignment = cbm_alignment,
+	.get_size = cbm_size,
+	.write = cbm_write,
+};
