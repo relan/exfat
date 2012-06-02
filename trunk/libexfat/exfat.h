@@ -43,6 +43,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
+#define ROUND_UP(x, d) (DIV_ROUND_UP(x, d) * (d))
 
 #define BMAP_GET(bitmap, index) \
 	(((uint8_t*) bitmap)[(index) / 8] & (1u << ((index) % 8)))

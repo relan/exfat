@@ -21,8 +21,8 @@
 #ifndef MKFS_UCT_H_INCLUDED
 #define MKFS_UCT_H_INCLUDED
 
-off_t uct_alignment(void);
-off_t uct_size(void);
-int uct_write(struct exfat_dev* dev, off_t base);
+#include "mkexfat.h"
+
+extern const struct fs_object uct;
 
 #endif /* ifndef MKFS_UCT_H_INCLUDED */

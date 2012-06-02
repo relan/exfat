@@ -21,8 +21,8 @@
 #ifndef MKFS_VBR_H_INCLUDED
 #define MKFS_VBR_H_INCLUDED
 
-off_t vbr_alignment(void);
-off_t vbr_size(void);
-int vbr_write(struct exfat_dev* dev, off_t base);
+#include "mkexfat.h"
+
+extern const struct fs_object vbr;
 
 #endif /* ifndef MKFS_VBR_H_INCLUDED */
