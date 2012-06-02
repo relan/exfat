@@ -21,8 +21,8 @@
 #ifndef MKFS_CBM_H_INCLUDED
 #define MKFS_CBM_H_INCLUDED
 
-off_t cbm_alignment(void);
-off_t cbm_size(void);
-int cbm_write(struct exfat_dev* dev, off_t base);
+#include "mkexfat.h"
+
+extern const struct fs_object cbm;
 
 #endif /* ifndef MKFS_CBM_H_INCLUDED */

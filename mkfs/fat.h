@@ -21,8 +21,8 @@
 #ifndef MKFS_FAT_H_INCLUDED
 #define MKFS_FAT_H_INCLUDED
 
-off_t fat_alignment(void);
-off_t fat_size(void);
-int fat_write(struct exfat_dev* dev, off_t base);
+#include "mkexfat.h"
+
+extern const struct fs_object fat;
 
 #endif /* ifndef MKFS_FAT_H_INCLUDED */

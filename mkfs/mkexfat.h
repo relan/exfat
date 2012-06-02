@@ -1,6 +1,6 @@
 /*
 	mkexfat.h (09.11.10)
-	Common declarations.
+	FS creation engine.
 
 	Copyright (C) 2011, 2012  Andrew Nayenko
 
@@ -23,15 +23,25 @@
 
 #include <exfat.h>
 
-extern struct exfat_super_block sb;
-extern struct exfat_entry_label label_entry;
-extern struct exfat_entry_bitmap bitmap_entry;
-extern struct exfat_entry_upcase upcase_entry;
+struct fs_object
+{
+	off_t (*get_alignment)(void);
+	off_t (*get_size)(void);
+	int (*write)(struct exfat_dev* dev);
+};
 
-#define OFFSET_TO_SECTOR(off) ((off) >> (sb).sector_bits)
-#define SECTOR_TO_CLUSTER(sector) \
-	((((sector) - le32_to_cpu((sb).cluster_sector_start)) >> (sb).spc_bits) + \
-		EXFAT_FIRST_DATA_CLUSTER)
-#define OFFSET_TO_CLUSTER(off) SECTOR_TO_CLUSTER(OFFSET_TO_SECTOR(off))
+extern const struct fs_object* objects[];
+
+int get_sector_bits(void);
+int get_spc_bits(void);
+off_t get_volume_size(void);
+const le16_t* get_volume_label(void);
+uint32_t get_volume_serial(void);
+uint64_t get_first_sector(void);
+int get_sector_size(void);
+int get_cluster_size(void);
+
+int mkfs(struct exfat_dev* dev, off_t volume_size);
+off_t get_position(const struct fs_object* object);
 
 #endif /* ifndef MKFS_MKEXFAT_H_INCLUDED */
