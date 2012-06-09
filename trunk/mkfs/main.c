@@ -139,7 +139,7 @@ static int setup_spc_bits(int sector_bits, int user_defined, off_t volume_size)
 
 static int setup_volume_label(le16_t label[EXFAT_ENAME_MAX + 1], const char* s)
 {
-	memset(label, 0, sizeof(label));
+	memset(label, 0, (EXFAT_ENAME_MAX + 1) * sizeof(le16_t));
 	if (s == NULL)
 		return 0;
 	return utf8_to_utf16(label, s, EXFAT_ENAME_MAX, strlen(s));
