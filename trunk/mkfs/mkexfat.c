@@ -52,7 +52,7 @@ static int check_size(off_t volume_size)
 static int erase_object(struct exfat_dev* dev, const void* block,
 		size_t block_size, off_t start, off_t size)
 {
-	const size_t block_count = DIV_ROUND_UP(size, block_size);
+	const off_t block_count = DIV_ROUND_UP(size, block_size);
 	off_t i;
 
 	if (exfat_seek(dev, start, SEEK_SET) == (off_t) -1)
