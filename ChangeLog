@@ -1,3 +1,9 @@
+0.9.8 (2012-08-09)
+
+* The mkfs utility can now create huge file systems (up to several exabytes).
+* Fixed handling of characters beyond Basic Multilingual Plane.
+* Echo messages to syslog only if stderr is not connected to a terminal.
+
 0.9.7 (2012-03-08)
 
 * Out-of-the-box FreeBSD support (via ublio library).
