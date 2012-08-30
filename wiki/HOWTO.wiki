@@ -38,4 +38,4 @@ where `/dev/sdXn` is the volume special file, `/mnt/exfat` is a mountpoint.
 
 = Feedback =
 
-If you have any questions, issues, suggestions, bug reports, patches, etc. please send an e-mail to the [mailto:exfat@googlegroups.com mailing list] ([http://groups.google.ru/group/exfat archive]). Do not use the comment field at the bottom of this page, it's for commenting this article itself.
+If you have any questions, issues, suggestions, bug reports, patches, etc. please send an e-mail to the [mailto:exfat@googlegroups.com mailing list] ([http://groups.google.com/group/exfat archive]). Do not use the comment field at the bottom of this page, it's for commenting this article itself.
