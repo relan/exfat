@@ -486,22 +486,27 @@ int main(int argc, char* argv[])
 	}
 
 	/* exit session on HUP, TERM and INT signals and ignore PIPE signal */
-	if (fuse_set_signal_handlers(fuse_get_session(fh)))
+	if (fuse_set_signal_handlers(fuse_get_session(fh)) != 0)
 	{
 		fuse_unmount(mount_point, fc);
 		fuse_destroy(fh);
 		exfat_unmount(&ef);
+		exfat_error("failed to set signal handlers");
 		return 1;
 	}
 
-	/* go to background unless "-d" option is passed */
-	fuse_daemonize(debug);
+	/* go to background (unless "-d" option is passed) and run FUSE
+	   main loop */
+	if (fuse_daemonize(debug) == 0)
+	{
+		if (fuse_loop(fh) != 0)
+			exfat_error("FUSE loop failure");
+	}
+	else
+		exfat_error("failed to daemonize");
 
-	/* FUSE main loop */
-	fuse_loop(fh);
-
-	/* it's quite illogical but fuse_unmount() must be called BEFORE
-	   fuse_destroy() */
+	fuse_remove_signal_handlers(fuse_get_session(fh));
+	/* note that fuse_unmount() must be called BEFORE fuse_destroy() */
 	fuse_unmount(mount_point, fc);
 	fuse_destroy(fh);
 	return 0;
