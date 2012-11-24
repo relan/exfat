@@ -28,12 +28,13 @@
 
 uint64_t files_count, directories_count;
 
-static void nodeck(struct exfat* ef, struct exfat_node* node)
+static int nodeck(struct exfat* ef, struct exfat_node* node)
 {
 	const cluster_t cluster_size = CLUSTER_SIZE(*ef->sb);
 	cluster_t clusters = (node->size + cluster_size - 1) / cluster_size;
 	cluster_t c = node->start_cluster;
-	
+	int rc = 0;
+
 	while (clusters--)
 	{
 		if (CLUSTER_INVALID(c))
@@ -42,7 +43,8 @@ static void nodeck(struct exfat* ef, struct exfat_node* node)
 
 			exfat_get_name(node, name, EXFAT_NAME_MAX);
 			exfat_error("file `%s' has invalid cluster", name);
-			return;
+			rc = 1;
+			break;
 		}
 		if (BMAP_GET(ef->cmap.chunk, c - EXFAT_FIRST_DATA_CLUSTER) == 0)
 		{
@@ -50,9 +52,11 @@ static void nodeck(struct exfat* ef, struct exfat_node* node)
 
 			exfat_get_name(node, name, EXFAT_NAME_MAX);
 			exfat_error("cluster 0x%x of file `%s' is not allocated", c, name);
+			rc = 1;
 		}
 		c = exfat_next_cluster(ef, node, c);
 	}
+	return rc;
 }
 
 static void dirck(struct exfat* ef, const char* path)
@@ -68,6 +72,8 @@ static void dirck(struct exfat* ef, const char* path)
 		exfat_bug("directory `%s' is not found", path);
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("`%s' is not a directory (0x%x)", path, parent->flags);
+	if (nodeck(ef, parent) != 0)
+		return;
 
 	path_length = strlen(path);
 	entry_path = malloc(path_length + 1 + EXFAT_NAME_MAX);
@@ -99,8 +105,10 @@ static void dirck(struct exfat* ef, const char* path)
 			dirck(ef, entry_path);
 		}
 		else
+		{
 			files_count++;
-		nodeck(ef, node);
+			nodeck(ef, node);
+		}
 		exfat_put_node(ef, node);
 	}
 	exfat_closedir(ef, &it);
