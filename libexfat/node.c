@@ -115,7 +115,8 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 		it->cluster = exfat_next_cluster(ef, parent, it->cluster);
 		if (CLUSTER_INVALID(it->cluster))
 		{
-			exfat_error("invalid cluster while reading directory");
+			exfat_error("invalid cluster 0x%x while reading directory",
+					it->cluster);
 			return 1;
 		}
 		exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
@@ -310,7 +311,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			upcase = (const struct exfat_entry_upcase*) entry;
 			if (CLUSTER_INVALID(le32_to_cpu(upcase->start_cluster)))
 			{
-				exfat_error("invalid cluster in upcase table");
+				exfat_error("invalid cluster 0x%x in upcase table",
+						le32_to_cpu(upcase->start_cluster));
 				goto error;
 			}
 			if (le64_to_cpu(upcase->size) == 0 ||
@@ -337,9 +339,11 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 
 		case EXFAT_ENTRY_BITMAP:
 			bitmap = (const struct exfat_entry_bitmap*) entry;
-			if (CLUSTER_INVALID(le32_to_cpu(bitmap->start_cluster)))
+			ef->cmap.start_cluster = le32_to_cpu(bitmap->start_cluster);
+			if (CLUSTER_INVALID(ef->cmap.start_cluster))
 			{
-				exfat_error("invalid cluster in clusters bitmap");
+				exfat_error("invalid cluster 0x%x in clusters bitmap",
+						ef->cmap.start_cluster);
 				goto error;
 			}
 			ef->cmap.size = le32_to_cpu(ef->sb->cluster_count) -
@@ -351,7 +355,6 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						le64_to_cpu(bitmap->size), (ef->cmap.size + 7) / 8);
 				goto error;
 			}
-			ef->cmap.start_cluster = le32_to_cpu(bitmap->start_cluster);
 			/* FIXME bitmap can be rather big, up to 512 MB */
 			ef->cmap.chunk_size = ef->cmap.size;
 			ef->cmap.chunk = malloc(le64_to_cpu(bitmap->size));

@@ -42,7 +42,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 			char name[EXFAT_NAME_MAX + 1];
 
 			exfat_get_name(node, name, EXFAT_NAME_MAX);
-			exfat_error("file `%s' has invalid cluster", name);
+			exfat_error("file `%s' has invalid cluster 0x%x", name, c);
 			rc = 1;
 			break;
 		}
