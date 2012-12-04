@@ -23,6 +23,7 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/stat.h>
+#include <sys/mount.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -45,6 +46,30 @@ struct exfat_dev
 #endif
 };
 
+static int open_ro(const char* spec)
+{
+	return open(spec, O_RDONLY);
+}
+
+static int open_rw(const char* spec)
+{
+	int fd = open(spec, O_RDWR);
+#ifdef __linux__
+	int ro = 0;
+
+	/*
+	   This ioctl is needed because after "blockdev --setro" kernel still
+	   allows to open the device in read-write mode but fails writes.
+	*/
+	if (fd != -1 && ioctl(fd, BLKROGET, &ro) == 0 && ro)
+	{
+		close(fd);
+		return -1;
+	}
+#endif
+	return fd;
+}
+
 struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 {
 	struct exfat_dev* dev;
@@ -63,7 +88,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 	switch (mode)
 	{
 	case EXFAT_MODE_RO:
-		dev->fd = open(spec, O_RDONLY);
+		dev->fd = open_ro(spec);
 		if (dev->fd == -1)
 		{
 			free(dev);
@@ -73,7 +98,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		dev->mode = EXFAT_MODE_RO;
 		break;
 	case EXFAT_MODE_RW:
-		dev->fd = open(spec, O_RDWR);
+		dev->fd = open_rw(spec);
 		if (dev->fd == -1)
 		{
 			free(dev);
@@ -83,13 +108,13 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		dev->mode = EXFAT_MODE_RW;
 		break;
 	case EXFAT_MODE_ANY:
-		dev->fd = open(spec, O_RDWR);
+		dev->fd = open_rw(spec);
 		if (dev->fd != -1)
 		{
 			dev->mode = EXFAT_MODE_RW;
 			break;
 		}
-		dev->fd = open(spec, O_RDONLY);
+		dev->fd = open_ro(spec);
 		if (dev->fd != -1)
 		{
 			dev->mode = EXFAT_MODE_RO;
