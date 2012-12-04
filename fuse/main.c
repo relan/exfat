@@ -439,7 +439,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	if (ef.ro_fallback)
+	if (ef.ro == -1) /* read-only fallback was used */
 	{
 		mount_options = add_option(mount_options, "ro", NULL);
 		if (mount_options == NULL)

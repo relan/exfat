@@ -86,7 +86,6 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->uid = get_int_option(options, "uid", 10, geteuid());
 	ef->gid = get_int_option(options, "gid", 10, getegid());
 
-	ef->ro = match_option(options, "ro");
 	ef->noatime = match_option(options, "noatime");
 }
 
@@ -137,22 +136,28 @@ static int prepare_super_block(const struct exfat* ef)
 int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 {
 	int rc;
+	enum exfat_mode mode;
 
 	exfat_tzset();
 	memset(ef, 0, sizeof(struct exfat));
 
 	parse_options(ef, options);
 
-	ef->dev = exfat_open(spec, ef->ro);
+	if (match_option(options, "ro"))
+		mode = EXFAT_MODE_RO;
+	else if (match_option(options, "ro_fallback"))
+		mode = EXFAT_MODE_ANY;
+	else
+		mode = EXFAT_MODE_RW;
+	ef->dev = exfat_open(spec, mode);
 	if (ef->dev == NULL)
+		return -EIO;
+	if (exfat_mode(ef->dev) == EXFAT_MODE_RO)
 	{
-		if (ef->ro || !match_option(options, "ro_fallback"))
-			return -EIO;
-		ef->dev = exfat_open(spec, 1);
-		if (ef->dev == NULL)
-			return -EIO;
-		exfat_warn("device is write-protected, mounting read-only");
-		ef->ro_fallback = ef->ro = 1;
+		if (mode == EXFAT_MODE_ANY)
+			ef->ro = -1;
+		else
+			ef->ro = 1;
 	}
 
 	ef->sb = malloc(sizeof(struct exfat_super_block));

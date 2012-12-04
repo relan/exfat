@@ -76,7 +76,7 @@ static int dump_sb(const char* spec)
 	struct exfat_dev* dev;
 	struct exfat_super_block sb;
 
-	dev = exfat_open(spec, 1);
+	dev = exfat_open(spec, EXFAT_MODE_RO);
 	if (dev == NULL)
 		return 1;
 
