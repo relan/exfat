@@ -28,6 +28,7 @@ conf = Configure(env)
 destdir = env.get('DESTDIR', '/sbin');
 targets = []
 libs = ['exfat']
+libfuse = 'fuse'
 
 if 'CC' in os.environ:
 	conf.env.Replace(CC = os.environ['CC'])
@@ -53,13 +54,13 @@ conf.env.Append(LIBPATH = ['libexfat'])
 if platform.system() == 'Linux':
 	conf.env.Append(CPPDEFINES = '_GNU_SOURCE');
 
-# __DARWIN_64_BIT_INO_T=0 define is needed because since Snow Leopard inode
-# numbers are 64-bit by default, but libfuse operates 32-bit ones. This define
-# forces 32-bit inode declaration in system headers, but it's also possible to
-# link against libfuse_ino64 instead.
+# Use 64-bit inode numbers (introduced in Mac OS X 10.5 Leopard). Require
+# OSXFUSE (http://osxfuse.github.com).
 if platform.system() == 'Darwin':
-	conf.env.Append(CPPDEFINES = {'__DARWIN_64_BIT_INO_T' : 0})
+	conf.env.Append(CPPDEFINES = '_DARWIN_USE_64_BIT_INODE')
 	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
+	conf.env.Append(CPPPATH = ['/usr/local/include/osxfuse'])
+	libfuse = 'osxfuse_i64'
 
 # FreeBSD does not support block devices, only raw devices. Ublio is required
 # for unaligned I/O and caching.
@@ -99,7 +100,7 @@ def program(pattern, output, alias, libs):
 
 env.Library('libexfat/exfat', Glob('libexfat/*.c'))
 
-program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat', [libs + ['fuse']])
+program('fuse/*.c', 'fuse/mount.exfat-fuse', 'mount.exfat', [libs + [libfuse]])
 program('dump/*.c', 'dump/dumpexfat', None, libs)
 program('fsck/*.c', 'fsck/exfatfsck', 'fsck.exfat', libs)
 program('mkfs/*.c', 'mkfs/mkexfatfs', 'mkfs.exfat', libs)
