@@ -230,6 +230,15 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 	return 0;
 }
 
+#ifdef __APPLE__
+static int fuse_exfat_chmod(const char* path, mode_t mode)
+{
+	exfat_debug("[fuse_exfat_chmod] %s 0%ho", path, mode);
+	/* make OS X utilities happy */
+	return 0;
+}
+#endif
+
 static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 {
 	sfs->f_bsize = CLUSTER_SIZE(*ef.sb);
@@ -278,6 +287,9 @@ static struct fuse_operations fuse_exfat_ops =
 	.mkdir		= fuse_exfat_mkdir,
 	.rename		= fuse_exfat_rename,
 	.utimens	= fuse_exfat_utimens,
+#ifdef __APPLE__
+	.chmod          = fuse_exfat_chmod,
+#endif
 	.statfs		= fuse_exfat_statfs,
 	.destroy	= fuse_exfat_destroy,
 };
