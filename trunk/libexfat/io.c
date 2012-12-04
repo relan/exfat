@@ -38,13 +38,14 @@
 struct exfat_dev
 {
 	int fd;
+	enum exfat_mode mode;
 #ifdef USE_UBLIO
 	off_t pos;
 	ublio_filehandle_t ufh;
 #endif
 };
 
-struct exfat_dev* exfat_open(const char* spec, int ro)
+struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 {
 	struct exfat_dev* dev;
 	struct stat stbuf;
@@ -59,14 +60,47 @@ struct exfat_dev* exfat_open(const char* spec, int ro)
 		return NULL;
 	}
 
-	dev->fd = open(spec, ro ? O_RDONLY : O_RDWR);
-	if (dev->fd < 0)
+	switch (mode)
 	{
+	case EXFAT_MODE_RO:
+		dev->fd = open(spec, O_RDONLY);
+		if (dev->fd == -1)
+		{
+			free(dev);
+			exfat_error("failed to open `%s' in read-only mode", spec);
+			return NULL;
+		}
+		dev->mode = EXFAT_MODE_RO;
+		break;
+	case EXFAT_MODE_RW:
+		dev->fd = open(spec, O_RDWR);
+		if (dev->fd == -1)
+		{
+			free(dev);
+			exfat_error("failed to open `%s' in read-write mode", spec);
+			return NULL;
+		}
+		dev->mode = EXFAT_MODE_RW;
+		break;
+	case EXFAT_MODE_ANY:
+		dev->fd = open(spec, O_RDWR);
+		if (dev->fd != -1)
+		{
+			dev->mode = EXFAT_MODE_RW;
+			break;
+		}
+		dev->fd = open(spec, O_RDONLY);
+		if (dev->fd != -1)
+		{
+			dev->mode = EXFAT_MODE_RO;
+			exfat_warn("`%s' is write-protected, mounting read-only", spec);
+			break;
+		}
 		free(dev);
-		exfat_error("failed to open `%s' in read-%s mode", spec,
-				ro ? "only" : "write");
+		exfat_error("failed to open `%s'", spec);
 		return NULL;
 	}
+
 	if (fstat(dev->fd, &stbuf) != 0)
 	{
 		close(dev->fd);
@@ -133,6 +167,11 @@ int exfat_fsync(struct exfat_dev* dev)
 		return 1;
 	}
 	return 0;
+}
+
+enum exfat_mode exfat_mode(const struct exfat_dev* dev)
+{
+	return dev->mode;
 }
 
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence)

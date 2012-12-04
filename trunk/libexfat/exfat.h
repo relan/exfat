@@ -72,6 +72,13 @@ struct exfat_node
 	le16_t name[EXFAT_NAME_MAX + 1];
 };
 
+enum exfat_mode
+{
+	EXFAT_MODE_RO,
+	EXFAT_MODE_RW,
+	EXFAT_MODE_ANY,
+};
+
 struct exfat_dev;
 
 struct exfat
@@ -97,7 +104,6 @@ struct exfat
 	uid_t uid;
 	gid_t gid;
 	int ro;
-	int ro_fallback;
 	int noatime;
 };
 
@@ -125,9 +131,10 @@ void exfat_warn(const char* format, ...)
 void exfat_debug(const char* format, ...)
 	__attribute__((format(printf, 1, 2)));
 
-struct exfat_dev* exfat_open(const char* spec, int ro);
+struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode);
 int exfat_close(struct exfat_dev* dev);
 int exfat_fsync(struct exfat_dev* dev);
+enum exfat_mode exfat_mode(const struct exfat_dev* dev);
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence);
 ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size);
 ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size);

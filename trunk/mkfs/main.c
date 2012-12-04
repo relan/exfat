@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 	if (spec == NULL)
 		usage(argv[0]);
 
-	dev = exfat_open(spec, 0);
+	dev = exfat_open(spec, EXFAT_MODE_RW);
 	if (dev == NULL)
 		return 1;
 	if (setup(dev, 9, spc_bits, volume_label, volume_serial,
