@@ -183,6 +183,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 	le16_t* namep = NULL;
 	uint16_t reference_checksum = 0;
 	uint16_t actual_checksum = 0;
+	uint64_t real_size = 0;
 
 	*node = NULL;
 
@@ -247,18 +248,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			init_node_meta2(*node, meta2);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
-			/* There are two fields that contain file size. Maybe they plan
-			   to add compression support in the future and one of those
-			   fields is visible (uncompressed) size and the other is real
-			   (compressed) size. Anyway, currently it looks like exFAT does
-			   not support compression and both fields must be equal. */
-			if (le64_to_cpu(meta2->real_size) != (*node)->size)
-			{
-				exfat_error("real size does not equal to size "
-						"(%"PRIu64" != %"PRIu64")",
-						le64_to_cpu(meta2->real_size), (*node)->size);
-				goto error;
-			}
+			real_size = le64_to_cpu(meta2->real_size);
 			/* empty files must be marked as non-contiguous */
 			if ((*node)->size == 0 && (meta2->flags & EXFAT_FLAG_CONTIGUOUS))
 			{
@@ -290,10 +280,34 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			namep += EXFAT_ENAME_MAX;
 			if (--continuations == 0)
 			{
+				/*
+				   There are two fields that contain file size. Maybe they
+				   plan to add compression support in the future and one of
+				   those fields is visible (uncompressed) size and the other
+				   is real (compressed) size. Anyway, currently it looks like
+				   exFAT does not support compression and both fields must be
+				   equal.
+
+				   There is an exception though: pagefile.sys (its real_size
+				   is always 0).
+				*/
+				if (real_size != (*node)->size)
+				{
+					char buffer[EXFAT_NAME_MAX + 1];
+
+					exfat_get_name(*node, buffer, EXFAT_NAME_MAX);
+					exfat_error("`%s' real size does not equal to size "
+							"(%"PRIu64" != %"PRIu64")", buffer,
+							real_size, (*node)->size);
+					goto error;
+				}
 				if (actual_checksum != reference_checksum)
 				{
-					exfat_error("invalid checksum (0x%hx != 0x%hx)",
-							actual_checksum, reference_checksum);
+					char buffer[EXFAT_NAME_MAX + 1];
+
+					exfat_get_name(*node, buffer, EXFAT_NAME_MAX);
+					exfat_error("`%s' has invalid checksum (0x%hx != 0x%hx)",
+							buffer, actual_checksum, reference_checksum);
 					goto error;
 				}
 				if (fetch_next_entry(ef, parent, it) != 0)
