@@ -270,11 +270,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
 				(*node)->size % CLUSTER_SIZE(*ef->sb) != 0)
 			{
-				char buffer[EXFAT_NAME_MAX + 1];
-
-				exfat_get_name(*node, buffer, EXFAT_NAME_MAX);
-				exfat_error("directory `%s' has invalid size %"PRIu64" bytes",
-						buffer, (*node)->size);
+				exfat_error("directory has invalid size %"PRIu64" bytes",
+						(*node)->size);
 				goto error;
 			}
 			--continuations;
