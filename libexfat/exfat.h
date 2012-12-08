@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "exfatfs.h"
@@ -104,7 +105,7 @@ struct exfat
 	uid_t uid;
 	gid_t gid;
 	int ro;
-	int noatime;
+	bool noatime;
 };
 
 /* in-core nodes iterator */
