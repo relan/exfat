@@ -60,6 +60,8 @@ if platform.system() == 'Darwin':
 	conf.env.Append(CPPDEFINES = '_DARWIN_USE_64_BIT_INODE')
 	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
 	conf.env.Append(CPPPATH = ['/usr/local/include/osxfuse'])
+	conf.env.Append(CFLAGS    = '-mmacosx-version-min=10.5')
+	conf.env.Append(LINKFLAGS = '-mmacosx-version-min=10.5')
 	libfuse = 'osxfuse_i64'
 
 # FreeBSD does not support block devices, only raw devices. Ublio is required
