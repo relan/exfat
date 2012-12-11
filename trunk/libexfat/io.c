@@ -21,7 +21,6 @@
 #include "exfat.h"
 #include <inttypes.h>
 #include <sys/types.h>
-#include <sys/uio.h>
 #include <sys/stat.h>
 #include <sys/mount.h>
 #include <fcntl.h>
