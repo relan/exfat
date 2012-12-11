@@ -193,7 +193,7 @@ int exfat_fsync(struct exfat_dev* dev)
 	return 0;
 }
 
-enum exfat_mode exfat_mode(const struct exfat_dev* dev)
+enum exfat_mode exfat_get_mode(const struct exfat_dev* dev)
 {
 	return dev->mode;
 }
