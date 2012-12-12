@@ -96,14 +96,6 @@ int get_cluster_size(void)
 	return get_sector_size() << get_spc_bits();
 }
 
-static off_t setup_volume_size(struct exfat_dev* dev)
-{
-	off_t size = exfat_seek(dev, 0, SEEK_END);
-	if (size == (off_t) -1)
-		exfat_error("failed to get volume size");
-	return size;
-}
-
 static int setup_spc_bits(int sector_bits, int user_defined, off_t volume_size)
 {
 	int i;
@@ -166,10 +158,7 @@ static int setup(struct exfat_dev* dev, int sector_bits, int spc_bits,
 {
 	param.sector_bits = sector_bits;
 	param.first_sector = first_sector;
-
-	param.volume_size = setup_volume_size(dev);
-	if (param.volume_size == (off_t) -1)
-		return 1;
+	param.volume_size = exfat_get_size(dev);
 
 	param.spc_bits = setup_spc_bits(sector_bits, spc_bits, param.volume_size);
 	if (param.spc_bits == -1)
