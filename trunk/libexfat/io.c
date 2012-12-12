@@ -26,6 +26,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#ifdef __APPLE__
+#include <sys/disk.h>
+#endif
 #ifdef USE_UBLIO
 #include <sys/uio.h>
 #include <ublio.h>
@@ -39,6 +42,7 @@ struct exfat_dev
 {
 	int fd;
 	enum exfat_mode mode;
+	off_t size; /* in bytes */
 #ifdef USE_UBLIO
 	off_t pos;
 	ublio_filehandle_t ufh;
@@ -142,6 +146,42 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		return NULL;
 	}
 
+#ifdef __APPLE__
+	if (S_ISBLK(stbuf.st_mode))
+	{
+		uint32_t block_size = 0;
+		uint64_t blocks = 0;
+
+		if (ioctl(dev->fd, DKIOCGETBLOCKSIZE, &block_size) != 0)
+		{
+			close(dev->fd);
+			free(dev);
+			exfat_error("failed to get block size");
+			return NULL;
+		}
+		if (ioctl(dev->fd, DKIOCGETBLOCKCOUNT, &blocks) != 0)
+		{
+			close(dev->fd);
+			free(dev);
+			exfat_error("failed to get blocks count");
+			return NULL;
+		}
+		dev->size = blocks * block_size;
+	}
+	else
+#endif
+	{
+		/* works for Linux, FreeBSD, Solaris */
+		dev->size = exfat_seek(dev, 0, SEEK_END);
+		if (dev->size <= 0)
+		{
+			close(dev->fd);
+			free(dev);
+			exfat_error("failed to get device size");
+			return NULL;
+		}
+	}
+
 #ifdef USE_UBLIO
 	memset(&up, 0, sizeof(struct ublio_param));
 	up.up_blocksize = 256 * 1024;
@@ -196,6 +236,11 @@ int exfat_fsync(struct exfat_dev* dev)
 enum exfat_mode exfat_get_mode(const struct exfat_dev* dev)
 {
 	return dev->mode;
+}
+
+off_t exfat_get_size(const struct exfat_dev* dev)
+{
+	return dev->size;
 }
 
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence)
