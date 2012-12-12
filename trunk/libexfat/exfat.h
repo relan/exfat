@@ -95,7 +95,7 @@ struct exfat
 		uint32_t size;				/* in bits */
 		uint8_t* chunk;
 		uint32_t chunk_size;		/* in bits */
-		int dirty;
+		bool dirty;
 	}
 	cmap;
 	char label[EXFAT_ENAME_MAX * 6 + 1]; /* a character can occupy up to

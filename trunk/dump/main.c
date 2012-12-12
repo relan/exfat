@@ -112,7 +112,7 @@ static void dump_sectors(struct exfat* ef)
 	puts("");
 }
 
-static int dump_full(const char* spec, int used_sectors)
+static int dump_full(const char* spec, bool used_sectors)
 {
 	struct exfat ef;
 	uint32_t free_clusters;
@@ -148,8 +148,8 @@ int main(int argc, char* argv[])
 {
 	char** pp;
 	const char* spec = NULL;
-	int sb_only = 0;
-	int used_sectors = 0;
+	bool sb_only = false;
+	bool used_sectors = false;
 
 	printf("dumpexfat %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
@@ -157,9 +157,9 @@ int main(int argc, char* argv[])
 	for (pp = argv + 1; *pp; pp++)
 	{
 		if (strcmp(*pp, "-s") == 0)
-			sb_only = 1;
+			sb_only = true;
 		else if (strcmp(*pp, "-u") == 0)
-			used_sectors = 1;
+			used_sectors = true;
 		else if (strcmp(*pp, "-v") == 0)
 		{
 			puts("Copyright (C) 2011, 2012  Andrew Nayenko");
