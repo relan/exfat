@@ -148,7 +148,7 @@ void exfat_flush_cmap(struct exfat* ef)
 {
 	exfat_pwrite(ef->dev, ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
 			exfat_c2o(ef, ef->cmap.start_cluster));
-	ef->cmap.dirty = 0;
+	ef->cmap.dirty = false;
 }
 
 static void set_next_cluster(const struct exfat* ef, int contiguous,
@@ -182,7 +182,7 @@ static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 		return EXFAT_CLUSTER_END;
 	}
 
-	ef->cmap.dirty = 1;
+	ef->cmap.dirty = true;
 	return cluster;
 }
 
@@ -195,7 +195,7 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 				ef->cmap.size);
 
 	BMAP_CLR(ef->cmap.chunk, cluster - EXFAT_FIRST_DATA_CLUSTER);
-	ef->cmap.dirty = 1;
+	ef->cmap.dirty = true;
 }
 
 static void make_noncontiguous(const struct exfat* ef, cluster_t first,
