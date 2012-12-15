@@ -147,7 +147,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 	}
 
 #ifdef __APPLE__
-	if (S_ISBLK(stbuf.st_mode))
+	if (!S_ISREG(stbuf.st_mode))
 	{
 		uint32_t block_size = 0;
 		uint64_t blocks = 0;
