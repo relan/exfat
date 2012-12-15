@@ -910,27 +910,33 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 	}
 	if (existing != NULL)
 	{
-		if (existing->flags & EXFAT_ATTRIB_DIR)
+		/* remove target if it's not the same node as source */
+		if (existing != node)
 		{
-			if (node->flags & EXFAT_ATTRIB_DIR)
-				rc = exfat_rmdir(ef, existing);
+			if (existing->flags & EXFAT_ATTRIB_DIR)
+			{
+				if (node->flags & EXFAT_ATTRIB_DIR)
+					rc = exfat_rmdir(ef, existing);
+				else
+					rc = -ENOTDIR;
+			}
 			else
-				rc = -ENOTDIR;
+			{
+				if (!(node->flags & EXFAT_ATTRIB_DIR))
+					rc = exfat_unlink(ef, existing);
+				else
+					rc = -EISDIR;
+			}
+			exfat_put_node(ef, existing);
+			if (rc != 0)
+			{
+				exfat_put_node(ef, dir);
+				exfat_put_node(ef, node);
+				return rc;
+			}
 		}
 		else
-		{
-			if (!(node->flags & EXFAT_ATTRIB_DIR))
-				rc = exfat_unlink(ef, existing);
-			else
-				rc = -EISDIR;
-		}
-		exfat_put_node(ef, existing);
-		if (rc != 0)
-		{
-			exfat_put_node(ef, dir);
-			exfat_put_node(ef, node);
-			return rc;
-		}
+			exfat_put_node(ef, existing);
 	}
 
 	rc = find_slot(ef, dir, &cluster, &offset,
