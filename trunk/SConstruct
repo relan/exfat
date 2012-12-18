@@ -23,56 +23,60 @@ import platform
 import SCons
 
 env = Environment(**ARGUMENTS)
-conf = Configure(env)
 
 destdir = env.get('DESTDIR', '/sbin');
 targets = []
 libs = ['exfat']
 libfuse = 'fuse'
 
-if 'CC' in os.environ:
-	conf.env.Replace(CC = os.environ['CC'])
-if 'CCFLAGS' in os.environ:
-	conf.env.Replace(CCFLAGS = os.environ['CCFLAGS'])
-# Set default CCFLAGS for known compilers
-if not conf.env['CCFLAGS']:
-	if conf.env['CC'] == 'gcc':
-		conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb -std=c99')
-	elif conf.env['CC'] == 'clang':
-		conf.env.Replace(CCFLAGS = '-Wall -O2 -g -std=c99')
-if 'CPPFLAGS' in os.environ:
-	conf.env.Replace(CPPFLAGS = os.environ['CPPFLAGS'])
-conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
-conf.env.Append(CPPPATH = ['libexfat'])
-if 'LDFLAGS' in os.environ:
-	conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
-conf.env.Append(LIBPATH = ['libexfat'])
+if not env.GetOption('clean'):
+	conf = Configure(env)
 
-# GNU/Linux requires _BSD_SOURCE define for vsyslog(), _XOPEN_SOURCE >= 500 for
-# pread(), pwrite(), snprintf(), strdup(), etc. Everything needed is enabled by
-# _GNU_SOURCE.
-if platform.system() == 'Linux':
-	conf.env.Append(CPPDEFINES = '_GNU_SOURCE');
+	if 'CC' in os.environ:
+		conf.env.Replace(CC = os.environ['CC'])
+	if 'CCFLAGS' in os.environ:
+		conf.env.Replace(CCFLAGS = os.environ['CCFLAGS'])
+	# Set default CCFLAGS for known compilers
+	if not conf.env['CCFLAGS']:
+		if conf.env['CC'] == 'gcc':
+			conf.env.Replace(CCFLAGS = '-Wall -O2 -ggdb -std=c99')
+		elif conf.env['CC'] == 'clang':
+			conf.env.Replace(CCFLAGS = '-Wall -O2 -g -std=c99')
+	if 'CPPFLAGS' in os.environ:
+		conf.env.Replace(CPPFLAGS = os.environ['CPPFLAGS'])
+	conf.env.Append(CPPDEFINES = {'_FILE_OFFSET_BITS' : 64})
+	conf.env.Append(CPPPATH = ['libexfat'])
+	if 'LDFLAGS' in os.environ:
+		conf.env.Append(LINKFLAGS = os.environ['LDFLAGS'])
+	conf.env.Append(LIBPATH = ['libexfat'])
 
-# Use 64-bit inode numbers (introduced in Mac OS X 10.5 Leopard). Require
-# OSXFUSE (http://osxfuse.github.com).
-if platform.system() == 'Darwin':
-	conf.env.Append(CPPDEFINES = '_DARWIN_USE_64_BIT_INODE')
-	conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
-	conf.env.Append(CPPPATH = ['/usr/local/include/osxfuse'])
-	conf.env.Append(CFLAGS    = '-mmacosx-version-min=10.5')
-	conf.env.Append(LINKFLAGS = '-mmacosx-version-min=10.5')
-	libfuse = 'osxfuse_i64'
+	# GNU/Linux requires _BSD_SOURCE define for vsyslog(), _XOPEN_SOURCE >= 500
+	# for pread(), pwrite(), snprintf(), strdup(), etc. Everything needed is
+	# enabled by _GNU_SOURCE.
+	if platform.system() == 'Linux':
+		conf.env.Append(CPPDEFINES = '_GNU_SOURCE');
 
-# FreeBSD does not support block devices, only raw devices. Ublio is required
-# for unaligned I/O and caching.
-if platform.system() == 'FreeBSD':
-	conf.env.Append(CPPDEFINES = 'USE_UBLIO')
-	libs.append('ublio')
-	conf.env.Append(CPPPATH = ['/usr/local/include'])
-	conf.env.Append(LIBPATH = ['/usr/local/lib'])
+	# Use 64-bit inode numbers (introduced in Mac OS X 10.5 Leopard). Require
+	# OSXFUSE (http://osxfuse.github.com).
+	if platform.system() == 'Darwin':
+		conf.env.Append(CPPDEFINES = '_DARWIN_USE_64_BIT_INODE')
+		conf.env.Append(CPPDEFINES = {'__DARWIN_UNIX03' : 1})
+		conf.env.Append(CPPPATH = ['/usr/local/include/osxfuse'])
+		conf.env.Append(CFLAGS    = '-mmacosx-version-min=10.5')
+		conf.env.Append(LINKFLAGS = '-mmacosx-version-min=10.5')
+		libfuse = 'osxfuse_i64'
 
-env = conf.Finish()
+	# FreeBSD does not support block devices, only raw devices. Ublio is
+	# required for unaligned I/O and caching.
+	if platform.system() == 'FreeBSD':
+		conf.env.Append(CPPDEFINES = 'USE_UBLIO')
+		libs.append('ublio')
+		conf.env.Append(CPPPATH = ['/usr/local/include'])
+		conf.env.Append(LIBPATH = ['/usr/local/lib'])
+
+	env = conf.Finish()
+
+
 
 def make_symlink(dir, target, link_name):
 	workdir = os.getcwd()
