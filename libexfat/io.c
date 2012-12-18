@@ -34,10 +34,6 @@
 #include <ublio.h>
 #endif
 
-#if !defined(_FILE_OFFSET_BITS) || (_FILE_OFFSET_BITS != 64)
-	#error You should define _FILE_OFFSET_BITS=64
-#endif
-
 struct exfat_dev
 {
 	int fd;
