@@ -94,8 +94,9 @@ def program(pattern, output, alias, libs):
 		return
 	target = env.Program(output, sources, LIBS = libs)
 	if alias:
-		Alias('install', Install(destdir, target),
-				symlink(destdir, os.path.basename(output), alias))
+		Clean(Alias('install', Install(destdir, target),
+				symlink(destdir, os.path.basename(output), alias)),
+				destdir + '/' + alias)
 	else:
 		Alias('install', Install(destdir, target))
 	targets.append(target)
