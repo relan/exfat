@@ -23,6 +23,7 @@ import platform
 import SCons
 
 env = Environment(**ARGUMENTS)
+env['ENV']['PATH'] = os.environ['PATH']
 
 destdir = env.get('DESTDIR', '/sbin');
 targets = []
