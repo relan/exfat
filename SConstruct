@@ -74,6 +74,12 @@ if not env.GetOption('clean'):
 		conf.env.Append(CPPPATH = ['/usr/local/include'])
 		conf.env.Append(LIBPATH = ['/usr/local/lib'])
 
+	if not conf.CheckCC():
+		print '''
+	A working C compiler is needed very much.
+'''
+		Exit(1)
+
 	if not conf.CheckTypeSize('off_t', '#include <sys/types.h>', 'C', 8):
 		print '''
 	The size of off_t type must be 64 bits. File systems larger than
