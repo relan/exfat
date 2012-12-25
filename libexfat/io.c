@@ -345,11 +345,8 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 	off_t lsize, loffset, remainder;
 
 	if (offset + size > node->size)
-	{
-		int rc = exfat_truncate(ef, node, offset + size);
-		if (rc != 0)
-			return rc;
-	}
+		if (exfat_truncate(ef, node, offset + size) != 0)
+			return -1;
 	if (size == 0)
 		return 0;
 
