@@ -38,7 +38,7 @@
 	#error FUSE 2.6 or later is required
 #endif
 
-const char* default_options = "ro_fallback,allow_other,blkdev";
+const char* default_options = "ro_fallback,allow_other,blkdev,big_writes";
 
 struct exfat ef;
 
@@ -265,6 +265,14 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 	return 0;
 }
 
+static void* fuse_exfat_init(struct fuse_conn_info* fci)
+{
+#ifdef FUSE_CAP_BIG_WRITES
+	fci->want |= FUSE_CAP_BIG_WRITES;
+#endif
+	return NULL;
+}
+
 static void fuse_exfat_destroy(void* unused)
 {
 	exfat_unmount(&ef);
@@ -295,6 +303,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.chmod          = fuse_exfat_chmod,
 #endif
 	.statfs		= fuse_exfat_statfs,
+	.init		= fuse_exfat_init,
 	.destroy	= fuse_exfat_destroy,
 };
 
