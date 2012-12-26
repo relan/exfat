@@ -305,7 +305,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.rename		= fuse_exfat_rename,
 	.utimens	= fuse_exfat_utimens,
 #ifdef __APPLE__
-	.chmod          = fuse_exfat_chmod,
+	.chmod		= fuse_exfat_chmod,
 #endif
 	.statfs		= fuse_exfat_statfs,
 	.init		= fuse_exfat_init,
