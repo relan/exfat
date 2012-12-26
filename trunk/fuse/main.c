@@ -57,7 +57,7 @@ static int fuse_exfat_getattr(const char* path, struct stat* stbuf)
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_getattr] %s", path);
+	exfat_debug("[%s] %s", __func__, path);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -73,7 +73,7 @@ static int fuse_exfat_truncate(const char* path, off_t size)
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_truncate] %s, %"PRIu64, path, (uint64_t) size);
+	exfat_debug("[%s] %s, %"PRId64, __func__, path, size);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -93,7 +93,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	int rc;
 	char name[EXFAT_NAME_MAX + 1];
 
-	exfat_debug("[fuse_exfat_readdir] %s", path);
+	exfat_debug("[%s] %s", __func__, path);
 
 	rc = exfat_lookup(&ef, &parent, path);
 	if (rc != 0)
@@ -118,9 +118,9 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	while ((node = exfat_readdir(&ef, &it)))
 	{
 		exfat_get_name(node, name, EXFAT_NAME_MAX);
-		exfat_debug("[fuse_exfat_readdir] %s: %s, %"PRIu64" bytes, cluster %u",
+		exfat_debug("[%s] %s: %s, %"PRId64" bytes, cluster 0x%x", __func__,
 				name, IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
-				(uint64_t) node->size, node->start_cluster);
+				node->size, node->start_cluster);
 		filler(buffer, name, NULL, 0);
 		exfat_put_node(&ef, node);
 	}
@@ -134,7 +134,7 @@ static int fuse_exfat_open(const char* path, struct fuse_file_info* fi)
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_open] %s", path);
+	exfat_debug("[%s] %s", __func__, path);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -146,6 +146,7 @@ static int fuse_exfat_open(const char* path, struct fuse_file_info* fi)
 
 static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 {
+	exfat_debug("[%s] %s", __func__, path);
 	exfat_put_node(&ef, get_node(fi));
 	return 0;
 }
@@ -153,7 +154,7 @@ static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 static int fuse_exfat_read(const char* path, char* buffer, size_t size,
 		off_t offset, struct fuse_file_info* fi)
 {
-	exfat_debug("[fuse_exfat_read] %s (%zu bytes)", path, size);
+	exfat_debug("[%s] %s (%zu bytes)", __func__, path, size);
 	if (exfat_generic_pread(&ef, get_node(fi), buffer, size, offset) != size)
 		return EOF;
 	return size;
@@ -162,7 +163,7 @@ static int fuse_exfat_read(const char* path, char* buffer, size_t size,
 static int fuse_exfat_write(const char* path, const char* buffer, size_t size,
 		off_t offset, struct fuse_file_info* fi)
 {
-	exfat_debug("[fuse_exfat_write] %s (%zu bytes)", path, size);
+	exfat_debug("[%s] %s (%zu bytes)", __func__, path, size);
 	if (exfat_generic_pwrite(&ef, get_node(fi), buffer, size, offset) != size)
 		return EOF;
 	return size;
@@ -173,7 +174,7 @@ static int fuse_exfat_unlink(const char* path)
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_unlink] %s", path);
+	exfat_debug("[%s] %s", __func__, path);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -189,7 +190,7 @@ static int fuse_exfat_rmdir(const char* path)
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_rmdir] %s", path);
+	exfat_debug("[%s] %s", __func__, path);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -202,19 +203,19 @@ static int fuse_exfat_rmdir(const char* path)
 
 static int fuse_exfat_mknod(const char* path, mode_t mode, dev_t dev)
 {
-	exfat_debug("[fuse_exfat_mknod] %s", path);
+	exfat_debug("[%s] %s 0%ho", __func__, path, mode);
 	return exfat_mknod(&ef, path);
 }
 
 static int fuse_exfat_mkdir(const char* path, mode_t mode)
 {
-	exfat_debug("[fuse_exfat_mkdir] %s", path);
+	exfat_debug("[%s] %s 0%ho", __func__, path, mode);
 	return exfat_mkdir(&ef, path);
 }
 
 static int fuse_exfat_rename(const char* old_path, const char* new_path)
 {
-	exfat_debug("[fuse_exfat_rename] %s => %s", old_path, new_path);
+	exfat_debug("[%s] %s => %s", __func__, old_path, new_path);
 	return exfat_rename(&ef, old_path, new_path);
 }
 
@@ -223,7 +224,7 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 	struct exfat_node* node;
 	int rc;
 
-	exfat_debug("[fuse_exfat_utimens] %s", path);
+	exfat_debug("[%s] %s", __func__, path);
 
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
@@ -237,7 +238,7 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 #ifdef __APPLE__
 static int fuse_exfat_chmod(const char* path, mode_t mode)
 {
-	exfat_debug("[fuse_exfat_chmod] %s 0%ho", path, mode);
+	exfat_debug("[%s] %s 0%ho", __func__, path, mode);
 	/* make OS X utilities happy */
 	return 0;
 }
@@ -245,6 +246,8 @@ static int fuse_exfat_chmod(const char* path, mode_t mode)
 
 static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 {
+	exfat_debug("[%s]", __func__);
+
 	sfs->f_bsize = CLUSTER_SIZE(*ef.sb);
 	sfs->f_frsize = CLUSTER_SIZE(*ef.sb);
 	sfs->f_blocks = le64_to_cpu(ef.sb->sector_count) >> ef.sb->spc_bits;
@@ -267,6 +270,7 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 
 static void* fuse_exfat_init(struct fuse_conn_info* fci)
 {
+	exfat_debug("[%s]", __func__);
 #ifdef FUSE_CAP_BIG_WRITES
 	fci->want |= FUSE_CAP_BIG_WRITES;
 #endif
@@ -275,6 +279,7 @@ static void* fuse_exfat_init(struct fuse_conn_info* fci)
 
 static void fuse_exfat_destroy(void* unused)
 {
+	exfat_debug("[%s]", __func__);
 	exfat_unmount(&ef);
 }
 
