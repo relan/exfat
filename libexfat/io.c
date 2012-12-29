@@ -176,6 +176,13 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 			exfat_error("failed to get size of `%s'", spec);
 			return NULL;
 		}
+		if (exfat_seek(dev, 0, SEEK_SET) == -1)
+		{
+			close(dev->fd);
+			free(dev);
+			exfat_error("failed to seek to the beginning of `%s'", spec);
+			return NULL;
+		}
 	}
 
 #ifdef USE_UBLIO
