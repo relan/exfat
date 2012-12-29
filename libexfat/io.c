@@ -173,7 +173,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		{
 			close(dev->fd);
 			free(dev);
-			exfat_error("failed to get device size");
+			exfat_error("failed to get size of `%s'", spec);
 			return NULL;
 		}
 	}
