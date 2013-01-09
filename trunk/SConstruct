@@ -28,7 +28,6 @@ for var in ['PATH', 'SYSROOT']:
 		env['ENV'][var] = os.environ[var]
 
 destdir = env.get('DESTDIR', '/sbin');
-targets = []
 libs = ['exfat']
 libfuse = 'fuse'
 
@@ -123,7 +122,6 @@ def program(pattern, output, alias, libs):
 				destdir + '/' + alias)
 	else:
 		Alias('install', Install(destdir, target))
-	targets.append(target)
 
 env.Library('libexfat/exfat', Glob('libexfat/*.c'))
 
@@ -132,5 +130,3 @@ program('dump/*.c', 'dump/dumpexfat', None, libs)
 program('fsck/*.c', 'fsck/exfatfsck', 'fsck.exfat', libs)
 program('mkfs/*.c', 'mkfs/mkexfatfs', 'mkfs.exfat', libs)
 program('label/*.c', 'label/exfatlabel', None, libs)
-
-Default(targets)
