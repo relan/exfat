@@ -33,6 +33,10 @@ libfuse = 'fuse'
 if not env.GetOption('clean'):
 	conf = Configure(env)
 
+	if 'AR' in os.environ:
+		conf.env.Replace(AR = os.environ['AR'])
+	if 'RANLIB' in os.environ:
+		conf.env.Replace(RANLIB = os.environ['RANLIB'])
 	if 'CC' in os.environ:
 		conf.env.Replace(CC = os.environ['CC'])
 	if 'CCFLAGS' in os.environ:
