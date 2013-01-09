@@ -23,7 +23,9 @@ import platform
 import SCons
 
 env = Environment(**ARGUMENTS)
-env['ENV']['PATH'] = os.environ['PATH']
+for var in ['PATH', 'SYSROOT']:
+	if var in os.environ:
+		env['ENV'][var] = os.environ[var]
 
 destdir = env.get('DESTDIR', '/sbin');
 targets = []
