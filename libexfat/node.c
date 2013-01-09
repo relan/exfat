@@ -475,7 +475,7 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 		exfat_warn("non-zero reference counter (%d) for `%s'",
 				node->references, buffer);
 	}
-	while (node->references--)
+	while (node->references)
 		exfat_put_node(ef, node);
 	node->child = NULL;
 	node->flags &= ~EXFAT_ATTRIB_CACHED;
