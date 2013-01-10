@@ -457,6 +457,30 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 	return 0;
 }
 
+static void tree_attach(struct exfat_node* dir, struct exfat_node* node)
+{
+	node->parent = dir;
+	if (dir->child)
+	{
+		dir->child->prev = node;
+		node->next = dir->child;
+	}
+	dir->child = node;
+}
+
+static void tree_detach(struct exfat_node* node)
+{
+	if (node->prev)
+		node->prev->next = node->next;
+	else /* this is the first node in the list */
+		node->parent->child = node->next;
+	if (node->next)
+		node->next->prev = node->prev;
+	node->parent = NULL;
+	node->prev = NULL;
+	node->next = NULL;
+}
+
 static void reset_cache(struct exfat* ef, struct exfat_node* node)
 {
 	struct exfat_node* child;
@@ -561,30 +585,6 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 		entry_type = EXFAT_ENTRY_FILE_NAME & ~EXFAT_ENTRY_VALID;
 		exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
 	}
-}
-
-static void tree_detach(struct exfat_node* node)
-{
-	if (node->prev)
-		node->prev->next = node->next;
-	else /* this is the first node in the list */
-		node->parent->child = node->next;
-	if (node->next)
-		node->next->prev = node->prev;
-	node->parent = NULL;
-	node->prev = NULL;
-	node->next = NULL;
-}
-
-static void tree_attach(struct exfat_node* dir, struct exfat_node* node)
-{
-	node->parent = dir;
-	if (dir->child)
-	{
-		dir->child->prev = node;
-		node->next = dir->child;
-	}
-	dir->child = node;
 }
 
 static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
