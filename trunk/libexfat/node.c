@@ -483,15 +483,14 @@ static void tree_detach(struct exfat_node* node)
 
 static void reset_cache(struct exfat* ef, struct exfat_node* node)
 {
-	struct exfat_node* child;
-	struct exfat_node* next;
-
-	for (child = node->child; child; child = next)
+	while (node->child)
 	{
-		reset_cache(ef, child);
-		next = child->next;
-		free(child);
+		struct exfat_node* p = node->child;
+		reset_cache(ef, p);
+		tree_detach(p);
+		free(p);
 	}
+	node->flags &= ~EXFAT_ATTRIB_CACHED;
 	if (node->references != 0)
 	{
 		char buffer[EXFAT_NAME_MAX + 1];
@@ -501,8 +500,6 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 	}
 	while (node->references)
 		exfat_put_node(ef, node);
-	node->child = NULL;
-	node->flags &= ~EXFAT_ATTRIB_CACHED;
 }
 
 void exfat_reset_cache(struct exfat* ef)
