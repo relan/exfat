@@ -340,15 +340,17 @@ static char* add_option(char* options, const char* name, const char* value)
 
 static char* add_fsname_option(char* options, const char* spec)
 {
-	char spec_abs[PATH_MAX];
+	char* spec_abs = realpath(spec, NULL);
 
-	if (realpath(spec, spec_abs) == NULL)
+	if (spec_abs == NULL)
 	{
 		free(options);
 		exfat_error("failed to get absolute path for `%s'", spec);
 		return NULL;
 	}
-	return add_option(options, "fsname", spec_abs);
+	options = add_option(options, "fsname", spec_abs);
+	free(spec_abs);
+	return options;
 }
 
 static char* add_user_option(char* options)
