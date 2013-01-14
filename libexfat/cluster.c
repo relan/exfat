@@ -106,41 +106,24 @@ cluster_t exfat_advance_cluster(const struct exfat* ef,
 	return node->fptr_cluster;
 }
 
-static cluster_t find_bit_and_set(uint8_t* bitmap, cluster_t start,
-		cluster_t end)
+static cluster_t find_bit_and_set(uint8_t* bitmap, size_t start, size_t end)
 {
-	const cluster_t mid_start = (start + 7) / 8 * 8;
-	const cluster_t mid_end = end / 8 * 8;
-	cluster_t c;
-	cluster_t byte;
+	const size_t start_index = start / 8;
+	const size_t end_index = DIV_ROUND_UP(end, 8);
+	size_t i;
+	size_t c;
 
-	for (c = start; c < mid_start; c++)
-		if (BMAP_GET(bitmap, c) == 0)
-		{
-			BMAP_SET(bitmap, c);
-			return c + EXFAT_FIRST_DATA_CLUSTER;
-		}
-
-	for (byte = mid_start / 8; byte < mid_end / 8; byte++)
-		if (bitmap[byte] != 0xff)
-		{
-			cluster_t bit;
-
-			for (bit = 0; bit < 8; bit++)
-				if (!(bitmap[byte] & (1u << bit)))
-				{
-					bitmap[byte] |= (1u << bit);
-					return byte * 8 + bit + EXFAT_FIRST_DATA_CLUSTER;
-				}
-		}
-
-	for (c = mid_end; c < end; c++)
-		if (BMAP_GET(bitmap, c) == 0)
-		{
-			BMAP_SET(bitmap, c);
-			return c + EXFAT_FIRST_DATA_CLUSTER;
-		}
-
+	for (i = start_index; i < end_index; i++)
+	{
+		if (bitmap[i] == 0xff)
+			continue;
+		for (c = MAX(i * 8, start); c < MIN((i + 1) * 8, end); c++)
+			if (BMAP_GET(bitmap, c) == 0)
+			{
+				BMAP_SET(bitmap, c);
+				return c + EXFAT_FIRST_DATA_CLUSTER;
+			}
+	}
 	return EXFAT_CLUSTER_END;
 }
 
