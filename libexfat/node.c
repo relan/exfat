@@ -905,6 +905,23 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 		exfat_put_node(ef, node);
 		return rc;
 	}
+
+	/* check that target is not a subdirectory of the source */
+	if (node->flags & EXFAT_ATTRIB_DIR)
+	{
+		struct exfat_node* p;
+
+		for (p = dir; p; p = p->parent)
+			if (node == p)
+			{
+				if (existing != NULL)
+					exfat_put_node(ef, existing);
+				exfat_put_node(ef, dir);
+				exfat_put_node(ef, node);
+				return -EINVAL;
+			}
+	}
+
 	if (existing != NULL)
 	{
 		/* remove target if it's not the same node as source */
