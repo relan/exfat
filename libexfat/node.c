@@ -507,7 +507,7 @@ void exfat_reset_cache(struct exfat* ef)
 	reset_cache(ef, ef->root);
 }
 
-void next_entry(struct exfat* ef, const struct exfat_node* parent,
+static void next_entry(struct exfat* ef, const struct exfat_node* parent,
 		cluster_t* cluster, off_t* offset)
 {
 	*offset += sizeof(struct exfat_entry);
