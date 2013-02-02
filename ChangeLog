@@ -1,3 +1,8 @@
+1.0.1 (2013-02-02)
+
+* Fixed unexpected removal of a directory if it is moved into itself.
+* Fixed "Operation not permitted" error on reading an empty file.
+
 1.0.0 (2013-01-19)
 
 * Fixed crash when renaming a file within a single directory and a new name
