@@ -134,7 +134,7 @@ void exfat_flush_cmap(struct exfat* ef)
 	ef->cmap.dirty = false;
 }
 
-static void set_next_cluster(const struct exfat* ef, int contiguous,
+static void set_next_cluster(const struct exfat* ef, bool contiguous,
 		cluster_t current, cluster_t next)
 {
 	off_t fat_offset;
@@ -187,7 +187,7 @@ static void make_noncontiguous(const struct exfat* ef, cluster_t first,
 	cluster_t c;
 
 	for (c = first; c < last; c++)
-		set_next_cluster(ef, 0, c, c + 1);
+		set_next_cluster(ef, false, c, c + 1);
 }
 
 static int shrink_file(struct exfat* ef, struct exfat_node* node,
