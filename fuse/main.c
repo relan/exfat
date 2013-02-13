@@ -344,21 +344,6 @@ static char* add_option(char* options, const char* name, const char* value)
 	return options;
 }
 
-static char* add_fsname_option(char* options, const char* spec)
-{
-	char* spec_abs = realpath(spec, NULL);
-
-	if (spec_abs == NULL)
-	{
-		free(options);
-		exfat_error("failed to get absolute path for `%s'", spec);
-		return NULL;
-	}
-	options = add_option(options, "fsname", spec_abs);
-	free(spec_abs);
-	return options;
-}
-
 static char* add_user_option(char* options)
 {
 	struct passwd* pw;
@@ -390,7 +375,7 @@ static char* add_blksize_option(char* options, long cluster_size)
 
 static char* add_fuse_options(char* options, const char* spec)
 {
-	options = add_fsname_option(options, spec);
+	options = add_option(options, "fsname", spec);
 	if (options == NULL)
 		return NULL;
 	options = add_user_option(options);
