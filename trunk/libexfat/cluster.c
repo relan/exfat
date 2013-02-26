@@ -344,7 +344,8 @@ static int erase_range(struct exfat* ef, struct exfat_node* node,
 	return 0;
 }
 
-int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
+int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size,
+		bool erase)
 {
 	uint32_t c1 = bytes2clusters(ef, node->size);
 	uint32_t c2 = bytes2clusters(ef, size);
@@ -364,9 +365,12 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size)
 	if (rc != 0)
 		return rc;
 
-	rc = erase_range(ef, node, node->size, size);
-	if (rc != 0)
-		return rc;
+	if (erase)
+	{
+		rc = erase_range(ef, node, node->size, size);
+		if (rc != 0)
+			return rc;
+	}
 
 	exfat_update_mtime(node);
 	node->size = size;
