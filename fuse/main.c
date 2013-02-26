@@ -80,7 +80,7 @@ static int fuse_exfat_truncate(const char* path, off_t size)
 	if (rc != 0)
 		return rc;
 
-	rc = exfat_truncate(&ef, node, size);
+	rc = exfat_truncate(&ef, node, size, true);
 	exfat_put_node(&ef, node);
 	return rc;
 }

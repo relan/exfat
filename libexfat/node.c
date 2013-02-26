@@ -56,7 +56,7 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 		if (node->flags & EXFAT_ATTRIB_UNLINKED)
 		{
 			/* free all clusters and node structure itself */
-			exfat_truncate(ef, node, 0);
+			exfat_truncate(ef, node, 0, true);
 			free(node);
 		}
 		if (ef->cmap.dirty)
@@ -627,7 +627,7 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 		new_size = CLUSTER_SIZE(*ef->sb);
 	if (new_size == dir->size)
 		return 0;
-	rc = exfat_truncate(ef, dir, new_size);
+	rc = exfat_truncate(ef, dir, new_size, true);
 	if (rc != 0)
 		return rc;
 	return 0;
@@ -673,7 +673,7 @@ static int grow_directory(struct exfat* ef, struct exfat_node* dir,
 {
 	return exfat_truncate(ef, dir,
 			DIV_ROUND_UP(asize + difference, CLUSTER_SIZE(*ef->sb))
-				* CLUSTER_SIZE(*ef->sb));
+				* CLUSTER_SIZE(*ef->sb), true);
 }
 
 static int find_slot(struct exfat* ef, struct exfat_node* dir,
@@ -826,7 +826,7 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 	if (rc != 0)
 		return 0;
 	/* directories always have at least one cluster */
-	rc = exfat_truncate(ef, node, CLUSTER_SIZE(*ef->sb));
+	rc = exfat_truncate(ef, node, CLUSTER_SIZE(*ef->sb), true);
 	if (rc != 0)
 	{
 		delete(ef, node);
