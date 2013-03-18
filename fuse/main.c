@@ -429,6 +429,8 @@ int main(int argc, char* argv[])
 			puts("Copyright (C) 2010-2013  Andrew Nayenko");
 			return 0;
 		}
+		else if (strcmp(*pp, "-n") == 0)
+			/* ignore */ ;
 		else if (spec == NULL)
 			spec = *pp;
 		else if (mount_point == NULL)
