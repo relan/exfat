@@ -30,7 +30,7 @@ sudo scons install
 
 = Mounting =
 
-You need util-linux-ng 2.18 or later to mount exFAT volumes automatically. Anyway, you can mount manually (you'll need root privileges):
+Modern GNU/Linux distributions will mount exFAT volumes automatically—util-linux-ng 2.18 (was renamed to util-linux in 2.19) is required for this. Anyway, you can mount manually (you'll need root privileges):
 {{{
 sudo mount.exfat-fuse /dev/sdXn /mnt/exfat
 }}}
