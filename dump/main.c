@@ -140,7 +140,7 @@ static int dump_full(const char* spec, bool used_sectors)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-s] [-u] [-v] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-s] [-u] [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
 			sb_only = true;
 		else if (strcmp(*pp, "-u") == 0)
 			used_sectors = true;
-		else if (strcmp(*pp, "-v") == 0)
+		else if (strcmp(*pp, "-V") == 0)
 		{
 			puts("Copyright (C) 2011-2013  Andrew Nayenko");
 			return 0;
