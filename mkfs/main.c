@@ -188,7 +188,7 @@ static void usage(const char* prog)
 {
 	fprintf(stderr, "Usage: %s [-i volume-id] [-n label] "
 			"[-p partition-first-sector] "
-			"[-s sectors-per-cluster] [-v] <device>\n", prog);
+			"[-s sectors-per-cluster] [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
 				usage(argv[0]);
 			first_sector = strtoll(*pp, NULL, 10);
 		}
-		else if (strcmp(*pp, "-v") == 0)
+		else if (strcmp(*pp, "-V") == 0)
 		{
 			puts("Copyright (C) 2011-2013  Andrew Nayenko");
 			return 0;

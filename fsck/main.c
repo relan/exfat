@@ -124,7 +124,7 @@ static void fsck(struct exfat* ef)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-v] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -139,7 +139,7 @@ int main(int argc, char* argv[])
 
 	for (pp = argv + 1; *pp; pp++)
 	{
-		if (strcmp(*pp, "-v") == 0)
+		if (strcmp(*pp, "-V") == 0)
 		{
 			puts("Copyright (C) 2011-2013  Andrew Nayenko");
 			return 0;
