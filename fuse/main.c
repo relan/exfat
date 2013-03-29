@@ -410,7 +410,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	while ((opt = getopt(argc, argv, "dno:V")) != -1)
+	while ((opt = getopt(argc, argv, "dno:Vv")) != -1)
 	{
 		switch (opt)
 		{
@@ -428,6 +428,8 @@ int main(int argc, char* argv[])
 			free(mount_options);
 			puts("Copyright (C) 2010-2013  Andrew Nayenko");
 			return 0;
+		case 'v':
+			break;
 		default:
 			free(mount_options);
 			usage(argv[0]);
