@@ -398,7 +398,7 @@ int main(int argc, char* argv[])
 	int debug = 0;
 	struct fuse_chan* fc = NULL;
 	struct fuse* fh = NULL;
-	char** pp;
+	int opt;
 
 	printf("FUSE exfat %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
@@ -410,42 +410,37 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	for (pp = argv + 1; *pp; pp++)
+	while ((opt = getopt(argc, argv, "dno:V")) != -1)
 	{
-		if (strcmp(*pp, "-o") == 0)
+		switch (opt)
 		{
-			pp++;
-			if (*pp == NULL)
-				usage(argv[0]);
-			mount_options = add_option(mount_options, *pp, NULL);
+		case 'd':
+			debug = 1;
+			break;
+		case 'n':
+			break;
+		case 'o':
+			mount_options = add_option(mount_options, optarg, NULL);
 			if (mount_options == NULL)
 				return 1;
-		}
-		else if (strcmp(*pp, "-d") == 0)
-			debug = 1;
-		else if (strcmp(*pp, "-V") == 0)
-		{
+			break;
+		case 'V':
 			free(mount_options);
 			puts("Copyright (C) 2010-2013  Andrew Nayenko");
 			return 0;
-		}
-		else if (strcmp(*pp, "-n") == 0)
-			/* ignore */ ;
-		else if (spec == NULL)
-			spec = *pp;
-		else if (mount_point == NULL)
-			mount_point = *pp;
-		else
-		{
+		default:
 			free(mount_options);
 			usage(argv[0]);
+			break;
 		}
 	}
-	if (spec == NULL || mount_point == NULL)
+	if (argc - optind != 2)
 	{
 		free(mount_options);
 		usage(argv[0]);
 	}
+	spec = argv[optind];
+	mount_point = argv[optind + 1];
 
 	if (exfat_mount(&ef, spec, mount_options) != 0)
 	{

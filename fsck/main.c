@@ -23,6 +23,7 @@
 #include <exfat.h>
 #include <exfatfs.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 #define exfat_debug(format, ...)
 
@@ -130,27 +131,28 @@ static void usage(const char* prog)
 
 int main(int argc, char* argv[])
 {
-	char** pp;
+	int opt;
 	const char* spec = NULL;
 	struct exfat ef;
 
 	printf("exfatfsck %u.%u.%u\n",
 			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
 
-	for (pp = argv + 1; *pp; pp++)
+	while ((opt = getopt(argc, argv, "V")) != -1)
 	{
-		if (strcmp(*pp, "-V") == 0)
+		switch (opt)
 		{
+		case 'V':
 			puts("Copyright (C) 2011-2013  Andrew Nayenko");
 			return 0;
-		}
-		else if (spec == NULL)
-			spec = *pp;
-		else
+		default:
 			usage(argv[0]);
+			break;
+		}
 	}
-	if (spec == NULL)
+	if (argc - optind != 1)
 		usage(argv[0]);
+	spec = argv[optind];
 
 	if (exfat_mount(&ef, spec, "ro") != 0)
 		return 1;
