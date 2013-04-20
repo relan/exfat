@@ -39,11 +39,7 @@
 #endif
 
 const char* default_options = "ro_fallback,allow_other,blkdev,big_writes,"
-		"defer_permissions"
-#ifdef __APPLE__
-		",quiet"
-#endif
-		;
+		"defer_permissions";
 
 struct exfat ef;
 
@@ -248,14 +244,21 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 
 static int fuse_exfat_chmod(const char* path, mode_t mode)
 {
+	const mode_t VALID_MODE_MASK = S_IFREG | S_IFDIR |
+			S_IRWXU | S_IRWXG | S_IRWXO;
+
 	exfat_debug("[%s] %s 0%ho", __func__, path, mode);
-	return ef.quiet ? 0 : -ENOSYS;
+	if (mode & ~VALID_MODE_MASK)
+		return -EPERM;
+	return 0;
 }
 
 static int fuse_exfat_chown(const char* path, uid_t uid, gid_t gid)
 {
 	exfat_debug("[%s] %s %u:%u", __func__, path, uid, gid);
-	return ef.quiet ? 0 : -ENOSYS;
+	if (uid != ef.uid || gid != ef.gid)
+		return -EPERM;
+	return 0;
 }
 
 static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
