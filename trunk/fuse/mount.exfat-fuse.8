@@ -77,12 +77,6 @@ Mount the file system in read only mode.
 .TP
 .BI noatime
 Do not update access time when file is read.
-.TP
-.BI quiet
-Owner, group and mode attributes are not supported by the current
-implementation, so chmod() and chown() requests fail with ENOSYS. This option
-makes them always succeed, i.e. all requests to change owner, group or mode
-will be silently ignored. Default on OS\ X.
 
 .SH EXIT CODES
 Zero is returned on successful mount. Any other code means an error.

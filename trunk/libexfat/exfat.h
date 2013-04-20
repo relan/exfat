@@ -106,7 +106,6 @@ struct exfat
 	gid_t gid;
 	int ro;
 	bool noatime;
-	bool quiet;
 };
 
 /* in-core nodes iterator */
