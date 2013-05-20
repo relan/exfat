@@ -389,7 +389,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			if (utf16_to_utf8(ef->label, label->name,
-						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
+						sizeof(ef->label) - 1, EXFAT_ENAME_MAX) != 0)
 				goto error;
 			break;
 
@@ -1051,5 +1051,6 @@ int exfat_set_label(struct exfat* ef, const char* label)
 
 	exfat_pwrite(ef->dev, &entry, sizeof(struct exfat_entry_label),
 			co2o(ef, cluster, offset));
+	strcpy(ef->label, label);
 	return 0;
 }
