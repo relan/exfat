@@ -91,7 +91,6 @@ static void dirck(struct exfat* ef, const char* path)
 	{
 		free(entry_path);
 		exfat_put_node(ef, parent);
-		exfat_error("failed to open directory `%s'", path);
 		return;
 	}
 	while ((node = exfat_readdir(ef, &it)))
