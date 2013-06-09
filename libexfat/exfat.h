@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "compiler.h"
 #include "exfatfs.h"
 #include "version.h"
 
@@ -123,14 +124,10 @@ struct exfat_human_bytes
 
 extern int exfat_errors;
 
-void exfat_bug(const char* format, ...)
-	__attribute__((format(printf, 1, 2), noreturn));
-void exfat_error(const char* format, ...)
-	__attribute__((format(printf, 1, 2)));
-void exfat_warn(const char* format, ...)
-	__attribute__((format(printf, 1, 2)));
-void exfat_debug(const char* format, ...)
-	__attribute__((format(printf, 1, 2)));
+void exfat_bug(const char* format, ...) PRINTF NORETURN;
+void exfat_error(const char* format, ...) PRINTF;
+void exfat_warn(const char* format, ...) PRINTF;
+void exfat_debug(const char* format, ...) PRINTF;
 
 struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode);
 int exfat_close(struct exfat_dev* dev);

@@ -62,7 +62,8 @@ struct exfat_super_block
 	uint8_t __unused2[397];			/* 0x71 always 0 */
 	le16_t boot_signature;			/* the value of 0xAA55 */
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_super_block) == 512);
 
 #define EXFAT_ENTRY_VALID     0x80
 #define EXFAT_ENTRY_CONTINUED 0x40
@@ -79,7 +80,8 @@ struct exfat_entry					/* common container for all entries */
 	uint8_t type;					/* any of EXFAT_ENTRY_xxx */
 	uint8_t data[31];
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry) == 32);
 
 #define EXFAT_ENAME_MAX 15
 
@@ -90,7 +92,8 @@ struct exfat_entry_bitmap			/* allocated clusters bitmap */
 	le32_t start_cluster;
 	le64_t size;					/* in bytes */
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry_bitmap) == 32);
 
 struct exfat_entry_upcase			/* upper case translation table */
 {
@@ -101,7 +104,8 @@ struct exfat_entry_upcase			/* upper case translation table */
 	le32_t start_cluster;
 	le64_t size;					/* in bytes */
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry_upcase) == 32);
 
 struct exfat_entry_label			/* volume label */
 {
@@ -109,7 +113,8 @@ struct exfat_entry_label			/* volume label */
 	uint8_t length;					/* number of characters */
 	le16_t name[EXFAT_ENAME_MAX];	/* in UTF-16LE */
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry_label) == 32);
 
 #define EXFAT_ATTRIB_RO     0x01
 #define EXFAT_ATTRIB_HIDDEN 0x02
@@ -132,7 +137,8 @@ struct exfat_entry_meta1			/* file or directory info (part 1) */
 	uint8_t mtime_cs;				/* latest modification time in cs */
 	uint8_t __unknown2[10];
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry_meta1) == 32);
 
 #define EXFAT_FLAG_ALWAYS1		(1u << 0)
 #define EXFAT_FLAG_CONTIGUOUS	(1u << 1)
@@ -150,7 +156,8 @@ struct exfat_entry_meta2			/* file or directory info (part 2) */
 	le32_t start_cluster;
 	le64_t size;					/* in bytes, equals to real_size */
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry_meta2) == 32);
 
 struct exfat_entry_name				/* file or directory name */
 {
@@ -158,6 +165,7 @@ struct exfat_entry_name				/* file or directory name */
 	uint8_t __unknown;
 	le16_t name[EXFAT_ENAME_MAX];	/* in UTF-16LE */
 }
-__attribute__((__packed__));
+PACKED;
+STATIC_ASSERT(sizeof(struct exfat_entry_name) == 32);
 
 #endif /* ifndef EXFATFS_H_INCLUDED */
