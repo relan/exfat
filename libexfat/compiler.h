@@ -43,7 +43,6 @@
 #define CONCAT2(a, b) a ## b
 #define CONCAT1(a, b) CONCAT2(a, b)
 #define STATIC_ASSERT(cond) \
-	static inline void CONCAT1(static_assert, __LINE__)(void) \
-		{switch (0) {case 0: case cond:;}}
+	extern void CONCAT1(static_assert, __LINE__)(int x[(cond) ? 1 : -1])
 
 #endif /* ifndef COMPILER_H_INCLUDED */
