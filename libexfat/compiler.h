@@ -26,11 +26,23 @@
 #error C99-compliant compiler is required
 #endif
 
-#if defined(__GNUC__) /* this includes Clang */
+#if defined(__clang__)
 
 #define PRINTF __attribute__((format(printf, 1, 2)))
 #define NORETURN __attribute((noreturn))
 #define PACKED __attribute__((packed))
+#if __has_extension(c_static_assert)
+#define USE_C11_STATIC_ASSERT
+#endif
+
+#elif defined(__GNUC__)
+
+#define PRINTF __attribute__((format(printf, 1, 2)))
+#define NORETURN __attribute((noreturn))
+#define PACKED __attribute__((packed))
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
+#define USE_C11_STATIC_ASSERT
+#endif
 
 #else
 
@@ -40,9 +52,13 @@
 
 #endif
 
+#ifdef USE_C11_STATIC_ASSERT
+#define STATIC_ASSERT(cond) _Static_assert(cond, #cond)
+#else
 #define CONCAT2(a, b) a ## b
 #define CONCAT1(a, b) CONCAT2(a, b)
 #define STATIC_ASSERT(cond) \
 	extern void CONCAT1(static_assert, __LINE__)(int x[(cond) ? 1 : -1])
+#endif
 
 #endif /* ifndef COMPILER_H_INCLUDED */
