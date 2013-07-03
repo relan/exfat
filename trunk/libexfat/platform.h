@@ -58,20 +58,6 @@
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
 #define __BIG_ENDIAN _BIG_ENDIAN
 
-#elif defined(__sun)
-
-#include <sys/byteorder.h>
-#define bswap_16(x) BSWAP_16(x)
-#define bswap_32(x) BSWAP_32(x)
-#define bswap_64(x) BSWAP_64(x)
-#define __LITTLE_ENDIAN 1234
-#define __BIG_ENDIAN 4321
-#ifdef _LITTLE_ENDIAN
-#define __BYTE_ORDER __LITTLE_ENDIAN
-#else
-#define __BYTE_ORDER __BIG_ENDIAN
-#endif
-
 #else 
 #error Unknown platform
 #endif
