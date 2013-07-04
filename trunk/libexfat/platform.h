@@ -48,16 +48,6 @@
 #define __LITTLE_ENDIAN _LITTLE_ENDIAN
 #define __BIG_ENDIAN _BIG_ENDIAN
 
-#elif defined(__OpenBSD__)
-
-#include <machine/endian.h>
-#define bswap_16(x) swap16(x)
-#define bswap_32(x) swap32(x)
-#define bswap_64(x) swap64(x)
-#define __BYTE_ORDER _BYTE_ORDER
-#define __LITTLE_ENDIAN _LITTLE_ENDIAN
-#define __BIG_ENDIAN _BIG_ENDIAN
-
 #else 
 #error Unknown platform
 #endif
