@@ -26,27 +26,33 @@
 
 #include <endian.h>
 #include <byteswap.h>
+#define exfat_bswap16(x) bswap_16(x)
+#define exfat_bswap32(x) bswap_32(x)
+#define exfat_bswap64(x) bswap_64(x)
+#define EXFAT_BYTE_ORDER __BYTE_ORDER
+#define EXFAT_LITTLE_ENDIAN __LITTLE_ENDIAN
+#define EXFAT_BIG_ENDIAN __BIG_ENDIAN
 
 #elif defined(__APPLE__)
 
 #include <machine/endian.h>
 #include <libkern/OSByteOrder.h>
-#define bswap_16(x) OSSwapInt16(x)
-#define bswap_32(x) OSSwapInt32(x)
-#define bswap_64(x) OSSwapInt64(x)
-#define __BYTE_ORDER BYTE_ORDER
-#define __LITTLE_ENDIAN LITTLE_ENDIAN
-#define __BIG_ENDIAN BIG_ENDIAN
+#define exfat_bswap16(x) OSSwapInt16(x)
+#define exfat_bswap32(x) OSSwapInt32(x)
+#define exfat_bswap64(x) OSSwapInt64(x)
+#define EXFAT_BYTE_ORDER BYTE_ORDER
+#define EXFAT_LITTLE_ENDIAN LITTLE_ENDIAN
+#define EXFAT_BIG_ENDIAN BIG_ENDIAN
 
 #elif defined(__FreeBSD__) || defined(__DragonFlyBSD__) || defined(__NetBSD__)
 
 #include <sys/endian.h>
-#define bswap_16(x) bswap16(x)
-#define bswap_32(x) bswap32(x)
-#define bswap_64(x) bswap64(x)
-#define __BYTE_ORDER _BYTE_ORDER
-#define __LITTLE_ENDIAN _LITTLE_ENDIAN
-#define __BIG_ENDIAN _BIG_ENDIAN
+#define exfat_bswap16(x) bswap16(x)
+#define exfat_bswap32(x) bswap32(x)
+#define exfat_bswap64(x) bswap64(x)
+#define EXFAT_BYTE_ORDER _BYTE_ORDER
+#define EXFAT_LITTLE_ENDIAN _LITTLE_ENDIAN
+#define EXFAT_BIG_ENDIAN _BIG_ENDIAN
 
 #else 
 #error Unknown platform
