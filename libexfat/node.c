@@ -53,16 +53,14 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 
 	if (node->references == 0)
 	{
-		if (node->flags & EXFAT_ATTRIB_DIRTY)
-			exfat_flush_node(ef, node);
+		exfat_flush_node(ef, node);
 		if (node->flags & EXFAT_ATTRIB_UNLINKED)
 		{
 			/* free all clusters and node structure itself */
 			exfat_truncate(ef, node, 0, true);
 			free(node);
 		}
-		if (ef->cmap.dirty)
-			exfat_flush_cmap(ef);
+		exfat_flush(ef);
 	}
 }
 
@@ -525,6 +523,9 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	off_t meta1_offset, meta2_offset;
 	struct exfat_entry_meta1 meta1;
 	struct exfat_entry_meta2 meta2;
+
+	if (!(node->flags & EXFAT_ATTRIB_DIRTY))
+		return; /* no need to flush */
 
 	if (ef->ro)
 		exfat_bug("unable to flush node to read-only FS");

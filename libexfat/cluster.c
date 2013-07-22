@@ -129,11 +129,14 @@ static cluster_t find_bit_and_set(uint8_t* bitmap, size_t start, size_t end)
 	return EXFAT_CLUSTER_END;
 }
 
-void exfat_flush_cmap(struct exfat* ef)
+void exfat_flush(struct exfat* ef)
 {
-	exfat_pwrite(ef->dev, ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
-			exfat_c2o(ef, ef->cmap.start_cluster));
-	ef->cmap.dirty = false;
+	if (ef->cmap.dirty)
+	{
+		exfat_pwrite(ef->dev, ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
+				exfat_c2o(ef, ef->cmap.start_cluster));
+		ef->cmap.dirty = false;
+	}
 }
 
 static void set_next_cluster(const struct exfat* ef, bool contiguous,

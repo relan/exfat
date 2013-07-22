@@ -154,6 +154,15 @@ static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 	return 0;
 }
 
+static int fuse_exfat_fsync(const char* path, int datasync,
+		struct fuse_file_info *fi)
+{
+	exfat_debug("[%s] %s", __func__, path);
+	exfat_flush_node(&ef, get_node(fi));
+	exfat_flush(&ef);
+	return exfat_fsync(ef.dev);
+}
+
 static int fuse_exfat_read(const char* path, char* buffer, size_t size,
 		off_t offset, struct fuse_file_info* fi)
 {
@@ -315,6 +324,8 @@ static struct fuse_operations fuse_exfat_ops =
 	.readdir	= fuse_exfat_readdir,
 	.open		= fuse_exfat_open,
 	.release	= fuse_exfat_release,
+	.fsync		= fuse_exfat_fsync,
+	.fsyncdir	= fuse_exfat_fsync,
 	.read		= fuse_exfat_read,
 	.write		= fuse_exfat_write,
 	.unlink		= fuse_exfat_unlink,
