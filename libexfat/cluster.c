@@ -108,18 +108,22 @@ cluster_t exfat_advance_cluster(const struct exfat* ef,
 	return node->fptr_cluster;
 }
 
-static cluster_t find_bit_and_set(uint8_t* bitmap, size_t start, size_t end)
+static cluster_t find_bit_and_set(bitmap_t* bitmap, size_t start, size_t end)
 {
-	const size_t start_index = start / 8;
-	const size_t end_index = DIV_ROUND_UP(end, 8);
+	const size_t start_index = start / sizeof(bitmap_t) / 8;
+	const size_t end_index = DIV_ROUND_UP(end, sizeof(bitmap_t) * 8);
 	size_t i;
+	size_t start_bitindex;
+	size_t end_bitindex;
 	size_t c;
 
 	for (i = start_index; i < end_index; i++)
 	{
-		if (bitmap[i] == 0xff)
+		if (bitmap[i] == ~((bitmap_t) 0))
 			continue;
-		for (c = MAX(i * 8, start); c < MIN((i + 1) * 8, end); c++)
+		start_bitindex = MAX(i * sizeof(bitmap_t) * 8, start);
+		end_bitindex = MIN((i + 1) * sizeof(bitmap_t) * 8, end);
+		for (c = start_bitindex; c < end_bitindex; c++)
 			if (BMAP_GET(bitmap, c) == 0)
 			{
 				BMAP_SET(bitmap, c);
@@ -133,7 +137,7 @@ void exfat_flush(struct exfat* ef)
 {
 	if (ef->cmap.dirty)
 	{
-		exfat_pwrite(ef->dev, ef->cmap.chunk, (ef->cmap.chunk_size + 7) / 8,
+		exfat_pwrite(ef->dev, ef->cmap.chunk, BMAP_SIZE(ef->cmap.chunk_size),
 				exfat_c2o(ef, ef->cmap.start_cluster));
 		ef->cmap.dirty = false;
 	}

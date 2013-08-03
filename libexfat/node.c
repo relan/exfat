@@ -368,16 +368,17 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			ef->cmap.size = le32_to_cpu(ef->sb->cluster_count) -
 				EXFAT_FIRST_DATA_CLUSTER;
-			if (le64_to_cpu(bitmap->size) < (ef->cmap.size + 7) / 8)
+			if (le64_to_cpu(bitmap->size) < DIV_ROUND_UP(ef->cmap.size, 8))
 			{
 				exfat_error("invalid clusters bitmap size: %"PRIu64
 						" (expected at least %u)",
-						le64_to_cpu(bitmap->size), (ef->cmap.size + 7) / 8);
+						le64_to_cpu(bitmap->size),
+						DIV_ROUND_UP(ef->cmap.size, 8));
 				goto error;
 			}
 			/* FIXME bitmap can be rather big, up to 512 MB */
 			ef->cmap.chunk_size = ef->cmap.size;
-			ef->cmap.chunk = malloc(le64_to_cpu(bitmap->size));
+			ef->cmap.chunk = malloc(BMAP_SIZE(ef->cmap.chunk_size));
 			if (ef->cmap.chunk == NULL)
 			{
 				exfat_error("failed to allocate clusters bitmap chunk "
@@ -386,7 +387,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 
-			exfat_pread(ef->dev, ef->cmap.chunk, le64_to_cpu(bitmap->size),
+			exfat_pread(ef->dev, ef->cmap.chunk,
+					BMAP_SIZE(ef->cmap.chunk_size),
 					exfat_c2o(ef, ef->cmap.start_cluster));
 			break;
 
