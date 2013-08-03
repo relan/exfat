@@ -218,6 +218,12 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("too few continuations (%hhu)", continuations);
 				goto error;
 			}
+			if (continuations > 1 +
+					DIV_ROUND_UP(EXFAT_NAME_MAX, EXFAT_ENAME_MAX))
+			{
+				exfat_error("too many continuations (%hhu)", continuations);
+				goto error;
+			}
 			reference_checksum = le16_to_cpu(meta1->checksum);
 			actual_checksum = exfat_start_checksum(meta1);
 			*node = allocate_node();
