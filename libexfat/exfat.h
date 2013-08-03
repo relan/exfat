@@ -51,12 +51,16 @@
 #define ROUND_UP(x, d) (DIV_ROUND_UP(x, d) * (d))
 #define UTF8_BYTES(c) ((c) * 6) /* UTF-8 character can occupy up to 6 bytes */
 
+typedef size_t bitmap_t;
+#define BMAP_SIZE(count) (ROUND_UP(count, sizeof(bitmap_t) * 8) / 8)
+#define BMAP_BLOCK(index) ((index) / sizeof(bitmap_t) / 8)
+#define BMAP_MASK(index) ((bitmap_t) 1 << ((index) % (sizeof(bitmap_t) * 8)))
 #define BMAP_GET(bitmap, index) \
-	(((uint8_t*) bitmap)[(index) / 8] & (1u << ((index) % 8)))
+	((bitmap)[BMAP_BLOCK(index)] & BMAP_MASK(index))
 #define BMAP_SET(bitmap, index) \
-	((uint8_t*) bitmap)[(index) / 8] |= (1u << ((index) % 8))
+	((bitmap)[BMAP_BLOCK(index)] |= BMAP_MASK(index))
 #define BMAP_CLR(bitmap, index) \
-	((uint8_t*) bitmap)[(index) / 8] &= ~(1u << ((index) % 8))
+	((bitmap)[BMAP_BLOCK(index)] &= ~BMAP_MASK(index))
 
 struct exfat_node
 {
@@ -97,7 +101,7 @@ struct exfat
 	{
 		cluster_t start_cluster;
 		uint32_t size;				/* in bits */
-		uint8_t* chunk;
+		bitmap_t* chunk;
 		uint32_t chunk_size;		/* in bits */
 		bool dirty;
 	}
