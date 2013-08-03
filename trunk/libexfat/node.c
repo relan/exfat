@@ -276,7 +276,10 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			file_name = (const struct exfat_entry_name*) entry;
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 
-			memcpy(namep, file_name->name, EXFAT_ENAME_MAX * sizeof(le16_t));
+			memcpy(namep, file_name->name,
+					MIN(EXFAT_ENAME_MAX,
+						((*node)->name + EXFAT_NAME_MAX - namep)) *
+					sizeof(le16_t));
 			namep += EXFAT_ENAME_MAX;
 			if (--continuations == 0)
 			{
@@ -767,7 +770,8 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 	{
 		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
 		memcpy(name_entry.name, node->name + i * EXFAT_ENAME_MAX,
-				EXFAT_ENAME_MAX * sizeof(le16_t));
+				MIN(EXFAT_ENAME_MAX, EXFAT_NAME_MAX - i * EXFAT_ENAME_MAX) *
+				sizeof(le16_t));
 		next_entry(ef, dir, &cluster, &offset);
 		exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
 				co2o(ef, cluster, offset));
