@@ -136,17 +136,20 @@ static cluster_t find_bit_and_set(bitmap_t* bitmap, size_t start, size_t end)
 	return EXFAT_CLUSTER_END;
 }
 
-void exfat_flush(struct exfat* ef)
+int exfat_flush(struct exfat* ef)
 {
 	if (ef->cmap.dirty)
 	{
-		/* FIXME handle I/O error */
 		if (exfat_pwrite(ef->dev, ef->cmap.chunk,
 				BMAP_SIZE(ef->cmap.chunk_size),
 				exfat_c2o(ef, ef->cmap.start_cluster)) < 0)
-			exfat_bug("failed to write clusters bitmap");
+		{
+			exfat_error("failed to write clusters bitmap");
+			return -EIO;
+		}
 		ef->cmap.dirty = false;
 	}
+	return 0;
 }
 
 static bool set_next_cluster(const struct exfat* ef, bool contiguous,
