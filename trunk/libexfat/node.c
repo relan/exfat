@@ -606,7 +606,7 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
 }
 
-static void erase_entry(struct exfat* ef, struct exfat_node* node)
+static bool erase_entry(struct exfat* ef, struct exfat_node* node)
 {
 	cluster_t cluster = node->entry_cluster;
 	off_t offset = node->entry_offset;
@@ -614,25 +614,32 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 	uint8_t entry_type;
 
 	entry_type = EXFAT_ENTRY_FILE & ~EXFAT_ENTRY_VALID;
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset)) < 0)
-		exfat_bug("failed to erase meta1 entry");
+	{
+		exfat_error("failed to erase meta1 entry");
+		return false;
+	}
 
 	next_entry(ef, node->parent, &cluster, &offset);
 	entry_type = EXFAT_ENTRY_FILE_INFO & ~EXFAT_ENTRY_VALID;
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset)) < 0)
-		exfat_bug("failed to erase meta2 entry");
+	{
+		exfat_error("failed to erase meta2 entry");
+		return false;
+	}
 
 	while (name_entries--)
 	{
 		next_entry(ef, node->parent, &cluster, &offset);
 		entry_type = EXFAT_ENTRY_FILE_NAME & ~EXFAT_ENTRY_VALID;
-		/* FIXME handle I/O error */
 		if (exfat_pwrite(ef->dev, &entry_type, 1,
 				co2o(ef, cluster, offset)) < 0)
-			exfat_bug("failed to erase name entry");
+		{
+			exfat_error("failed to erase name entry");
+			return false;
+		}
 	}
+	return true;
 }
 
 static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
@@ -691,7 +698,11 @@ static int delete(struct exfat* ef, struct exfat_node* node)
 	int rc;
 
 	exfat_get_node(parent);
-	erase_entry(ef, node);
+	if (!erase_entry(ef, node))
+	{
+		exfat_put_node(ef, parent);
+		return -EIO;
+	}
 	exfat_update_mtime(parent);
 	tree_detach(node);
 	rc = shrink_directory(ef, parent, deleted_offset);
@@ -933,7 +944,8 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 	meta2.name_length = name_length;
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, name);
 
-	erase_entry(ef, node);
+	if (!erase_entry(ef, node))
+		return -EIO;
 
 	node->entry_cluster = new_cluster;
 	node->entry_offset = new_offset;
