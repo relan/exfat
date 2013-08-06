@@ -189,6 +189,8 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 
 	if (exfat_pread(ef->dev, ef->sb, sizeof(struct exfat_super_block), 0) < 0)
 	{
+		exfat_close(ef->dev);
+		free(ef->sb);
 		exfat_error("failed to read boot sector");
 		return -EIO;
 	}
