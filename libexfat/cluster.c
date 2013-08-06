@@ -323,11 +323,14 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 	return 0;
 }
 
-static void erase_raw(struct exfat* ef, size_t size, off_t offset)
+static bool erase_raw(struct exfat* ef, size_t size, off_t offset)
 {
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, ef->zero_cluster, size, offset) < 0)
-		exfat_bug("failed to erase %zu bytes at %"PRId64, size, offset);
+	{
+		exfat_error("failed to erase %zu bytes at %"PRId64, size, offset);
+		return false;
+	}
+	return true;
 }
 
 static int erase_range(struct exfat* ef, struct exfat_node* node,
@@ -348,8 +351,9 @@ static int erase_range(struct exfat* ef, struct exfat_node* node,
 		return -EIO;
 	}
 	/* erase from the beginning to the closest cluster boundary */
-	erase_raw(ef, MIN(cluster_boundary, end) - begin,
-			exfat_c2o(ef, cluster) + begin % CLUSTER_SIZE(*ef->sb));
+	if (!erase_raw(ef, MIN(cluster_boundary, end) - begin,
+			exfat_c2o(ef, cluster) + begin % CLUSTER_SIZE(*ef->sb)))
+		return -EIO;
 	/* erase whole clusters */
 	while (cluster_boundary < end)
 	{
@@ -357,7 +361,8 @@ static int erase_range(struct exfat* ef, struct exfat_node* node,
 		/* the cluster cannot be invalid because we have just allocated it */
 		if (CLUSTER_INVALID(cluster))
 			exfat_bug("invalid cluster 0x%x after allocation", cluster);
-		erase_raw(ef, CLUSTER_SIZE(*ef->sb), exfat_c2o(ef, cluster));
+		if (!erase_raw(ef, CLUSTER_SIZE(*ef->sb), exfat_c2o(ef, cluster)))
+			return -EIO;
 		cluster_boundary += CLUSTER_SIZE(*ef->sb);
 	}
 	return 0;
