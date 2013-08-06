@@ -149,20 +149,24 @@ void exfat_flush(struct exfat* ef)
 	}
 }
 
-static void set_next_cluster(const struct exfat* ef, bool contiguous,
+static bool set_next_cluster(const struct exfat* ef, bool contiguous,
 		cluster_t current, cluster_t next)
 {
 	off_t fat_offset;
 	le32_t next_le32;
 
 	if (contiguous)
-		return;
+		return true;
 	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ current * sizeof(cluster_t);
 	next_le32 = cpu_to_le32(next);
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, &next_le32, sizeof(next_le32), fat_offset) < 0)
-		exfat_bug("failed to write the next cluster");
+	{
+		exfat_error("failed to write the next cluster %#x after %#x", next,
+				current);
+		return false;
+	}
+	return true;
 }
 
 static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
@@ -198,13 +202,15 @@ static void free_cluster(struct exfat* ef, cluster_t cluster)
 	ef->cmap.dirty = true;
 }
 
-static void make_noncontiguous(const struct exfat* ef, cluster_t first,
+static bool make_noncontiguous(const struct exfat* ef, cluster_t first,
 		cluster_t last)
 {
 	cluster_t c;
 
 	for (c = first; c < last; c++)
-		set_next_cluster(ef, false, c, c + 1);
+		if (!set_next_cluster(ef, false, c, c + 1))
+			return false;
+	return true;
 }
 
 static int shrink_file(struct exfat* ef, struct exfat_node* node,
@@ -258,16 +264,20 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 		{
 			/* it's a pity, but we are not able to keep the file contiguous
 			   anymore */
-			make_noncontiguous(ef, node->start_cluster, previous);
+			if (!make_noncontiguous(ef, node->start_cluster, previous))
+				return -EIO;
 			node->flags &= ~EXFAT_ATTRIB_CONTIGUOUS;
 			node->flags |= EXFAT_ATTRIB_DIRTY;
 		}
-		set_next_cluster(ef, IS_CONTIGUOUS(*node), previous, next);
+		if (!set_next_cluster(ef, IS_CONTIGUOUS(*node), previous, next))
+			return -EIO;
 		previous = next;
 		allocated++;
 	}
 
-	set_next_cluster(ef, IS_CONTIGUOUS(*node), previous, EXFAT_CLUSTER_END);
+	if (!set_next_cluster(ef, IS_CONTIGUOUS(*node), previous,
+			EXFAT_CLUSTER_END))
+		return -EIO;
 	return 0;
 }
 
@@ -295,7 +305,9 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 			return -EIO;
 		}
 		previous = exfat_next_cluster(ef, node, last);
-		set_next_cluster(ef, IS_CONTIGUOUS(*node), last, EXFAT_CLUSTER_END);
+		if (!set_next_cluster(ef, IS_CONTIGUOUS(*node), last,
+				EXFAT_CLUSTER_END))
+			return -EIO;
 	}
 	else
 	{
@@ -315,8 +327,9 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 			return -EIO;
 		}
 		next = exfat_next_cluster(ef, node, previous);
-		set_next_cluster(ef, IS_CONTIGUOUS(*node), previous,
-				EXFAT_CLUSTER_FREE);
+		if (!set_next_cluster(ef, IS_CONTIGUOUS(*node), previous,
+				EXFAT_CLUSTER_FREE))
+			return -EIO;
 		free_cluster(ef, previous);
 		previous = next;
 	}
