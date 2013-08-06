@@ -157,8 +157,12 @@ static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 static int fuse_exfat_fsync(const char* path, int datasync,
 		struct fuse_file_info *fi)
 {
+	int rc;
+
 	exfat_debug("[%s] %s", __func__, path);
-	exfat_flush_node(&ef, get_node(fi));
+	rc = exfat_flush_node(&ef, get_node(fi));
+	if (rc != 0)
+		return rc;
 	exfat_flush(&ef);
 	return exfat_fsync(ef.dev);
 }
