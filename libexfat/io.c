@@ -331,7 +331,12 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 			return -1;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
-		exfat_pread(ef->dev, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
+		if (exfat_pread(ef->dev, bufp, lsize,
+					exfat_c2o(ef, cluster) + loffset) < 0)
+		{
+			exfat_error("failed to read cluster %#x", cluster);
+			return -1;
+		}
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;
@@ -375,7 +380,12 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 			return -1;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
-		exfat_pwrite(ef->dev, bufp, lsize, exfat_c2o(ef, cluster) + loffset);
+		if (exfat_pwrite(ef->dev, bufp, lsize,
+				exfat_c2o(ef, cluster) + loffset) < 0)
+		{
+			exfat_error("failed to write cluster %#x", cluster);
+			return -1;
+		}
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;

@@ -97,15 +97,27 @@ static int verify_vbr_checksum(struct exfat_dev* dev, void* sector,
 	uint32_t vbr_checksum;
 	int i;
 
-	exfat_pread(dev, sector, sector_size, 0);
+	if (exfat_pread(dev, sector, sector_size, 0) < 0)
+	{
+		exfat_error("failed to read boot sector");
+		return 1;
+	}
 	vbr_checksum = exfat_vbr_start_checksum(sector, sector_size);
 	for (i = 1; i < 11; i++)
 	{
-		exfat_pread(dev, sector, sector_size, i * sector_size);
+		if (exfat_pread(dev, sector, sector_size, i * sector_size) < 0)
+		{
+			exfat_error("failed to read VBR sector");
+			return 1;
+		}
 		vbr_checksum = exfat_vbr_add_checksum(sector, sector_size,
 				vbr_checksum);
 	}
-	exfat_pread(dev, sector, sector_size, i * sector_size);
+	if (exfat_pread(dev, sector, sector_size, i * sector_size) < 0)
+	{
+		exfat_error("failed to read VBR checksum sector");
+		return 1;
+	}
 	for (i = 0; i < sector_size / sizeof(vbr_checksum); i++)
 		if (le32_to_cpu(((const le32_t*) sector)[i]) != vbr_checksum)
 		{
@@ -118,7 +130,11 @@ static int verify_vbr_checksum(struct exfat_dev* dev, void* sector,
 
 static int commit_super_block(const struct exfat* ef)
 {
-	exfat_pwrite(ef->dev, ef->sb, sizeof(struct exfat_super_block), 0);
+	if (exfat_pwrite(ef->dev, ef->sb, sizeof(struct exfat_super_block), 0) < 0)
+	{
+		exfat_error("failed to write super block");
+		return 1;
+	}
 	return exfat_fsync(ef->dev);
 }
 
@@ -171,7 +187,11 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	}
 	memset(ef->sb, 0, sizeof(struct exfat_super_block));
 
-	exfat_pread(ef->dev, ef->sb, sizeof(struct exfat_super_block), 0);
+	if (exfat_pread(ef->dev, ef->sb, sizeof(struct exfat_super_block), 0) < 0)
+	{
+		exfat_error("failed to read boot sector");
+		return -EIO;
+	}
 	if (memcmp(ef->sb->oem_name, "EXFAT   ", 8) != 0)
 	{
 		exfat_close(ef->dev);
