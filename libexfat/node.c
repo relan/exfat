@@ -53,7 +53,9 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 
 	if (node->references == 0)
 	{
-		exfat_flush_node(ef, node);
+		/* FIXME handle I/O error */
+		if (exfat_flush_node(ef, node) != 0)
+			exfat_bug("node flush failed");
 		if (node->flags & EXFAT_ATTRIB_UNLINKED)
 		{
 			/* free all clusters and node structure itself */
@@ -549,7 +551,7 @@ static void next_entry(struct exfat* ef, const struct exfat_node* parent,
 		*cluster = exfat_next_cluster(ef, parent, *cluster);
 }
 
-void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
+int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 {
 	cluster_t cluster;
 	off_t offset;
@@ -558,13 +560,13 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	struct exfat_entry_meta2 meta2;
 
 	if (!(node->flags & EXFAT_ATTRIB_DIRTY))
-		return; /* no need to flush */
+		return 0; /* no need to flush */
 
 	if (ef->ro)
 		exfat_bug("unable to flush node to read-only FS");
 
 	if (node->parent == NULL)
-		return; /* do not flush unlinked node */
+		return 0; /* do not flush unlinked node */
 
 	cluster = node->entry_cluster;
 	offset = node->entry_offset;
@@ -572,18 +574,22 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	next_entry(ef, node->parent, &cluster, &offset);
 	meta2_offset = co2o(ef, cluster, offset);
 
-	/* FIXME handle I/O error */
 	if (exfat_pread(ef->dev, &meta1, sizeof(meta1), meta1_offset) < 0)
-		exfat_bug("failed to read meta1 entry on flush");
+	{
+		exfat_error("failed to read meta1 entry on flush");
+		return -EIO;
+	}
 	if (meta1.type != EXFAT_ENTRY_FILE)
 		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
 	meta1.attrib = cpu_to_le16(node->flags);
 	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime, &meta1.mtime_cs);
 	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime, NULL);
 
-	/* FIXME handle I/O error */
 	if (exfat_pread(ef->dev, &meta2, sizeof(meta2), meta2_offset) < 0)
-		exfat_bug("failed to read meta2 entry on flush");
+	{
+		exfat_error("failed to read meta2 entry on flush");
+		return -EIO;
+	}
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
 	meta2.size = meta2.real_size = cpu_to_le64(node->size);
@@ -596,14 +602,19 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1), meta1_offset) < 0)
-		exfat_bug("failed to write meta1 entry on flush");
-	/* FIXME handle I/O error */
+	{
+		exfat_error("failed to write meta1 entry on flush");
+		return -EIO;
+	}
 	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2), meta2_offset) < 0)
-		exfat_bug("failed to write meta2 entry on flush");
+	{
+		exfat_error("failed to write meta2 entry on flush");
+		return -EIO;
+	}
 
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
+	return 0;
 }
 
 static bool erase_entry(struct exfat* ef, struct exfat_node* node)
