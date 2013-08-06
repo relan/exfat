@@ -23,6 +23,7 @@
 #include "exfat.h"
 #include <errno.h>
 #include <string.h>
+#include <inttypes.h>
 
 /*
  * Sector to absolute offset.
@@ -82,7 +83,9 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 		return cluster + 1;
 	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ cluster * sizeof(cluster_t);
-	exfat_pread(ef->dev, &next, sizeof(next), fat_offset);
+	/* FIXME handle I/O error */
+	if (exfat_pread(ef->dev, &next, sizeof(next), fat_offset) < 0)
+		exfat_bug("failed to read the next cluster after %#x", cluster);
 	return le32_to_cpu(next);
 }
 
@@ -137,8 +140,11 @@ void exfat_flush(struct exfat* ef)
 {
 	if (ef->cmap.dirty)
 	{
-		exfat_pwrite(ef->dev, ef->cmap.chunk, BMAP_SIZE(ef->cmap.chunk_size),
-				exfat_c2o(ef, ef->cmap.start_cluster));
+		/* FIXME handle I/O error */
+		if (exfat_pwrite(ef->dev, ef->cmap.chunk,
+				BMAP_SIZE(ef->cmap.chunk_size),
+				exfat_c2o(ef, ef->cmap.start_cluster)) < 0)
+			exfat_bug("failed to write clusters bitmap");
 		ef->cmap.dirty = false;
 	}
 }
@@ -154,7 +160,9 @@ static void set_next_cluster(const struct exfat* ef, bool contiguous,
 	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ current * sizeof(cluster_t);
 	next_le32 = cpu_to_le32(next);
-	exfat_pwrite(ef->dev, &next_le32, sizeof(next_le32), fat_offset);
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &next_le32, sizeof(next_le32), fat_offset) < 0)
+		exfat_bug("failed to write the next cluster");
 }
 
 static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
@@ -317,7 +325,9 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 
 static void erase_raw(struct exfat* ef, size_t size, off_t offset)
 {
-	exfat_pwrite(ef->dev, ef->zero_cluster, size, offset);
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, ef->zero_cluster, size, offset) < 0)
+		exfat_bug("failed to erase %zu bytes at %"PRId64, size, offset);
 }
 
 static int erase_range(struct exfat* ef, struct exfat_node* node,

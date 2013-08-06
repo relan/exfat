@@ -86,8 +86,12 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		exfat_error("out of memory");
 		return -ENOMEM;
 	}
-	exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
-			exfat_c2o(ef, it->cluster));
+	if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
+			exfat_c2o(ef, it->cluster)) < 0)
+	{
+		exfat_error("failed to read directory cluster %#x", it->cluster);
+		return -EIO;
+	}
 	return 0;
 }
 
@@ -119,8 +123,13 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 					it->cluster);
 			return 1;
 		}
-		exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
-				exfat_c2o(ef, it->cluster));
+		if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
+				exfat_c2o(ef, it->cluster)) < 0)
+		{
+			exfat_error("failed to read the next directory cluster %#x",
+					it->cluster);
+			return 1;
+		}
 	}
 	return 0;
 }
@@ -353,8 +362,15 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			ef->upcase_chars = le64_to_cpu(upcase->size) / sizeof(le16_t);
 
-			exfat_pread(ef->dev, ef->upcase, le64_to_cpu(upcase->size),
-					exfat_c2o(ef, le32_to_cpu(upcase->start_cluster)));
+			if (exfat_pread(ef->dev, ef->upcase, le64_to_cpu(upcase->size),
+					exfat_c2o(ef, le32_to_cpu(upcase->start_cluster))) < 0)
+			{
+				exfat_error("failed to read upper case table "
+						"(%"PRIu64" bytes starting at cluster %#x)",
+						le64_to_cpu(upcase->size),
+						le32_to_cpu(upcase->start_cluster));
+				goto error;
+			}
 			break;
 
 		case EXFAT_ENTRY_BITMAP:
@@ -387,9 +403,15 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 
-			exfat_pread(ef->dev, ef->cmap.chunk,
+			if (exfat_pread(ef->dev, ef->cmap.chunk,
 					BMAP_SIZE(ef->cmap.chunk_size),
-					exfat_c2o(ef, ef->cmap.start_cluster));
+					exfat_c2o(ef, ef->cmap.start_cluster)) < 0)
+			{
+				exfat_error("failed to read clusters bitmap "
+						"(%"PRIu64" bytes starting at cluster %#x)",
+						le64_to_cpu(bitmap->size), ef->cmap.start_cluster);
+				goto error;
+			}
 			break;
 
 		case EXFAT_ENTRY_LABEL:
@@ -550,14 +572,18 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	next_entry(ef, node->parent, &cluster, &offset);
 	meta2_offset = co2o(ef, cluster, offset);
 
-	exfat_pread(ef->dev, &meta1, sizeof(meta1), meta1_offset);
+	/* FIXME handle I/O error */
+	if (exfat_pread(ef->dev, &meta1, sizeof(meta1), meta1_offset) < 0)
+		exfat_bug("failed to read meta1 entry on flush");
 	if (meta1.type != EXFAT_ENTRY_FILE)
 		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
 	meta1.attrib = cpu_to_le16(node->flags);
 	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime, &meta1.mtime_cs);
 	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime, NULL);
 
-	exfat_pread(ef->dev, &meta2, sizeof(meta2), meta2_offset);
+	/* FIXME handle I/O error */
+	if (exfat_pread(ef->dev, &meta2, sizeof(meta2), meta2_offset) < 0)
+		exfat_bug("failed to read meta2 entry on flush");
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
 	meta2.size = meta2.real_size = cpu_to_le64(node->size);
@@ -570,8 +596,12 @@ void exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
-	exfat_pwrite(ef->dev, &meta1, sizeof(meta1), meta1_offset);
-	exfat_pwrite(ef->dev, &meta2, sizeof(meta2), meta2_offset);
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1), meta1_offset) < 0)
+		exfat_bug("failed to write meta1 entry on flush");
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2), meta2_offset) < 0)
+		exfat_bug("failed to write meta2 entry on flush");
 
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
 }
@@ -584,17 +614,24 @@ static void erase_entry(struct exfat* ef, struct exfat_node* node)
 	uint8_t entry_type;
 
 	entry_type = EXFAT_ENTRY_FILE & ~EXFAT_ENTRY_VALID;
-	exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset)) < 0)
+		exfat_bug("failed to erase meta1 entry");
 
 	next_entry(ef, node->parent, &cluster, &offset);
 	entry_type = EXFAT_ENTRY_FILE_INFO & ~EXFAT_ENTRY_VALID;
-	exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset)) < 0)
+		exfat_bug("failed to erase meta2 entry");
 
 	while (name_entries--)
 	{
 		next_entry(ef, node->parent, &cluster, &offset);
 		entry_type = EXFAT_ENTRY_FILE_NAME & ~EXFAT_ENTRY_VALID;
-		exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset));
+		/* FIXME handle I/O error */
+		if (exfat_pwrite(ef->dev, &entry_type, 1,
+				co2o(ef, cluster, offset)) < 0)
+			exfat_bug("failed to erase name entry");
 	}
 }
 
@@ -771,9 +808,19 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
 
-	exfat_pwrite(ef->dev, &meta1, sizeof(meta1), co2o(ef, cluster, offset));
+	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
+			co2o(ef, cluster, offset)) < 0)
+	{
+		exfat_error("failed to write meta1 entry");
+		return -EIO;
+	}
 	next_entry(ef, dir, &cluster, &offset);
-	exfat_pwrite(ef->dev, &meta2, sizeof(meta2), co2o(ef, cluster, offset));
+	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2),
+			co2o(ef, cluster, offset)) < 0)
+	{
+		exfat_error("failed to write meta2 entry");
+		return -EIO;
+	}
 	for (i = 0; i < name_entries; i++)
 	{
 		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
@@ -781,8 +828,12 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 				MIN(EXFAT_ENAME_MAX, EXFAT_NAME_MAX - i * EXFAT_ENAME_MAX) *
 				sizeof(le16_t));
 		next_entry(ef, dir, &cluster, &offset);
-		exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
-				co2o(ef, cluster, offset));
+		if (exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
+				co2o(ef, cluster, offset)) < 0)
+		{
+			exfat_error("failed to write name entry");
+			return -EIO;
+		}
 	}
 
 	init_node_meta1(node, &meta1);
@@ -864,11 +915,15 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
 	int i;
 
-	exfat_pread(ef->dev, &meta1, sizeof(meta1),
-			co2o(ef, old_cluster, old_offset));
+	/* FIXME handle I/O error */
+	if (exfat_pread(ef->dev, &meta1, sizeof(meta1),
+			co2o(ef, old_cluster, old_offset)) < 0)
+		exfat_bug("failed to read meta1 entry on rename");
 	next_entry(ef, node->parent, &old_cluster, &old_offset);
-	exfat_pread(ef->dev, &meta2, sizeof(meta2),
-			co2o(ef, old_cluster, old_offset));
+	/* FIXME handle I/O error */
+	if (exfat_pread(ef->dev, &meta2, sizeof(meta2),
+			co2o(ef, old_cluster, old_offset)) < 0)
+		exfat_bug("failed to read meta2 entry on rename");
 	meta1.continuations = 1 + name_entries;
 	meta2.name_hash = exfat_calc_name_hash(ef, name);
 	meta2.name_length = name_length;
@@ -879,11 +934,15 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 	node->entry_cluster = new_cluster;
 	node->entry_offset = new_offset;
 
-	exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
-			co2o(ef, new_cluster, new_offset));
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
+			co2o(ef, new_cluster, new_offset)) < 0)
+		exfat_bug("failed to write meta1 entry on rename");
 	next_entry(ef, dir, &new_cluster, &new_offset);
-	exfat_pwrite(ef->dev, &meta2, sizeof(meta2),
-			co2o(ef, new_cluster, new_offset));
+	/* FIXME handle I/O error */
+	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2),
+			co2o(ef, new_cluster, new_offset)) < 0)
+		exfat_bug("failed to write meta2 entry on rename");
 
 	for (i = 0; i < name_entries; i++)
 	{
@@ -891,8 +950,10 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		next_entry(ef, dir, &new_cluster, &new_offset);
-		exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
-				co2o(ef, new_cluster, new_offset));
+		/* FIXME handle I/O error */
+		if (exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
+				co2o(ef, new_cluster, new_offset)) < 0)
+			exfat_bug("failed to write name entry on rename");
 	}
 
 	memcpy(node->name, name, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
@@ -1064,8 +1125,12 @@ int exfat_set_label(struct exfat* ef, const char* label)
 	if (entry.length == 0)
 		entry.type ^= EXFAT_ENTRY_VALID;
 
-	exfat_pwrite(ef->dev, &entry, sizeof(struct exfat_entry_label),
-			co2o(ef, cluster, offset));
+	if (exfat_pwrite(ef->dev, &entry, sizeof(struct exfat_entry_label),
+			co2o(ef, cluster, offset)) < 0)
+	{
+		exfat_error("failed to write label entry");
+		return -EIO;
+	}
 	strcpy(ef->label, label);
 	return 0;
 }
