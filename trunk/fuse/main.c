@@ -163,7 +163,9 @@ static int fuse_exfat_fsync(const char* path, int datasync,
 	rc = exfat_flush_node(&ef, get_node(fi));
 	if (rc != 0)
 		return rc;
-	exfat_flush(&ef);
+	rc = exfat_flush(&ef);
+	if (rc != 0)
+		return rc;
 	return exfat_fsync(ef.dev);
 }
 

@@ -62,7 +62,9 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 			exfat_truncate(ef, node, 0, true);
 			free(node);
 		}
-		exfat_flush(ef);
+		/* FIXME handle I/O error */
+		if (exfat_flush(ef) != 0)
+			exfat_bug("flush failed");
 	}
 }
 
