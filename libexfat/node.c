@@ -903,7 +903,7 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 	return 0;
 }
 
-static void rename_entry(struct exfat* ef, struct exfat_node* dir,
+static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_node* node, const le16_t* name, cluster_t new_cluster,
 		off_t new_offset)
 {
@@ -915,15 +915,19 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
 	int i;
 
-	/* FIXME handle I/O error */
 	if (exfat_pread(ef->dev, &meta1, sizeof(meta1),
 			co2o(ef, old_cluster, old_offset)) < 0)
-		exfat_bug("failed to read meta1 entry on rename");
+	{
+		exfat_error("failed to read meta1 entry on rename");
+		return -EIO;
+	}
 	next_entry(ef, node->parent, &old_cluster, &old_offset);
-	/* FIXME handle I/O error */
 	if (exfat_pread(ef->dev, &meta2, sizeof(meta2),
 			co2o(ef, old_cluster, old_offset)) < 0)
-		exfat_bug("failed to read meta2 entry on rename");
+	{
+		exfat_error("failed to read meta2 entry on rename");
+		return -EIO;
+	}
 	meta1.continuations = 1 + name_entries;
 	meta2.name_hash = exfat_calc_name_hash(ef, name);
 	meta2.name_length = name_length;
@@ -934,15 +938,19 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 	node->entry_cluster = new_cluster;
 	node->entry_offset = new_offset;
 
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
 			co2o(ef, new_cluster, new_offset)) < 0)
-		exfat_bug("failed to write meta1 entry on rename");
+	{
+		exfat_error("failed to write meta1 entry on rename");
+		return -EIO;
+	}
 	next_entry(ef, dir, &new_cluster, &new_offset);
-	/* FIXME handle I/O error */
 	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2),
 			co2o(ef, new_cluster, new_offset)) < 0)
-		exfat_bug("failed to write meta2 entry on rename");
+	{
+		exfat_error("failed to write meta2 entry on rename");
+		return -EIO;
+	}
 
 	for (i = 0; i < name_entries; i++)
 	{
@@ -950,15 +958,18 @@ static void rename_entry(struct exfat* ef, struct exfat_node* dir,
 		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
 		next_entry(ef, dir, &new_cluster, &new_offset);
-		/* FIXME handle I/O error */
 		if (exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
 				co2o(ef, new_cluster, new_offset)) < 0)
-			exfat_bug("failed to write name entry on rename");
+		{
+			exfat_error("failed to write name entry on rename");
+			return -EIO;
+		}
 	}
 
 	memcpy(node->name, name, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
 	tree_detach(node);
 	tree_attach(dir, node);
+	return 0;
 }
 
 int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
@@ -1037,7 +1048,7 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 		exfat_put_node(ef, node);
 		return rc;
 	}
-	rename_entry(ef, dir, node, name, cluster, offset);
+	rc = rename_entry(ef, dir, node, name, cluster, offset);
 	exfat_put_node(ef, dir);
 	exfat_put_node(ef, node);
 	return 0;
