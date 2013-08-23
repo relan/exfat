@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
 #ifdef __APPLE__
 #include <sys/disk.h>
 #endif
@@ -210,32 +211,41 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 
 int exfat_close(struct exfat_dev* dev)
 {
+	int rc = 0;
+
 #ifdef USE_UBLIO
 	if (ublio_close(dev->ufh) != 0)
+	{
 		exfat_error("failed to close ublio");
+		rc = -EIO;
+	}
 #endif
 	if (close(dev->fd) != 0)
 	{
-		free(dev);
 		exfat_error("failed to close device");
-		return 1;
+		rc = -EIO;
 	}
 	free(dev);
-	return 0;
+	return rc;
 }
 
 int exfat_fsync(struct exfat_dev* dev)
 {
+	int rc = 0;
+
 #ifdef USE_UBLIO
 	if (ublio_fsync(dev->ufh) != 0)
-#else
-	if (fsync(dev->fd) != 0)
+	{
+		exfat_error("ublio fsync failed");
+		rc = -EIO;
+	}
 #endif
+	if (fsync(dev->fd) != 0)
 	{
 		exfat_error("fsync failed");
-		return 1;
+		rc = -EIO;
 	}
-	return 0;
+	return rc;
 }
 
 enum exfat_mode exfat_get_mode(const struct exfat_dev* dev)
