@@ -160,9 +160,12 @@ static int fuse_exfat_fsync(const char* path, int datasync,
 	int rc;
 
 	exfat_debug("[%s] %s", __func__, path);
-	rc = exfat_flush_node(&ef, get_node(fi));
-	if (rc != 0)
-		return rc;
+	if (get_node(fi) != NULL)
+	{
+		rc = exfat_flush_node(&ef, get_node(fi));
+		if (rc != 0)
+			return rc;
+	}
 	rc = exfat_flush(&ef);
 	if (rc != 0)
 		return rc;
