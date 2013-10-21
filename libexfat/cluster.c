@@ -83,9 +83,9 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 		return cluster + 1;
 	fat_offset = s2o(ef, le32_to_cpu(ef->sb->fat_sector_start))
 		+ cluster * sizeof(cluster_t);
-	/* FIXME handle I/O error */
 	if (exfat_pread(ef->dev, &next, sizeof(next), fat_offset) < 0)
-		exfat_bug("failed to read the next cluster after %#x", cluster);
+		return EXFAT_CLUSTER_BAD; /* the caller should handle this and print
+		                             appropriate error message */
 	return le32_to_cpu(next);
 }
 

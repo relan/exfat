@@ -39,6 +39,12 @@ static uint64_t rootdir_size(const struct exfat* ef)
 		   to indicate this */
 		rootdir_cluster = exfat_next_cluster(ef, ef->root, rootdir_cluster);
 	}
+	if (rootdir_cluster != EXFAT_CLUSTER_END)
+	{
+		exfat_error("bad cluster %#x while reading root directory",
+				rootdir_cluster);
+		return 0;
+	}
 	return clusters * CLUSTER_SIZE(*ef->sb);
 }
 
@@ -260,6 +266,14 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	ef->root->fptr_cluster = ef->root->start_cluster;
 	ef->root->name[0] = cpu_to_le16('\0');
 	ef->root->size = rootdir_size(ef);
+	if (ef->root->size == 0)
+	{
+		free(ef->root);
+		free(ef->zero_cluster);
+		exfat_close(ef->dev);
+		free(ef->sb);
+		return -EIO;
+	}
 	/* exFAT does not have time attributes for the root directory */
 	ef->root->mtime = 0;
 	ef->root->atime = 0;
