@@ -673,7 +673,6 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 	const struct exfat_node* last_node;
 	uint64_t entries = 0;
 	uint64_t new_size;
-	int rc;
 
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("attempted to shrink a file");
@@ -709,10 +708,7 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 		new_size = CLUSTER_SIZE(*ef->sb);
 	if (new_size == dir->size)
 		return 0;
-	rc = exfat_truncate(ef, dir, new_size, true);
-	if (rc != 0)
-		return rc;
-	return 0;
+	return exfat_truncate(ef, dir, new_size, true);
 }
 
 static int delete(struct exfat* ef, struct exfat_node* node)
