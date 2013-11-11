@@ -177,6 +177,43 @@ static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
 			(it->chunk + it->offset % CLUSTER_SIZE(*ef->sb));
 }
 
+static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
+		uint16_t reference_checksum, uint64_t real_size)
+{
+	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+
+	/*
+	   Validate checksum first. If it's invalid all other fields probably
+	   contain just garbage.
+	*/
+	if (actual_checksum != reference_checksum)
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_error("`%s' has invalid checksum (%#hx != %#hx)", buffer,
+				actual_checksum, reference_checksum);
+		return false;
+	}
+
+	/*
+	   There are two fields that contain file size. Maybe they plan to add
+	   compression support in the future and one of those fields is visible
+	   (uncompressed) size and the other is real (compressed) size. Anyway,
+	   currently it looks like exFAT does not support compression and both
+	   fields must be equal.
+
+	   There is an exception though: pagefile.sys (its real_size is always 0).
+	*/
+	if (real_size != node->size)
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_error("`%s' has real size (%"PRIu64") not equal to size "
+				"(%"PRIu64")", buffer, real_size, node->size);
+		return false;
+	}
+
+	return true;
+}
+
 /*
  * Reads one entry in directory at position pointed by iterator and fills
  * node structure.
@@ -302,36 +339,9 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			namep += EXFAT_ENAME_MAX;
 			if (--continuations == 0)
 			{
-				/*
-				   There are two fields that contain file size. Maybe they
-				   plan to add compression support in the future and one of
-				   those fields is visible (uncompressed) size and the other
-				   is real (compressed) size. Anyway, currently it looks like
-				   exFAT does not support compression and both fields must be
-				   equal.
-
-				   There is an exception though: pagefile.sys (its real_size
-				   is always 0).
-				*/
-				if (real_size != (*node)->size)
-				{
-					char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
-
-					exfat_get_name(*node, buffer, sizeof(buffer) - 1);
-					exfat_error("`%s' real size does not equal to size "
-							"(%"PRIu64" != %"PRIu64")", buffer,
-							real_size, (*node)->size);
+				if (!check_node(*node, actual_checksum, reference_checksum,
+						real_size))
 					goto error;
-				}
-				if (actual_checksum != reference_checksum)
-				{
-					char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
-
-					exfat_get_name(*node, buffer, sizeof(buffer) - 1);
-					exfat_error("`%s' has invalid checksum (0x%hx != 0x%hx)",
-							buffer, actual_checksum, reference_checksum);
-					goto error;
-				}
 				if (fetch_next_entry(ef, parent, it) != 0)
 					goto error;
 				return 0; /* entry completed */
