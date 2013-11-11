@@ -195,18 +195,13 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	}
 
 	/*
-	   There are two fields that contain file size. Maybe they plan to add
-	   compression support in the future and one of those fields is visible
-	   (uncompressed) size and the other is real (compressed) size. Anyway,
-	   currently it looks like exFAT does not support compression and both
-	   fields must be equal.
-
-	   There is an exception though: pagefile.sys (its real_size is always 0).
+	   It's unclear what is real_size field needed for. It usually equals to
+	   the size but may contain any value less than size (including 0).
 	*/
-	if (real_size != node->size)
+	if (real_size > node->size)
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_error("`%s' has real size (%"PRIu64") not equal to size "
+		exfat_error("`%s' has real size (%"PRIu64") greater than size "
 				"(%"PRIu64")", buffer, real_size, node->size);
 		return false;
 	}
