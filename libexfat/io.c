@@ -24,7 +24,6 @@
 #include <inttypes.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <sys/mount.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -37,6 +36,7 @@
 #include <sys/dkio.h>
 #include <sys/ioctl.h>
 #endif
+#include <sys/mount.h>
 #ifdef USE_UBLIO
 #include <sys/uio.h>
 #include <ublio.h>
