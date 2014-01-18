@@ -1093,7 +1093,7 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 	rc = rename_entry(ef, dir, node, name, cluster, offset);
 	exfat_put_node(ef, dir);
 	exfat_put_node(ef, node);
-	return 0;
+	return rc;
 }
 
 void exfat_utimes(struct exfat_node* node, const struct timespec tv[2])
