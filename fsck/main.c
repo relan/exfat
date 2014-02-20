@@ -76,12 +76,16 @@ static void dirck(struct exfat* ef, const char* path)
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("`%s' is not a directory (0x%x)", path, parent->flags);
 	if (nodeck(ef, parent) != 0)
+	{
+		exfat_put_node(ef, parent);
 		return;
+	}
 
 	path_length = strlen(path);
 	entry_path = malloc(path_length + 1 + UTF8_BYTES(EXFAT_NAME_MAX) + 1);
 	if (entry_path == NULL)
 	{
+		exfat_put_node(ef, parent);
 		exfat_error("out of memory");
 		return;
 	}
