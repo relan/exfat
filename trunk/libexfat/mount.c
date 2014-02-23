@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <inttypes.h>
 #include <unistd.h>
 #include <sys/types.h>
 
@@ -249,6 +250,18 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		exfat_close(ef->dev);
 		exfat_error("too big cluster size: 2^%d",
 				(int) ef->sb->sector_bits + (int) ef->sb->spc_bits);
+		free(ef->sb);
+		return -EIO;
+	}
+	if (le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb) >
+			exfat_get_size(ef->dev))
+	{
+		free(ef->zero_cluster);
+		exfat_error("file system is larger than underlying device: "
+				"%"PRIu64" > %"PRIu64,
+				le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb),
+				exfat_get_size(ef->dev));
+		exfat_close(ef->dev);
 		free(ef->sb);
 		return -EIO;
 	}
