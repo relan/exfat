@@ -44,28 +44,44 @@ struct exfat_node* exfat_get_node(struct exfat_node* node)
 
 void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 {
-	if (--node->references < 0)
+	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+
+	--node->references;
+	if (node->references < 0)
 	{
-		char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
 		exfat_bug("reference counter of `%s' is below zero", buffer);
 	}
-
-	if (node->references == 0)
+	else if (node->references == 0 && node != ef->root)
 	{
-		/* FIXME handle I/O error */
-		if (exfat_flush_node(ef, node) != 0)
-			exfat_bug("node flush failed");
-		if (node->flags & EXFAT_ATTRIB_UNLINKED)
+		if (node->flags & EXFAT_ATTRIB_DIRTY)
 		{
-			/* free all clusters and node structure itself */
-			exfat_truncate(ef, node, 0, true);
-			free(node);
+			exfat_get_name(node, buffer, sizeof(buffer) - 1);
+			exfat_warn("dirty node `%s' with zero references", buffer);
 		}
-		/* FIXME handle I/O error */
-		if (exfat_flush(ef) != 0)
-			exfat_bug("flush failed");
 	}
+}
+
+/**
+ * This function must be called on rmdir and unlink (after the last
+ * exfat_put_node()) to free clusters.
+ */
+int exfat_cleanup_node(struct exfat* ef, struct exfat_node* node)
+{
+	int rc = 0;
+
+	if (node->references != 0)
+		exfat_bug("unable to cleanup a node with %d references",
+				node->references);
+
+	if (node->flags & EXFAT_ATTRIB_UNLINKED)
+	{
+		/* free all clusters and node structure itself */
+		rc = exfat_truncate(ef, node, 0, true);
+		/* free the node even in case of error or its memory will be lost */
+		free(node);
+	}
+	return rc;
 }
 
 /**
@@ -525,6 +541,8 @@ static void tree_detach(struct exfat_node* node)
 
 static void reset_cache(struct exfat* ef, struct exfat_node* node)
 {
+	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+
 	while (node->child)
 	{
 		struct exfat_node* p = node->child;
@@ -535,10 +553,14 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 	node->flags &= ~EXFAT_ATTRIB_CACHED;
 	if (node->references != 0)
 	{
-		char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
 		exfat_warn("non-zero reference counter (%d) for `%s'",
 				node->references, buffer);
+	}
+	if (node != ef->root && (node->flags & EXFAT_ATTRIB_DIRTY))
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_bug("node `%s' is dirty", buffer);
 	}
 	while (node->references)
 		exfat_put_node(ef, node);
@@ -731,9 +753,15 @@ static int delete(struct exfat* ef, struct exfat_node* node)
 	exfat_update_mtime(parent);
 	tree_detach(node);
 	rc = shrink_directory(ef, parent, deleted_offset);
-	exfat_put_node(ef, parent);
-	/* file clusters will be freed when node reference counter becomes 0 */
 	node->flags |= EXFAT_ATTRIB_UNLINKED;
+	if (rc != 0)
+	{
+		exfat_flush_node(ef, parent);
+		exfat_put_node(ef, parent);
+		return rc;
+	}
+	rc = exfat_flush_node(ef, parent);
+	exfat_put_node(ef, parent);
 	return rc;
 }
 
@@ -746,10 +774,14 @@ int exfat_unlink(struct exfat* ef, struct exfat_node* node)
 
 int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
 {
+	int rc;
+
 	if (!(node->flags & EXFAT_ATTRIB_DIR))
 		return -ENOTDIR;
 	/* check that directory is empty */
-	exfat_cache_directory(ef, node);
+	rc = exfat_cache_directory(ef, node);
+	if (rc != 0)
+		return rc;
 	if (node->child)
 		return -ENOTEMPTY;
 	return delete(ef, node);
@@ -909,6 +941,12 @@ static int create(struct exfat* ef, const char* path, uint16_t attrib)
 		return rc;
 	}
 	rc = write_entry(ef, dir, name, cluster, offset, attrib);
+	if (rc != 0)
+	{
+		exfat_put_node(ef, dir);
+		return rc;
+	}
+	rc = exfat_flush_node(ef, dir);
 	exfat_put_node(ef, dir);
 	return rc;
 }
@@ -931,6 +969,13 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 		return 0;
 	/* directories always have at least one cluster */
 	rc = exfat_truncate(ef, node, CLUSTER_SIZE(*ef->sb), true);
+	if (rc != 0)
+	{
+		delete(ef, node);
+		exfat_put_node(ef, node);
+		return rc;
+	}
+	rc = exfat_flush_node(ef, node);
 	if (rc != 0)
 	{
 		delete(ef, node);
