@@ -193,6 +193,7 @@ size_t utf16_length(const le16_t* str);
 
 struct exfat_node* exfat_get_node(struct exfat_node* node);
 void exfat_put_node(struct exfat* ef, struct exfat_node* node);
+int exfat_cleanup_node(struct exfat* ef, struct exfat_node* node);
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir);
 void exfat_reset_cache(struct exfat* ef);
 int exfat_flush_node(struct exfat* ef, struct exfat_node* node);

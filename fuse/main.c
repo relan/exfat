@@ -83,6 +83,13 @@ static int fuse_exfat_truncate(const char* path, off_t size)
 		return rc;
 
 	rc = exfat_truncate(&ef, node, size, true);
+	if (rc != 0)
+	{
+		exfat_flush_node(&ef, node);	/* ignore return code */
+		exfat_put_node(&ef, node);
+		return rc;
+	}
+	rc = exfat_flush_node(&ef, node);
 	exfat_put_node(&ef, node);
 	return rc;
 }
@@ -151,7 +158,18 @@ static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 {
 	exfat_debug("[%s] %s", __func__, path);
 	exfat_put_node(&ef, get_node(fi));
-	return 0;
+	return 0; /* FUSE ignores this return value */
+}
+
+static int fuse_exfat_flush(const char* path, struct fuse_file_info* fi)
+{
+	/*
+	   This handler is called by FUSE on close(). FUSE also deals with removals
+	   of open files, so we don't free clusters here but only on rmdir and
+	   unlink.
+	*/
+	exfat_debug("[%s] %s", __func__, path);
+	return exfat_flush_node(&ef, get_node(fi));
 }
 
 static int fuse_exfat_fsync(const char* path, int datasync,
@@ -160,12 +178,6 @@ static int fuse_exfat_fsync(const char* path, int datasync,
 	int rc;
 
 	exfat_debug("[%s] %s", __func__, path);
-	if (get_node(fi) != NULL)
-	{
-		rc = exfat_flush_node(&ef, get_node(fi));
-		if (rc != 0)
-			return rc;
-	}
 	rc = exfat_flush(&ef);
 	if (rc != 0)
 		return rc;
@@ -209,7 +221,9 @@ static int fuse_exfat_unlink(const char* path)
 
 	rc = exfat_unlink(&ef, node);
 	exfat_put_node(&ef, node);
-	return rc;
+	if (rc != 0)
+		return rc;
+	return exfat_cleanup_node(&ef, node);
 }
 
 static int fuse_exfat_rmdir(const char* path)
@@ -225,7 +239,9 @@ static int fuse_exfat_rmdir(const char* path)
 
 	rc = exfat_rmdir(&ef, node);
 	exfat_put_node(&ef, node);
-	return rc;
+	if (rc != 0)
+		return rc;
+	return exfat_cleanup_node(&ef, node);
 }
 
 static int fuse_exfat_mknod(const char* path, mode_t mode, dev_t dev)
@@ -333,6 +349,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.readdir	= fuse_exfat_readdir,
 	.open		= fuse_exfat_open,
 	.release	= fuse_exfat_release,
+	.flush		= fuse_exfat_flush,
 	.fsync		= fuse_exfat_fsync,
 	.fsyncdir	= fuse_exfat_fsync,
 	.read		= fuse_exfat_read,
