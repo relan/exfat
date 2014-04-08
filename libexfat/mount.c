@@ -343,11 +343,12 @@ static void finalize_super_block(struct exfat* ef)
 		ef->sb->allocated_percent = ((total - free) * 100 + total / 2) / total;
 	}
 
-	commit_super_block(ef);
+	commit_super_block(ef);	/* ignore return code */
 }
 
 void exfat_unmount(struct exfat* ef)
 {
+	exfat_flush(ef);	/* ignore return code */
 	exfat_put_node(ef, ef->root);
 	exfat_reset_cache(ef);
 	free(ef->root);

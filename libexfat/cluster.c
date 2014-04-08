@@ -136,8 +136,23 @@ static cluster_t find_bit_and_set(bitmap_t* bitmap, size_t start, size_t end)
 	return EXFAT_CLUSTER_END;
 }
 
+static int flush_nodes(struct exfat* ef, struct exfat_node* node)
+{
+	struct exfat_node* p;
+
+	for (p = node->child; p != NULL; p = p->next)
+	{
+		int rc = flush_nodes(ef, p);
+		if (rc != 0)
+			return rc;
+	}
+	return exfat_flush_node(ef, node);
+}
+
 int exfat_flush(struct exfat* ef)
 {
+	int rc = flush_nodes(ef, ef->root);
+
 	if (ef->cmap.dirty)
 	{
 		if (exfat_pwrite(ef->dev, ef->cmap.chunk,
@@ -149,7 +164,8 @@ int exfat_flush(struct exfat* ef)
 		}
 		ef->cmap.dirty = false;
 	}
-	return 0;
+
+	return rc;
 }
 
 static bool set_next_cluster(const struct exfat* ef, bool contiguous,
@@ -316,6 +332,7 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 	{
 		previous = node->start_cluster;
 		node->start_cluster = EXFAT_CLUSTER_FREE;
+		node->flags |= EXFAT_ATTRIB_DIRTY;
 	}
 	node->fptr_index = 0;
 	node->fptr_cluster = node->start_cluster;
