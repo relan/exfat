@@ -156,7 +156,14 @@ static int fuse_exfat_open(const char* path, struct fuse_file_info* fi)
 
 static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 {
+	/*
+	   This handler is called by FUSE on close() syscall. If the FUSE
+	   implementation does not call flush handler, we will flush node here.
+	   But in this case we will not be able to return an error to the caller.
+	   See fuse_exfat_flush() below.
+	*/
 	exfat_debug("[%s] %s", __func__, path);
+ 	exfat_flush_node(&ef, get_node(fi));
 	exfat_put_node(&ef, get_node(fi));
 	return 0; /* FUSE ignores this return value */
 }
@@ -164,9 +171,10 @@ static int fuse_exfat_release(const char* path, struct fuse_file_info* fi)
 static int fuse_exfat_flush(const char* path, struct fuse_file_info* fi)
 {
 	/*
-	   This handler is called by FUSE on close(). FUSE also deals with removals
-	   of open files, so we don't free clusters here but only on rmdir and
-	   unlink.
+	   This handler may be called by FUSE on close() syscall. FUSE also deals
+	   with removals of open files, so we don't free clusters on close but
+	   only on rmdir and unlink. If the FUSE implementation does not call this
+	   handler we will flush node on release. See fuse_exfat_relase() above.
 	*/
 	exfat_debug("[%s] %s", __func__, path);
 	return exfat_flush_node(&ef, get_node(fi));
