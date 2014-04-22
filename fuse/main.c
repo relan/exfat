@@ -274,8 +274,9 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 		return rc;
 
 	exfat_utimes(node, tv);
+	rc = exfat_flush_node(&ef, node);
 	exfat_put_node(&ef, node);
-	return 0;
+	return rc;
 }
 
 static int fuse_exfat_chmod(const char* path, mode_t mode)
