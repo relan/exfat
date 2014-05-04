@@ -323,7 +323,7 @@ static int fuse_exfat_statfs(const char* path, struct statvfs* sfs)
 	   b) no such thing as inode;
 	   So here we assume that inode = cluster.
 	*/
-	sfs->f_files = (sfs->f_blocks - sfs->f_bfree) >> ef.sb->spc_bits;
+	sfs->f_files = le32_to_cpu(ef.sb->cluster_count);
 	sfs->f_favail = sfs->f_bfree >> ef.sb->spc_bits;
 	sfs->f_ffree = sfs->f_bavail;
 
