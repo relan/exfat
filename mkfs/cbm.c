@@ -62,6 +62,7 @@ static int cbm_write(struct exfat_dev* dev)
 			BMAP_SET(bitmap, i);
 	if (exfat_write(dev, bitmap, bitmap_size) < 0)
 	{
+		free(bitmap);
 		exfat_error("failed to write bitmap of %zu bytes", bitmap_size);
 		return 1;
 	}
