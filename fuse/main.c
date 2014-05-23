@@ -379,6 +379,7 @@ static struct fuse_operations fuse_exfat_ops =
 static char* add_option(char* options, const char* name, const char* value)
 {
 	size_t size;
+	char* optionsf = options;
 
 	if (value)
 		size = strlen(options) + strlen(name) + strlen(value) + 3;
@@ -388,6 +389,7 @@ static char* add_option(char* options, const char* name, const char* value)
 	options = realloc(options, size);
 	if (options == NULL)
 	{
+		free(optionsf);
 		exfat_error("failed to reallocate options string");
 		return NULL;
 	}
