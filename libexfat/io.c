@@ -65,17 +65,10 @@ static int open_rw(const char* spec)
 	int ro = 0;
 
 	/*
-	   This code is needed because after "blockdev --setro" kernel still
+	   This ioctl is needed because after "blockdev --setro" kernel still
 	   allows to open the device in read-write mode but fails writes.
 	*/
-	if (fd == -1)
-		return -1;
-	if (ioctl(fd, BLKROGET, &ro) != 0)
-	{
-		close(fd);
-		return -1;
-	}
-	if (ro)
+	if (fd != -1 && ioctl(fd, BLKROGET, &ro) == 0 && ro)
 	{
 		close(fd);
 		errno = EROFS;
