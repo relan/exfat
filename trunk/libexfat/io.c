@@ -100,7 +100,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		if (dev->fd == -1)
 		{
 			free(dev);
-			exfat_error("failed to open `%s' in read-only mode", spec);
+			exfat_error("failed to open '%s' in read-only mode", spec);
 			return NULL;
 		}
 		dev->mode = EXFAT_MODE_RO;
@@ -110,7 +110,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		if (dev->fd == -1)
 		{
 			free(dev);
-			exfat_error("failed to open `%s' in read-write mode", spec);
+			exfat_error("failed to open '%s' in read-write mode", spec);
 			return NULL;
 		}
 		dev->mode = EXFAT_MODE_RW;
@@ -126,11 +126,11 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		if (dev->fd != -1)
 		{
 			dev->mode = EXFAT_MODE_RO;
-			exfat_warn("`%s' is write-protected, mounting read-only", spec);
+			exfat_warn("'%s' is write-protected, mounting read-only", spec);
 			break;
 		}
 		free(dev);
-		exfat_error("failed to open `%s'", spec);
+		exfat_error("failed to open '%s'", spec);
 		return NULL;
 	}
 
@@ -138,7 +138,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 	{
 		close(dev->fd);
 		free(dev);
-		exfat_error("failed to fstat `%s'", spec);
+		exfat_error("failed to fstat '%s'", spec);
 		return NULL;
 	}
 	if (!S_ISBLK(stbuf.st_mode) &&
@@ -147,7 +147,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 	{
 		close(dev->fd);
 		free(dev);
-		exfat_error("`%s' is neither a device, nor a regular file", spec);
+		exfat_error("'%s' is neither a device, nor a regular file", spec);
 		return NULL;
 	}
 
@@ -208,14 +208,14 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		{
 			close(dev->fd);
 			free(dev);
-			exfat_error("failed to get size of `%s'", spec);
+			exfat_error("failed to get size of '%s'", spec);
 			return NULL;
 		}
 		if (exfat_seek(dev, 0, SEEK_SET) == -1)
 		{
 			close(dev->fd);
 			free(dev);
-			exfat_error("failed to seek to the beginning of `%s'", spec);
+			exfat_error("failed to seek to the beginning of '%s'", spec);
 			return NULL;
 		}
 	}

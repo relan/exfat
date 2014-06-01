@@ -45,7 +45,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 			char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 
 			exfat_get_name(node, name, sizeof(name) - 1);
-			exfat_error("file `%s' has invalid cluster 0x%x", name, c);
+			exfat_error("file '%s' has invalid cluster 0x%x", name, c);
 			rc = 1;
 			break;
 		}
@@ -54,7 +54,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 			char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 
 			exfat_get_name(node, name, sizeof(name) - 1);
-			exfat_error("cluster 0x%x of file `%s' is not allocated", c, name);
+			exfat_error("cluster 0x%x of file '%s' is not allocated", c, name);
 			rc = 1;
 		}
 		c = exfat_next_cluster(ef, node, c);
@@ -72,9 +72,9 @@ static void dirck(struct exfat* ef, const char* path)
 	char* entry_path;
 
 	if (exfat_lookup(ef, &parent, path) != 0)
-		exfat_bug("directory `%s' is not found", path);
+		exfat_bug("directory '%s' is not found", path);
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
-		exfat_bug("`%s' is not a directory (0x%x)", path, parent->flags);
+		exfat_bug("'%s' is not a directory (0x%x)", path, parent->flags);
 	if (nodeck(ef, parent) != 0)
 	{
 		exfat_put_node(ef, parent);

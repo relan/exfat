@@ -224,7 +224,7 @@ int main(int argc, char* argv[])
 			spc_bits = logarithm2(atoi(optarg));
 			if (spc_bits < 0)
 			{
-				exfat_error("invalid option value: `%s'", optarg);
+				exfat_error("invalid option value: '%s'", optarg);
 				return 1;
 			}
 			break;
