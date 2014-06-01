@@ -50,14 +50,14 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 	if (node->references < 0)
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_bug("reference counter of `%s' is below zero", buffer);
+		exfat_bug("reference counter of '%s' is below zero", buffer);
 	}
 	else if (node->references == 0 && node != ef->root)
 	{
 		if (node->flags & EXFAT_ATTRIB_DIRTY)
 		{
 			exfat_get_name(node, buffer, sizeof(buffer) - 1);
-			exfat_warn("dirty node `%s' with zero references", buffer);
+			exfat_warn("dirty node '%s' with zero references", buffer);
 		}
 	}
 }
@@ -205,7 +205,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	if (actual_checksum != reference_checksum)
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_error("`%s' has invalid checksum (%#hx != %#hx)", buffer,
+		exfat_error("'%s' has invalid checksum (%#hx != %#hx)", buffer,
 				actual_checksum, reference_checksum);
 		return false;
 	}
@@ -217,7 +217,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	if (real_size > node->size)
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_error("`%s' has real size (%"PRIu64") greater than size "
+		exfat_error("'%s' has real size (%"PRIu64") greater than size "
 				"(%"PRIu64")", buffer, real_size, node->size);
 		return false;
 	}
@@ -554,13 +554,13 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 	if (node->references != 0)
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_warn("non-zero reference counter (%d) for `%s'",
+		exfat_warn("non-zero reference counter (%d) for '%s'",
 				node->references, buffer);
 	}
 	if (node != ef->root && (node->flags & EXFAT_ATTRIB_DIRTY))
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_bug("node `%s' is dirty", buffer);
+		exfat_bug("node '%s' is dirty", buffer);
 	}
 	while (node->references)
 		exfat_put_node(ef, node);

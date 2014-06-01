@@ -111,7 +111,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	if (!(parent->flags & EXFAT_ATTRIB_DIR))
 	{
 		exfat_put_node(&ef, parent);
-		exfat_error("`%s' is not a directory (0x%x)", path, parent->flags);
+		exfat_error("'%s' is not a directory (0x%x)", path, parent->flags);
 		return -ENOTDIR;
 	}
 
@@ -122,7 +122,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	if (rc != 0)
 	{
 		exfat_put_node(&ef, parent);
-		exfat_error("failed to open directory `%s'", path);
+		exfat_error("failed to open directory '%s'", path);
 		return rc;
 	}
 	while ((node = exfat_readdir(&ef, &it)))
