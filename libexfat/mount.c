@@ -98,7 +98,7 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->noatime = match_option(options, "noatime");
 }
 
-static int verify_vbr_checksum(struct exfat_dev* dev, void* sector,
+static bool verify_vbr_checksum(struct exfat_dev* dev, void* sector,
 		off_t sector_size)
 {
 	uint32_t vbr_checksum;
@@ -107,7 +107,7 @@ static int verify_vbr_checksum(struct exfat_dev* dev, void* sector,
 	if (exfat_pread(dev, sector, sector_size, 0) < 0)
 	{
 		exfat_error("failed to read boot sector");
-		return 1;
+		return false;
 	}
 	vbr_checksum = exfat_vbr_start_checksum(sector, sector_size);
 	for (i = 1; i < 11; i++)
@@ -115,7 +115,7 @@ static int verify_vbr_checksum(struct exfat_dev* dev, void* sector,
 		if (exfat_pread(dev, sector, sector_size, i * sector_size) < 0)
 		{
 			exfat_error("failed to read VBR sector");
-			return 1;
+			return false;
 		}
 		vbr_checksum = exfat_vbr_add_checksum(sector, sector_size,
 				vbr_checksum);
@@ -123,16 +123,16 @@ static int verify_vbr_checksum(struct exfat_dev* dev, void* sector,
 	if (exfat_pread(dev, sector, sector_size, i * sector_size) < 0)
 	{
 		exfat_error("failed to read VBR checksum sector");
-		return 1;
+		return false;
 	}
 	for (i = 0; i < sector_size / sizeof(vbr_checksum); i++)
 		if (le32_to_cpu(((const le32_t*) sector)[i]) != vbr_checksum)
 		{
 			exfat_error("invalid VBR checksum 0x%x (expected 0x%x)",
 					le32_to_cpu(((const le32_t*) sector)[i]), vbr_checksum);
-			return 1;
+			return false;
 		}
-	return 0;
+	return true;
 }
 
 static int commit_super_block(const struct exfat* ef)
@@ -217,8 +217,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -ENOMEM;
 	}
 	/* use zero_cluster as a temporary buffer for VBR checksum verification */
-	if (verify_vbr_checksum(ef->dev, ef->zero_cluster,
-			SECTOR_SIZE(*ef->sb)) != 0)
+	if (!verify_vbr_checksum(ef->dev, ef->zero_cluster, SECTOR_SIZE(*ef->sb)))
 	{
 		free(ef->zero_cluster);
 		exfat_close(ef->dev);
