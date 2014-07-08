@@ -124,7 +124,7 @@ static void closedir(struct iterator* it)
 	it->chunk = NULL;
 }
 
-static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
+static bool fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 		struct iterator* it)
 {
 	/* move iterator to the next entry in the directory */
@@ -135,23 +135,23 @@ static int fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 		/* reached the end of directory; the caller should check this
 		   condition too */
 		if (it->offset >= parent->size)
-			return 0;
+			return true;
 		it->cluster = exfat_next_cluster(ef, parent, it->cluster);
 		if (CLUSTER_INVALID(it->cluster))
 		{
 			exfat_error("invalid cluster 0x%x while reading directory",
 					it->cluster);
-			return 1;
+			return false;
 		}
 		if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
 				exfat_c2o(ef, it->cluster)) < 0)
 		{
 			exfat_error("failed to read the next directory cluster %#x",
 					it->cluster);
-			return 1;
+			return false;
 		}
 	}
-	return 0;
+	return true;
 }
 
 static struct exfat_node* allocate_node(void)
@@ -355,7 +355,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				if (!check_node(*node, actual_checksum, reference_checksum,
 						valid_size))
 					goto error;
-				if (fetch_next_entry(ef, parent, it) != 0)
+				if (!fetch_next_entry(ef, parent, it))
 					goto error;
 				return 0; /* entry completed */
 			}
@@ -462,7 +462,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 		}
 
-		if (fetch_next_entry(ef, parent, it) != 0)
+		if (!fetch_next_entry(ef, parent, it))
 			goto error;
 	}
 	/* we never reach here */
@@ -832,7 +832,7 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 				return rc;
 			}
 		}
-		if (fetch_next_entry(ef, dir, &it) != 0)
+		if (!fetch_next_entry(ef, dir, &it))
 		{
 			closedir(&it);
 			return -EIO;
@@ -1192,7 +1192,7 @@ static int find_label(struct exfat* ef, cluster_t* cluster, off_t* offset)
 			return 0;
 		}
 
-		if (fetch_next_entry(ef, ef->root, &it) != 0)
+		if (!fetch_next_entry(ef, ef->root, &it))
 		{
 			closedir(&it);
 			return -EIO;
