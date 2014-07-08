@@ -1,3 +1,24 @@
+1.1.0 (2014-07-08)
+
+* Relicensed the project from GPLv3+ to GPLv2+.
+* OpenBSD support [Helg Bredow].
+* Improved I/O errors handling.
+* Implemented fsync() and fsyncdir().
+* Fixed crash on Mac OS X 10.5 caused by non-standard use of realpath(). Also
+fixed TrueCrypt disks unmounting.
+* Avoid extra erase on writes to the end of a file. This should improve linear
+write speed.
+* Allow arbitrary changing of lower 9 bits of mode. Allow owner/group changing
+to the same owner/group. This fixes rsync.
+* Fixed buffers overflows when handling lengthy file names.
+* Fixed "real size does not equal to size" error on volumes with pagefile.sys.
+* Fixed negative IUsed in "df -i" output.
+
+1.0.1 (2013-02-02)
+
+* Fixed unexpected removal of a directory if it is moved into itself.
+* Fixed "Operation not permitted" error on reading an empty file.
+
 1.0.0 (2013-01-19)
 
 * Fixed crash when renaming a file within a single directory and a new name
