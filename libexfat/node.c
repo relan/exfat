@@ -194,7 +194,7 @@ static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
 }
 
 static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
-		uint16_t reference_checksum, uint64_t real_size)
+		uint16_t reference_checksum, uint64_t valid_size)
 {
 	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 
@@ -211,14 +211,16 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	}
 
 	/*
-	   It's unclear what is real_size field needed for. It usually equals to
-	   the size but may contain any value less than size (including 0).
+	   exFAT does not support sparse files but allows files with uninitialized
+	   clusters. For such files valid_size means initialized data size and
+	   cannot be greater than file size. See SetFileValidData() function
+	   description in MSDN.
 	*/
-	if (real_size > node->size)
+	if (valid_size > node->size)
 	{
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
-		exfat_error("'%s' has real size (%"PRIu64") greater than size "
-				"(%"PRIu64")", buffer, real_size, node->size);
+		exfat_error("'%s' has valid size (%"PRIu64") greater than size "
+				"(%"PRIu64")", buffer, valid_size, node->size);
 		return false;
 	}
 
@@ -244,7 +246,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 	le16_t* namep = NULL;
 	uint16_t reference_checksum = 0;
 	uint16_t actual_checksum = 0;
-	uint64_t real_size = 0;
+	uint64_t valid_size = 0;
 
 	*node = NULL;
 
@@ -315,7 +317,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			}
 			init_node_meta2(*node, meta2);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
-			real_size = le64_to_cpu(meta2->real_size);
+			valid_size = le64_to_cpu(meta2->valid_size);
 			/* empty files must be marked as non-contiguous */
 			if ((*node)->size == 0 && (meta2->flags & EXFAT_FLAG_CONTIGUOUS))
 			{
@@ -351,7 +353,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (--continuations == 0)
 			{
 				if (!check_node(*node, actual_checksum, reference_checksum,
-						real_size))
+						valid_size))
 					goto error;
 				if (fetch_next_entry(ef, parent, it) != 0)
 					goto error;
@@ -630,7 +632,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	}
 	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
 		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
-	meta2.size = meta2.real_size = cpu_to_le64(node->size);
+	meta2.size = meta2.valid_size = cpu_to_le64(node->size);
 	meta2.start_cluster = cpu_to_le32(node->start_cluster);
 	meta2.flags = EXFAT_FLAG_ALWAYS1;
 	/* empty files must not be marked as contiguous */
