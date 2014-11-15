@@ -1,6 +1,7 @@
 #summary Source code downloads
 
 || *Date* || *Filename* || *Size* || *SHA-1* ||
+|| 2014-11-15 || [https://docs.google.com/uc?export=download&id=0B7CLI-REKbE3UzNtSkRvdHBpdjQ exfat-utils-1.1.1.tar.gz] || 48K || ddf0819c27aeb3eaae5aae0423d4dafc54d477da ||
 || 2014-07-08 || [https://docs.google.com/uc?export=download&id=0B7CLI-REKbE3VTdaa0EzTkhYdU0 fuse-exfat-1.1.0.tar.gz] || 36K || 060560f74dbce4dc947c7e658e75fdf339bc10ff ||
 || 2014-07-08 || [https://docs.google.com/uc?export=download&id=0B7CLI-REKbE3bnR2WHowZXNtUVU exfat-utils-1.1.0.tar.gz] || 48K || 2a46552b96c6ae77078ffc30c919b63c2064f572 ||
 || 2013-02-02 || [https://exfat.googlecode.com/files/fuse-exfat-1.0.1.tar.gz fuse-exfat-1.0.1.tar.gz] || 39K || e24d2322797c26fb3bff5952c23f52f3274e887f ||
