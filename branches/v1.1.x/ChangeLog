@@ -1,3 +1,7 @@
+1.1.1 (2014-11-15)
+
+* Fixed mkfs crash on some sectors-per-cluster (-s option) values.
+
 1.1.0 (2014-07-08)
 
 * Relicensed the project from GPLv3+ to GPLv2+.
