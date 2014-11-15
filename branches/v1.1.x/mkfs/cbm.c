@@ -45,7 +45,7 @@ static int cbm_write(struct exfat_dev* dev)
 			DIV_ROUND_UP(cbm.get_size(), get_cluster_size()) +
 			DIV_ROUND_UP(uct.get_size(), get_cluster_size()) +
 			DIV_ROUND_UP(rootdir.get_size(), get_cluster_size());
-	size_t bitmap_size = DIV_ROUND_UP(allocated_clusters, CHAR_BIT);
+	size_t bitmap_size = ROUND_UP(allocated_clusters, CHAR_BIT);
 	bitmap_t* bitmap = malloc(BMAP_SIZE(bitmap_size));
 	size_t i;
 
@@ -57,13 +57,14 @@ static int cbm_write(struct exfat_dev* dev)
 	}
 	memset(bitmap, 0, BMAP_SIZE(bitmap_size));
 
-	for (i = 0; i < bitmap_size * CHAR_BIT; i++)
+	for (i = 0; i < bitmap_size; i++)
 		if (i < allocated_clusters)
 			BMAP_SET(bitmap, i);
-	if (exfat_write(dev, bitmap, bitmap_size) < 0)
+	if (exfat_write(dev, bitmap, bitmap_size / CHAR_BIT) < 0)
 	{
 		free(bitmap);
-		exfat_error("failed to write bitmap of %zu bytes", bitmap_size);
+		exfat_error("failed to write bitmap of %zu bytes",
+				bitmap_size / CHAR_BIT);
 		return 1;
 	}
 	free(bitmap);
