@@ -41,7 +41,7 @@
 #endif
 
 const char* default_options = "ro_fallback,allow_other,blkdev,big_writes,"
-		"defer_permissions";
+		"default_permissions";
 
 struct exfat ef;
 

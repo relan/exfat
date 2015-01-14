@@ -84,13 +84,11 @@ static bool match_option(const char* options, const char* option_name)
 
 static void parse_options(struct exfat* ef, const char* options)
 {
-	int sys_umask = umask(0);
 	int opt_umask;
 
-	umask(sys_umask); /* restore umask */
-	opt_umask = get_int_option(options, "umask", 8, sys_umask);
-	ef->dmask = get_int_option(options, "dmask", 8, opt_umask) & 0777;
-	ef->fmask = get_int_option(options, "fmask", 8, opt_umask) & 0777;
+	opt_umask = get_int_option(options, "umask", 8, 0);
+	ef->dmask = get_int_option(options, "dmask", 8, opt_umask);
+	ef->fmask = get_int_option(options, "fmask", 8, opt_umask);
 
 	ef->uid = get_int_option(options, "uid", 10, geteuid());
 	ef->gid = get_int_option(options, "gid", 10, getegid());
