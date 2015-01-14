@@ -34,7 +34,9 @@
 #include <pwd.h>
 #include <unistd.h>
 
-#define exfat_debug(format, ...)
+#ifndef DEBUG
+	#define exfat_debug(format, ...)
+#endif
 
 #if !defined(FUSE_VERSION) || (FUSE_VERSION < 26)
 	#error FUSE 2.6 or later is required
