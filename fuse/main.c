@@ -55,6 +55,7 @@ static struct exfat_node* get_node(const struct fuse_file_info* fi)
 static void set_node(struct fuse_file_info* fi, struct exfat_node* node)
 {
 	fi->fh = (uint64_t) (size_t) node;
+	fi->keep_cache = 1;
 }
 
 static int fuse_exfat_getattr(const char* path, struct stat* stbuf)
@@ -152,7 +153,24 @@ static int fuse_exfat_open(const char* path, struct fuse_file_info* fi)
 	if (rc != 0)
 		return rc;
 	set_node(fi, node);
-	fi->keep_cache = 1;
+	return 0;
+}
+
+static int fuse_exfat_create(const char* path, mode_t mode,
+		struct fuse_file_info* fi)
+{
+	struct exfat_node* node;
+	int rc;
+
+	exfat_debug("[%s] %s 0%ho", __func__, path, mode);
+
+	rc = exfat_mknod(&ef, path);
+	if (rc != 0)
+		return rc;
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+	set_node(fi, node);
 	return 0;
 }
 
@@ -359,6 +377,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.truncate	= fuse_exfat_truncate,
 	.readdir	= fuse_exfat_readdir,
 	.open		= fuse_exfat_open,
+	.create		= fuse_exfat_create,
 	.release	= fuse_exfat_release,
 	.flush		= fuse_exfat_flush,
 	.fsync		= fuse_exfat_fsync,
