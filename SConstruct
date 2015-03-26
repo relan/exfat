@@ -88,13 +88,6 @@ if not env.GetOption('clean'):
 '''
 		Exit(1)
 
-	if not conf.CheckTypeSize('off_t', '#include <sys/types.h>', 'C', 8):
-		print '''
-	The size of off_t type must be 64 bits. File systems larger than
-	2 GB will be corrupted with 32-bit off_t.
-'''
-		Exit(1)
-
 	env = conf.Finish()
 
 

@@ -61,6 +61,10 @@
 #define BMAP_CLR(bitmap, index) \
 	((bitmap)[BMAP_BLOCK(index)] &= ~BMAP_MASK(index))
 
+/* The size of off_t type must be 64 bits. File systems larger than 2 GB will
+   be corrupted with 32-bit off_t. */
+STATIC_ASSERT(sizeof(off_t) == 8);
+
 struct exfat_node
 {
 	struct exfat_node* parent;
