@@ -72,6 +72,7 @@ if not env.GetOption('clean'):
 		conf.env.Append(CPPPATH = ['/usr/local/include/osxfuse'])
 		conf.env.Append(CFLAGS    = '-mmacosx-version-min=10.5')
 		conf.env.Append(LINKFLAGS = '-mmacosx-version-min=10.5')
+		conf.env.Append(LIBPATH = ['/usr/local/lib'])
 		libfuse = 'osxfuse_i64'
 
 	# FreeBSD does not support block devices, only raw devices. Ublio is
