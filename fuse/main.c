@@ -447,6 +447,11 @@ static char* add_fsname_option(char* options, const char* spec)
 	return options;
 }
 
+static char* add_ro_option(char* options, bool ro)
+{
+	return ro ? add_option(options, "ro", NULL) : options;
+}
+
 static char* add_user_option(char* options)
 {
 	struct passwd* pw;
@@ -476,9 +481,12 @@ static char* add_blksize_option(char* options, long cluster_size)
 	return add_option(options, "blksize", blksize);
 }
 
-static char* add_fuse_options(char* options, const char* spec)
+static char* add_fuse_options(char* options, const char* spec, bool ro)
 {
 	options = add_fsname_option(options, spec);
+	if (options == NULL)
+		return NULL;
+	options = add_ro_option(options, ro);
 	if (options == NULL)
 		return NULL;
 	options = add_user_option(options);
@@ -552,17 +560,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	if (ef.ro == -1) /* read-only fallback was used */
-	{
-		mount_options = add_option(mount_options, "ro", NULL);
-		if (mount_options == NULL)
-		{
-			exfat_unmount(&ef);
-			return 1;
-		}
-	}
-
-	mount_options = add_fuse_options(mount_options, spec);
+	mount_options = add_fuse_options(mount_options, spec, (ef.ro == -1));
 	if (mount_options == NULL)
 	{
 		exfat_unmount(&ef);
