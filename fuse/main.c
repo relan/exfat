@@ -499,17 +499,20 @@ static char* add_fuse_options(char* options, const char* spec, bool ro)
 	return options;
 }
 
+static int fuse_exfat_main(char* mount_options, char* mount_point)
+{
+	char* argv[] = {"exfat", "-s", "-o", mount_options, mount_point, NULL};
+	return fuse_main(sizeof(argv) / sizeof(argv[0]) - 1, argv,
+			&fuse_exfat_ops, NULL);
+}
+
 int main(int argc, char* argv[])
 {
-	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
-	struct fuse_args newfs_args = FUSE_ARGS_INIT(0, NULL);
 	const char* spec = NULL;
-	const char* mount_point = NULL;
+	char* mount_point = NULL;
 	char* mount_options;
-	int debug = 0;
-	struct fuse_chan* fc = NULL;
-	struct fuse* fh = NULL;
 	int opt;
+	int rc;
 
 	printf("FUSE exfat %s\n", VERSION);
 
@@ -525,7 +528,9 @@ int main(int argc, char* argv[])
 		switch (opt)
 		{
 		case 'd':
-			debug = 1;
+			mount_options = add_option(mount_options, "debug", NULL);
+			if (mount_options == NULL)
+				return 1;
 			break;
 		case 'n':
 			break;
@@ -567,70 +572,9 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	/* create arguments for fuse_mount() */
-	if (fuse_opt_add_arg(&mount_args, "exfat") != 0 ||
-		fuse_opt_add_arg(&mount_args, "-o") != 0 ||
-		fuse_opt_add_arg(&mount_args, mount_options) != 0)
-	{
-		exfat_unmount(&ef);
-		free(mount_options);
-		return 1;
-	}
+	/* let FUSE do all its wizardry */
+	rc = fuse_exfat_main(mount_options, mount_point);
 
 	free(mount_options);
-
-	/* create FUSE mount point */
-	fc = fuse_mount(mount_point, &mount_args);
-	fuse_opt_free_args(&mount_args);
-	if (fc == NULL)
-	{
-		exfat_unmount(&ef);
-		return 1;
-	}
-
-	/* create arguments for fuse_new() */
-	if (fuse_opt_add_arg(&newfs_args, "") != 0 ||
-		(debug && fuse_opt_add_arg(&newfs_args, "-d") != 0))
-	{
-		fuse_unmount(mount_point, fc);
-		exfat_unmount(&ef);
-		return 1;
-	}
-
-	/* create new FUSE file system */
-	fh = fuse_new(fc, &newfs_args, &fuse_exfat_ops,
-			sizeof(struct fuse_operations), NULL);
-	fuse_opt_free_args(&newfs_args);
-	if (fh == NULL)
-	{
-		fuse_unmount(mount_point, fc);
-		exfat_unmount(&ef);
-		return 1;
-	}
-
-	/* exit session on HUP, TERM and INT signals and ignore PIPE signal */
-	if (fuse_set_signal_handlers(fuse_get_session(fh)) != 0)
-	{
-		fuse_unmount(mount_point, fc);
-		fuse_destroy(fh);
-		exfat_unmount(&ef);
-		exfat_error("failed to set signal handlers");
-		return 1;
-	}
-
-	/* go to background (unless "-d" option is passed) and run FUSE
-	   main loop */
-	if (fuse_daemonize(debug) == 0)
-	{
-		if (fuse_loop(fh) != 0)
-			exfat_error("FUSE loop failure");
-	}
-	else
-		exfat_error("failed to daemonize");
-
-	fuse_remove_signal_handlers(fuse_get_session(fh));
-	/* note that fuse_unmount() must be called BEFORE fuse_destroy() */
-	fuse_unmount(mount_point, fc);
-	fuse_destroy(fh);
-	return 0;
+	return rc;
 }
