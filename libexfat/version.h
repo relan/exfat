@@ -3,7 +3,7 @@
 	Version constants.
 
 	Free exFAT implementation.
-	Copyright (C) 2010-2014  Andrew Nayenko
+	Copyright (C) 2010-2015  Andrew Nayenko
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
