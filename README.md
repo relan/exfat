@@ -16,22 +16,27 @@ Most GNU/Linux distributions already have fuse-exfat and exfat-utils in their re
 To build this project under GNU/Linux you need to install the following packages:
 
 * git
-* scons
+* autoconf
+* automake
+* pkg-config
 * fuse-devel (or libfuse-dev)
 * gcc
+* make
 
 Get the source code, change directory and compile:
 
 ```
 git clone https://github.com/relan/exfat.git
 cd exfat
-scons
+autoreconf --install
+./configure --prefix=/usr
+make
 ```
 
 Then install driver and utilities:
 
 ```
-sudo scons install
+sudo make install
 ```
 
 # Mounting
