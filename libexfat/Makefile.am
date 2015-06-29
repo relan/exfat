@@ -35,5 +35,4 @@ libexfat_a_SOURCES = \
 	platform.h \
 	time.c \
 	utf.c \
-	utils.c \
-	version.h
+	utils.c

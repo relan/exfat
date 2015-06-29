@@ -153,8 +153,7 @@ int main(int argc, char* argv[])
 	bool sb_only = false;
 	bool used_sectors = false;
 
-	printf("dumpexfat %u.%u.%u\n",
-			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
+	printf("dumpexfat %s\n", VERSION);
 
 	while ((opt = getopt(argc, argv, "suV")) != -1)
 	{

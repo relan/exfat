@@ -27,7 +27,6 @@
 #include "config.h"
 #include "compiler.h"
 #include "exfatfs.h"
-#include "version.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>

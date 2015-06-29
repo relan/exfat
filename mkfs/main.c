@@ -204,8 +204,7 @@ int main(int argc, char* argv[])
 	uint64_t first_sector = 0;
 	struct exfat_dev* dev;
 
-	printf("mkexfatfs %u.%u.%u\n",
-			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
+	printf("mkexfatfs %s\n", VERSION);
 
 	while ((opt = getopt(argc, argv, "i:n:p:s:V")) != -1)
 	{

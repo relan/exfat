@@ -140,8 +140,7 @@ int main(int argc, char* argv[])
 	const char* spec = NULL;
 	struct exfat ef;
 
-	printf("exfatfsck %u.%u.%u\n",
-			EXFAT_VERSION_MAJOR, EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
+	printf("exfatfsck %s\n", VERSION);
 
 	while ((opt = getopt(argc, argv, "V")) != -1)
 	{

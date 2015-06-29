@@ -33,8 +33,7 @@ int main(int argc, char* argv[])
 	for (pp = argv + 1; *pp; pp++)
 		if (strcmp(*pp, "-V") == 0)
 		{
-			printf("exfatlabel %u.%u.%u\n", EXFAT_VERSION_MAJOR,
-					EXFAT_VERSION_MINOR, EXFAT_VERSION_PATCH);
+			printf("exfatlabel %s\n", VERSION);
 			puts("Copyright (C) 2011-2015  Andrew Nayenko");
 			return 0;
 		}
