@@ -23,8 +23,9 @@
 #ifndef BYTEORDER_H_INCLUDED
 #define BYTEORDER_H_INCLUDED
 
-#include <stdint.h>
 #include "platform.h"
+#include <stdint.h>
+#include <stddef.h>
 
 typedef struct { uint16_t __u16; } le16_t;
 typedef struct { uint32_t __u32; } le32_t;

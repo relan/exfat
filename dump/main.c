@@ -20,12 +20,12 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <exfat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include <exfat.h>
 
 static void print_generic_info(const struct exfat_super_block* sb)
 {

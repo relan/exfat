@@ -20,12 +20,12 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <limits.h>
-#include <string.h>
 #include "cbm.h"
 #include "fat.h"
 #include "uct.h"
 #include "rootdir.h"
+#include <limits.h>
+#include <string.h>
 
 static off_t cbm_alignment(void)
 {

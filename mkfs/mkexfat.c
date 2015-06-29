@@ -20,12 +20,12 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include "mkexfat.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
-#include "mkexfat.h"
 
 static int check_size(off_t volume_size)
 {

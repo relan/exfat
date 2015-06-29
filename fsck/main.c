@@ -20,10 +20,9 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <exfat.h>
 #include <stdio.h>
 #include <string.h>
-#include <exfat.h>
-#include <exfatfs.h>
 #include <inttypes.h>
 #include <unistd.h>
 

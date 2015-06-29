@@ -20,6 +20,13 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include "mkexfat.h"
+#include "vbr.h"
+#include "fat.h"
+#include "cbm.h"
+#include "uct.h"
+#include "rootdir.h"
+#include <exfat.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -27,13 +34,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
-#include <exfat.h>
-#include "mkexfat.h"
-#include "vbr.h"
-#include "fat.h"
-#include "cbm.h"
-#include "uct.h"
-#include "rootdir.h"
 
 const struct fs_object* objects[] =
 {

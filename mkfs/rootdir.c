@@ -20,11 +20,11 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <string.h>
 #include "rootdir.h"
 #include "uct.h"
 #include "cbm.h"
 #include "uctc.h"
+#include <string.h>
 
 static off_t rootdir_alignment(void)
 {

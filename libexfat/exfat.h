@@ -24,15 +24,16 @@
 #ifndef EXFAT_H_INCLUDED
 #define EXFAT_H_INCLUDED
 
+#include "config.h"
+#include "compiler.h"
+#include "exfatfs.h"
+#include "version.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "compiler.h"
-#include "exfatfs.h"
-#include "version.h"
 
 #define EXFAT_NAME_MAX 256
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000

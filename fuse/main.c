@@ -20,6 +20,7 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <exfat.h>
 #define FUSE_USE_VERSION 26
 #include <fuse.h>
 #include <errno.h>
@@ -27,7 +28,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <exfat.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <sys/types.h>

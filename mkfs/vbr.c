@@ -20,12 +20,12 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <string.h>
 #include "vbr.h"
 #include "fat.h"
 #include "cbm.h"
 #include "uct.h"
 #include "rootdir.h"
+#include <string.h>
 
 static off_t vbr_alignment(void)
 {

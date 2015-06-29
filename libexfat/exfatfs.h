@@ -24,6 +24,7 @@
 #define EXFATFS_H_INCLUDED
 
 #include "byteorder.h"
+#include "compiler.h"
 
 typedef uint32_t cluster_t;		/* cluster number */
 

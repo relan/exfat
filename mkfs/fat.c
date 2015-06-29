@@ -20,11 +20,11 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include <unistd.h>
 #include "fat.h"
 #include "cbm.h"
 #include "uct.h"
 #include "rootdir.h"
+#include <unistd.h>
 
 static off_t fat_alignment(void)
 {
