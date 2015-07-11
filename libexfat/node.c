@@ -454,11 +454,21 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 
 		default:
-			if (entry->type & EXFAT_ENTRY_VALID)
+			if (!(entry->type & EXFAT_ENTRY_VALID))
+				break; /* deleted entry, ignore it */
+			if (!(entry->type & EXFAT_ENTRY_OPTIONAL))
 			{
-				exfat_error("unknown entry type 0x%hhx", entry->type);
+				exfat_error("unknown entry type %#hhx", entry->type);
 				goto error;
 			}
+			/* optional entry, warn and skip */
+			exfat_warn("unknown entry type %#hhx", entry->type);
+			if (continuations == 0)
+			{
+				exfat_error("unexpected continuation");
+				goto error;
+			}
+			--continuations;
 			break;
 		}
 

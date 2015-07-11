@@ -69,6 +69,7 @@ STATIC_ASSERT(sizeof(struct exfat_super_block) == 512);
 
 #define EXFAT_ENTRY_VALID     0x80
 #define EXFAT_ENTRY_CONTINUED 0x40
+#define EXFAT_ENTRY_OPTIONAL  0x20
 
 #define EXFAT_ENTRY_BITMAP    (0x01 | EXFAT_ENTRY_VALID)
 #define EXFAT_ENTRY_UPCASE    (0x02 | EXFAT_ENTRY_VALID)
