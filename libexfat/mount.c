@@ -253,14 +253,12 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	if (le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb) >
 			exfat_get_size(ef->dev))
 	{
-		free(ef->zero_cluster);
-		exfat_error("file system is larger than underlying device: "
+		/* this can cause I/O errors later but we don't fail mounting to let
+		   user rescue data */
+		exfat_warn("file system is larger than underlying device: "
 				"%"PRIu64" > %"PRIu64,
 				le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb),
 				exfat_get_size(ef->dev));
-		exfat_close(ef->dev);
-		free(ef->sb);
-		return -EIO;
 	}
 
 	ef->root = malloc(sizeof(struct exfat_node));
