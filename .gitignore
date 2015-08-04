@@ -1,0 +1,28 @@
+# autoreconf -i
+Makefile.in
+/aclocal.m4
+/ar-lib
+/autom4te.cache/
+/compile
+/configure
+/depcomp
+/install-sh
+/libexfat/config.h.in
+/missing
+
+# ./configure
+.deps/
+Makefile
+/config.log
+/config.status
+/libexfat/config.h
+/libexfat/stamp-h1
+
+# make
+*.o
+/dump/dumpexfat
+/fsck/exfatfsck
+/fuse/mount.exfat-fuse
+/label/exfatlabel
+/libexfat/libexfat.a
+/mkfs/mkexfatfs
