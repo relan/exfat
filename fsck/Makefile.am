@@ -24,3 +24,9 @@ sbin_PROGRAMS = exfatfsck
 exfatfsck_SOURCES = main.c
 exfatfsck_CPPFLAGS = -I$(top_srcdir)/libexfat
 exfatfsck_LDADD = ../libexfat/libexfat.a
+
+install-exec-hook:
+	ln -sf $(sbin_PROGRAMS) $(DESTDIR)$(sbindir)/fsck.exfat
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(sbindir)/fsck.exfat

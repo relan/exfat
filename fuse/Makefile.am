@@ -25,3 +25,9 @@ mount_exfat_fuse_SOURCES = main.c
 mount_exfat_fuse_CPPFLAGS = -I$(top_srcdir)/libexfat
 mount_exfat_fuse_CFLAGS = $(FUSE_CFLAGS)
 mount_exfat_fuse_LDADD = ../libexfat/libexfat.a $(FUSE_LIBS)
+
+install-exec-hook:
+	ln -sf $(sbin_PROGRAMS) $(DESTDIR)$(sbindir)/mount.exfat
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(sbindir)/mount.exfat
