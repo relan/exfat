@@ -21,6 +21,7 @@
 #
 
 sbin_PROGRAMS = mount.exfat-fuse
+dist_man8_MANS = mount.exfat-fuse.8
 mount_exfat_fuse_SOURCES = main.c
 mount_exfat_fuse_CPPFLAGS = -I$(top_srcdir)/libexfat
 mount_exfat_fuse_CFLAGS = $(FUSE_CFLAGS)

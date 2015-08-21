@@ -21,6 +21,7 @@
 #
 
 sbin_PROGRAMS = mkexfatfs
+dist_man8_MANS = mkexfatfs.8
 mkexfatfs_SOURCES = \
 	cbm.c \
 	cbm.h \

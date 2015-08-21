@@ -21,6 +21,7 @@
 #
 
 sbin_PROGRAMS = dumpexfat
+dist_man8_MANS = dumpexfat.8
 dumpexfat_SOURCES = main.c
 dumpexfat_CPPFLAGS = -I$(top_srcdir)/libexfat
 dumpexfat_LDADD = ../libexfat/libexfat.a

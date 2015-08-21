@@ -21,6 +21,7 @@
 #
 
 sbin_PROGRAMS = exfatfsck
+dist_man8_MANS = exfatfsck.8
 exfatfsck_SOURCES = main.c
 exfatfsck_CPPFLAGS = -I$(top_srcdir)/libexfat
 exfatfsck_LDADD = ../libexfat/libexfat.a
