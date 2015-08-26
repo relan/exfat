@@ -1,3 +1,16 @@
+1.2.0 (2015-08-26)
+
+* Switched from SCons to autotools.
+* Added musl libc support [Brendan Heading].
+* Worked around "FS is larger than device" error for memory cards formatted by
+Panasonic Lumix cameras.
+* Worked around "unknown entry type 0xe1" error for memory cards formatted by
+Sony cameras.
+
+1.1.1 (2014-11-15)
+
+* Fixed mkfs crash on some sectors-per-cluster (-s option) values.
+
 1.1.0 (2014-07-08)
 
 * Relicensed the project from GPLv3+ to GPLv2+.
