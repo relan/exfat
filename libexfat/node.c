@@ -973,7 +973,7 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 	int rc;
 	struct exfat_node* node;
 
-	rc = create(ef, path, EXFAT_ATTRIB_ARCH | EXFAT_ATTRIB_DIR);
+	rc = create(ef, path, EXFAT_ATTRIB_DIR);
 	if (rc != 0)
 		return rc;
 	rc = exfat_lookup(ef, &node, path);
