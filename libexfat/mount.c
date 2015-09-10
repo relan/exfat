@@ -30,23 +30,32 @@
 
 static uint64_t rootdir_size(const struct exfat* ef)
 {
-	uint64_t clusters = 0;
+	uint32_t clusters = 0;
+	uint32_t clusters_max = le32_to_cpu(ef->sb->cluster_count);
 	cluster_t rootdir_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
 
-	while (!CLUSTER_INVALID(rootdir_cluster))
+	/* Iterate all clusters of the root directory to calculate its size.
+	   It can't be contiguous because there is no flag to indicate this. */
+	do
 	{
-		clusters++;
-		/* root directory cannot be contiguous because there is no flag
-		   to indicate this */
+		if (clusters == clusters_max) /* infinite loop detected */
+		{
+			exfat_error("root directory cannot occupy all %d clusters",
+					clusters);
+			return 0;
+		}
+		if (CLUSTER_INVALID(rootdir_cluster))
+		{
+			exfat_error("bad cluster %#x while reading root directory",
+					rootdir_cluster);
+			return 0;
+		}
 		rootdir_cluster = exfat_next_cluster(ef, ef->root, rootdir_cluster);
+		clusters++;
 	}
-	if (rootdir_cluster != EXFAT_CLUSTER_END)
-	{
-		exfat_error("bad cluster %#x while reading root directory",
-				rootdir_cluster);
-		return 0;
-	}
-	return clusters * CLUSTER_SIZE(*ef->sb);
+	while (rootdir_cluster != EXFAT_CLUSTER_END);
+
+	return (uint64_t) clusters * CLUSTER_SIZE(*ef->sb);
 }
 
 static const char* get_option(const char* options, const char* option_name)
