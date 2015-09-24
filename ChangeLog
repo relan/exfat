@@ -1,3 +1,11 @@
+1.2.1 (2015-09-24)
+
+* Fixed compatibility with Zalman VE-200: now newly created directories do not
+have archive bit set.
+* Fixed heap corruption: malformed FS can use invalid sector or cluster size.
+* Fixed hang on mount: malformed FS can have cyclic references in the clusters
+map.
+
 1.2.0 (2015-08-26)
 
 * Switched from SCons to autotools.
