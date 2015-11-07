@@ -37,6 +37,10 @@ Then install driver and utilities:
 
     sudo make install
 
+You can remove them using this command:
+
+    sudo make uninstall
+
 Mounting
 --------
 
