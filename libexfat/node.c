@@ -664,7 +664,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	}
 
 	node->flags &= ~EXFAT_ATTRIB_DIRTY;
-	return 0;
+	return exfat_flush(ef);
 }
 
 static bool erase_entry(struct exfat* ef, struct exfat_node* node)
