@@ -1,3 +1,10 @@
+1.2.2 (2015-11-09)
+
+* Improved reliability in case of a sudden unplug: FS will be in a clean state
+after closing all files and performing sync(1).
+* Fixed compilation on Debian GNU/kFreeBSD and GNU/Hurd platforms.
+* Updated mount.exfat-fuse man page.
+
 1.2.1 (2015-09-24)
 
 * Fixed compatibility with Zalman VE-200: now newly created directories do not
