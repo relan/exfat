@@ -31,7 +31,7 @@ AC_PROG_CC_C99
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_SYS_LARGEFILE
-PKG_CHECK_MODULES([FUSE], [fuse])
+
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
 	libexfat/Makefile
@@ -41,4 +41,15 @@ AC_CONFIG_FILES([
 	label/Makefile
 	mkfs/Makefile
 	Makefile])
+
+AC_ARG_ENABLE([fuse],
+	AS_HELP_STRING([--disable-fuse], [disable fuse support and dependency]))
+
+AS_IF([test "x$enable_fuse" != "xno"], [
+	PKG_CHECK_MODULES([FUSE], [fuse])
+	AM_CONDITIONAL([ENABLE_FUSE], true)
+], [
+	AM_CONDITIONAL([ENABLE_FUSE], false)
+])
+
 AC_OUTPUT

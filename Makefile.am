@@ -20,4 +20,7 @@
 #	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-SUBDIRS = libexfat dump fsck fuse label mkfs
+if ENABLE_FUSE
+  MAYBE_FUSE = fuse
+endif
+SUBDIRS = libexfat dump fsck $(MAYBE_FUSE) label mkfs
