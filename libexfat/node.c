@@ -1130,6 +1130,16 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 			exfat_put_node(ef, existing);
 			if (rc != 0)
 			{
+				/* free clusters even if something went wrong; overwise they
+				   will be just lost */
+				exfat_cleanup_node(ef, existing);
+				exfat_put_node(ef, dir);
+				exfat_put_node(ef, node);
+				return rc;
+			}
+			rc = exfat_cleanup_node(ef, existing);
+			if (rc != 0)
+			{
 				exfat_put_node(ef, dir);
 				exfat_put_node(ef, node);
 				return rc;
