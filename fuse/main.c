@@ -427,6 +427,36 @@ static char* add_option(char* options, const char* name, const char* value)
 	return options;
 }
 
+static void escape(char* escaped, const char* orig)
+{
+	do
+	{
+		if (*orig == ',' || *orig == '\\')
+			*escaped++ = '\\';
+	}
+	while ((*escaped++ = *orig++));
+}
+
+static char* add_fsname_option(char* options, const char* spec)
+{
+	/* escaped string cannot be more than twice as big as the original one */
+	char* escaped = malloc(strlen(spec) * 2 + 1);
+
+	if (escaped == NULL)
+	{
+		free(options);
+		exfat_error("failed to allocate escaped string for %s", spec);
+		return NULL;
+	}
+
+	/* on some platforms (e.g. Android, Solaris) device names can contain
+	   commas */
+	escape(escaped, spec);
+	options = add_option(options, "fsname", escaped);
+	free(escaped);
+	return options;
+}
+
 static char* add_user_option(char* options)
 {
 	struct passwd* pw;
@@ -458,7 +488,7 @@ static char* add_blksize_option(char* options, long cluster_size)
 
 static char* add_fuse_options(char* options, const char* spec)
 {
-	options = add_option(options, "fsname", spec);
+	options = add_fsname_option(options, spec);
 	if (options == NULL)
 		return NULL;
 	options = add_user_option(options);
