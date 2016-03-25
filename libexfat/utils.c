@@ -124,8 +124,7 @@ le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name)
 		uint16_t c = le16_to_cpu(name[i]);
 
 		/* convert to upper case */
-		if (c < ef->upcase_chars)
-			c = le16_to_cpu(ef->upcase[c]);
+		c = ef->upcase[c];
 
 		hash = ((hash << 15) | (hash >> 1)) + (c & 0xff);
 		hash = ((hash << 15) | (hash >> 1)) + (c >> 8);

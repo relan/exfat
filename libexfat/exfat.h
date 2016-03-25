@@ -97,8 +97,7 @@ struct exfat
 {
 	struct exfat_dev* dev;
 	struct exfat_super_block* sb;
-	le16_t* upcase;
-	size_t upcase_chars;
+	uint16_t* upcase;
 	struct exfat_node* root;
 	struct
 	{

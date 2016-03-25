@@ -99,6 +99,8 @@ struct exfat_entry_bitmap			/* allocated clusters bitmap */
 PACKED;
 STATIC_ASSERT(sizeof(struct exfat_entry_bitmap) == 32);
 
+#define EXFAT_UPCASE_CHARS 0x10000
+
 struct exfat_entry_upcase			/* upper case translation table */
 {
 	uint8_t type;					/* EXFAT_ENTRY_UPCASE */

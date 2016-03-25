@@ -376,5 +376,4 @@ void exfat_unmount(struct exfat* ef)
 	ef->sb = NULL;
 	free(ef->upcase);
 	ef->upcase = NULL;
-	ef->upcase_chars = 0;
 }

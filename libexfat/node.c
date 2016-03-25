@@ -227,6 +227,26 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	return true;
 }
 
+static void decompress_upcase(uint16_t* output, const le16_t* source,
+		size_t size)
+{
+	size_t si;
+	size_t oi;
+
+	for (oi = 0; oi < EXFAT_UPCASE_CHARS; oi++)
+		output[oi] = oi;
+
+	for (si = 0, oi = 0; si < size && oi < EXFAT_UPCASE_CHARS; si++)
+	{
+		uint16_t ch = le16_to_cpu(source[si]);
+
+		if (ch == 0xffff && si + 1 < size)	/* indicates a run */
+			oi += le16_to_cpu(source[++si]);
+		else
+			output[oi++] = ch;
+	}
+}
+
 /*
  * Reads one entry in directory at position pointed by iterator and fills
  * node structure.
@@ -247,6 +267,8 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 	uint16_t reference_checksum = 0;
 	uint16_t actual_checksum = 0;
 	uint64_t valid_size = 0;
+	uint64_t upcase_size = 0;
+	le16_t* upcase_comp = NULL;
 
 	*node = NULL;
 
@@ -371,33 +393,48 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						le32_to_cpu(upcase->start_cluster));
 				goto error;
 			}
-			if (le64_to_cpu(upcase->size) == 0 ||
-				le64_to_cpu(upcase->size) > 0xffff * sizeof(uint16_t) ||
-				le64_to_cpu(upcase->size) % sizeof(uint16_t) != 0)
+			upcase_size = le64_to_cpu(upcase->size);
+			if (upcase_size == 0 ||
+				upcase_size > EXFAT_UPCASE_CHARS * sizeof(uint16_t) ||
+				upcase_size % sizeof(uint16_t) != 0)
 			{
 				exfat_error("bad upcase table size (%"PRIu64" bytes)",
-						le64_to_cpu(upcase->size));
+						upcase_size);
 				goto error;
 			}
-			ef->upcase = malloc(le64_to_cpu(upcase->size));
-			if (ef->upcase == NULL)
+			upcase_comp = malloc(upcase_size);
+			if (upcase_comp == NULL)
 			{
 				exfat_error("failed to allocate upcase table (%"PRIu64" bytes)",
-						le64_to_cpu(upcase->size));
+						upcase_size);
 				rc = -ENOMEM;
 				goto error;
 			}
-			ef->upcase_chars = le64_to_cpu(upcase->size) / sizeof(le16_t);
 
-			if (exfat_pread(ef->dev, ef->upcase, le64_to_cpu(upcase->size),
+			/* read compressed upcase table */
+			if (exfat_pread(ef->dev, upcase_comp, upcase_size,
 					exfat_c2o(ef, le32_to_cpu(upcase->start_cluster))) < 0)
 			{
+				free(upcase_comp);
 				exfat_error("failed to read upper case table "
 						"(%"PRIu64" bytes starting at cluster %#x)",
-						le64_to_cpu(upcase->size),
+						upcase_size,
 						le32_to_cpu(upcase->start_cluster));
 				goto error;
 			}
+
+			/* decompress upcase table */
+			ef->upcase = calloc(EXFAT_UPCASE_CHARS, sizeof(uint16_t));
+			if (ef->upcase == NULL)
+			{
+				free(upcase_comp);
+				exfat_error("failed to allocate decompressed upcase table");
+				rc = -ENOMEM;
+				goto error;
+			}
+			decompress_upcase(ef->upcase, upcase_comp,
+					upcase_size / sizeof(uint16_t));
+			free(upcase_comp);
 			break;
 
 		case EXFAT_ENTRY_BITMAP:
