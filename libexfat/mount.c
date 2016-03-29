@@ -349,7 +349,7 @@ static void finalize_super_block(struct exfat* ef)
 	{
 		uint32_t free, total;
 
-		free = exfat_count_free_cluhttps://github.com/piddubnyi/exfat.gitsters(ef);
+		free = exfat_count_free_clusters(ef);
 		total = le32_to_cpu(ef->sb->cluster_count);
 		ef->sb->allocated_percent = ((total - free) * 100 + total / 2) / total;
 	}
