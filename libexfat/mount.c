@@ -266,7 +266,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		free(ef->sb);
 		return -EIO;
 	}
-	if (le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb) >
+	if (0 && le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb) >
 			exfat_get_size(ef->dev))
 	{
 		/* this can cause I/O errors later but we don't fail mounting to let
@@ -349,7 +349,7 @@ static void finalize_super_block(struct exfat* ef)
 	{
 		uint32_t free, total;
 
-		free = exfat_count_free_clusters(ef);
+		free = exfat_count_free_cluhttps://github.com/piddubnyi/exfat.gitsters(ef);
 		total = le32_to_cpu(ef->sb->cluster_count);
 		ef->sb->allocated_percent = ((total - free) * 100 + total / 2) / total;
 	}
