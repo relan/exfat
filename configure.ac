@@ -25,7 +25,7 @@ AC_INIT([Free exFAT implementation],
 	[relan@users.noreply.github.com],
 	[exfat],
 	[https://github.com/relan/exfat])
-AM_INIT_AUTOMAKE([1.11.2 -Wall -Werror foreign subdir-objects no-installman])
+AM_INIT_AUTOMAKE([1.11.2 -Wall -Werror foreign subdir-objects])
 AC_PROG_CC
 AC_PROG_CC_C99
 AC_PROG_RANLIB
