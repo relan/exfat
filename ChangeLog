@@ -1,3 +1,9 @@
+1.2.4 (2016-06-03)
+
+* Fixed wrong files names hashes when upper case table is compressed.
+* Man pages are now installed by default.
+* Commas and backslashes in device names are now escaped.
+
 1.2.3 (2015-12-19)
 
 * Fixed clusters loss when file renaming replaces target.
