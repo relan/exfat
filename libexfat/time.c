@@ -151,8 +151,14 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 void exfat_tzset(void)
 {
 	time_t now;
+	struct tm* utc;
 
 	tzset();
 	now = time(NULL);
-	exfat_timezone = mktime(gmtime(&now)) - now;
+	utc = gmtime(&now);
+	/* gmtime() always sets tm_isdst to 0 because daylight savings never
+	   affect UTC. Setting tm_isdst to -1 makes mktime() to determine whether
+	   summer time is in effect. */
+	utc->tm_isdst = -1;
+	exfat_timezone = mktime(utc) - now;
 }
