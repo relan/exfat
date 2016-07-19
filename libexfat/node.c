@@ -206,7 +206,7 @@ static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
 }
 
 static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
-		uint16_t reference_checksum, uint64_t valid_size)
+		uint16_t reference_checksum, uint64_t valid_size, int cluster_size)
 {
 	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 	bool ret = true;
@@ -255,6 +255,24 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
 		exfat_error("'%s' points to invalid cluster %#x", buffer,
 				node->start_cluster);
+		ret = false;
+	}
+
+	/* Empty file or directory must be marked as non-contiguous. */
+	if (node->size == 0 && (node->flags & EXFAT_ATTRIB_CONTIGUOUS))
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_error("'%s' is empty but marked as contiguous (%#x)", buffer,
+				node->flags);
+		ret = false;
+	}
+
+	/* Directory size must be aligned on at cluster boundary. */
+	if ((node->flags & EXFAT_ATTRIB_DIR) && node->size % cluster_size != 0)
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_error("'%s' directory size %"PRIu64" is not divisible by %d", buffer,
+				node->size, cluster_size);
 		ret = false;
 	}
 
@@ -374,21 +392,6 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			init_node_meta2(*node, meta2);
 			actual_checksum = exfat_add_checksum(entry, actual_checksum);
 			valid_size = le64_to_cpu(meta2->valid_size);
-			/* empty files must be marked as non-contiguous */
-			if ((*node)->size == 0 && (meta2->flags & EXFAT_FLAG_CONTIGUOUS))
-			{
-				exfat_error("empty file marked as contiguous (0x%hhx)",
-						meta2->flags);
-				goto error;
-			}
-			/* directories must be aligned on at cluster boundary */
-			if (((*node)->flags & EXFAT_ATTRIB_DIR) &&
-				(*node)->size % CLUSTER_SIZE(*ef->sb) != 0)
-			{
-				exfat_error("directory has invalid size %"PRIu64" bytes",
-						(*node)->size);
-				goto error;
-			}
 			--continuations;
 			break;
 
@@ -409,7 +412,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (--continuations == 0)
 			{
 				if (!check_node(*node, actual_checksum, reference_checksum,
-						valid_size))
+						valid_size, CLUSTER_SIZE(*ef->sb)))
 					goto error;
 				if (!fetch_next_entry(ef, parent, it))
 					goto error;
