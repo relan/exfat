@@ -202,6 +202,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		uint16_t reference_checksum, uint64_t valid_size)
 {
 	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+	bool ret = true;
 
 	/*
 	   Validate checksum first. If it's invalid all other fields probably
@@ -212,7 +213,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
 		exfat_error("'%s' has invalid checksum (%#hx != %#hx)", buffer,
 				actual_checksum, reference_checksum);
-		return false;
+		ret = false;
 	}
 
 	/*
@@ -226,10 +227,10 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
 		exfat_error("'%s' has valid size (%"PRIu64") greater than size "
 				"(%"PRIu64")", buffer, valid_size, node->size);
-		return false;
+		ret = false;
 	}
 
-	return true;
+	return ret;
 }
 
 static void decompress_upcase(uint16_t* output, const le16_t* source,
