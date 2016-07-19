@@ -101,6 +101,13 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
 		exfat_bug("'%s' is not a directory", buffer);
 	}
+	if (CLUSTER_INVALID(dir->start_cluster))
+	{
+		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
+		exfat_error("'%s' directory starts with invalid cluster %#x", buffer,
+				dir->start_cluster);
+		return -EIO;
+	}
 	it->cluster = dir->start_cluster;
 	it->offset = 0;
 	it->chunk = malloc(CLUSTER_SIZE(*ef->sb));
@@ -227,6 +234,27 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		exfat_get_name(node, buffer, sizeof(buffer) - 1);
 		exfat_error("'%s' has valid size (%"PRIu64") greater than size "
 				"(%"PRIu64")", buffer, valid_size, node->size);
+		ret = false;
+	}
+
+	/*
+	   Empty file must have zero start cluster. Non-empty file must start
+	   with a valid cluster. Directories cannot be empty (i.e. must always
+	   have a valid start cluster), but we will check this later in opendir()
+	   to give user a chance to read current directory.
+	*/
+	if (node->size == 0 && node->start_cluster != EXFAT_CLUSTER_FREE)
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_error("'%s' is empty but start cluster is %#x", buffer,
+				node->start_cluster);
+		ret = false;
+	}
+	if (node->size > 0 && CLUSTER_INVALID(node->start_cluster))
+	{
+		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_error("'%s' points to invalid cluster %#x", buffer,
+				node->start_cluster);
 		ret = false;
 	}
 
