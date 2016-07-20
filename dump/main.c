@@ -140,9 +140,66 @@ static int dump_full(const char* spec, bool used_sectors)
 	return 0;
 }
 
+static int dump_file_fragments(const char* spec, const char* path)
+{
+	struct exfat ef;
+	struct exfat_node* node;
+	cluster_t cluster;
+	cluster_t next_cluster;
+	cluster_t fragment_start_cluster;
+	off_t remainder;
+	off_t fragment_size = 0;
+	int rc = 0;
+
+	if (exfat_mount(&ef, spec, "ro") != 0)
+		return 1;
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+	{
+		exfat_unmount(&ef);
+		exfat_error("'%s': %s", path, strerror(-rc));
+		return 1;
+	}
+
+	cluster = fragment_start_cluster = node->start_cluster;
+	remainder = node->size;
+	while (remainder > 0)
+	{
+		off_t lsize;
+
+		if (CLUSTER_INVALID(cluster))
+		{
+			exfat_error("'%s' has invalid cluster %#x", path, cluster);
+			rc = 1;
+			break;
+		}
+
+		lsize = MIN(CLUSTER_SIZE(*ef.sb), remainder);
+		fragment_size += lsize;
+		remainder -= lsize;
+
+		next_cluster = exfat_next_cluster(&ef, node, cluster);
+		if (next_cluster != cluster + 1 || remainder == 0)
+		{
+			/* next cluster is not contiguous or this is EOF */
+			printf("%"PRIu64" %"PRIu64"\n",
+					exfat_c2o(&ef, fragment_start_cluster), fragment_size);
+			/* start a new fragment */
+			fragment_start_cluster = next_cluster;
+			fragment_size = 0;
+		}
+		cluster = next_cluster;
+	}
+
+	exfat_put_node(&ef, node);
+	exfat_unmount(&ef);
+	return rc;
+}
+
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-s] [-u] [-V] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-s] [-u] [-f file] [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -152,10 +209,11 @@ int main(int argc, char* argv[])
 	const char* spec = NULL;
 	bool sb_only = false;
 	bool used_sectors = false;
+	const char* file_path = NULL;
 
 	printf("dumpexfat %s\n", VERSION);
 
-	while ((opt = getopt(argc, argv, "suV")) != -1)
+	while ((opt = getopt(argc, argv, "suf:V")) != -1)
 	{
 		switch (opt)
 		{
@@ -164,6 +222,9 @@ int main(int argc, char* argv[])
 			break;
 		case 'u':
 			used_sectors = true;
+			break;
+		case 'f':
+			file_path = optarg;
 			break;
 		case 'V':
 			puts("Copyright (C) 2011-2016  Andrew Nayenko");
@@ -175,6 +236,9 @@ int main(int argc, char* argv[])
 	if (argc - optind != 1)
 		usage(argv[0]);
 	spec = argv[optind];
+
+	if (file_path)
+		return dump_file_fragments(spec, file_path);
 
 	if (sb_only)
 		return dump_sb(spec);

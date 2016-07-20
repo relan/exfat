@@ -13,6 +13,10 @@
 .B \-u
 ]
 [
+.B \-f
+.I file
+]
+[
 .B \-V
 ]
 .I device
@@ -32,6 +36,11 @@ systems.
 .B \-u
 Dump ranges of used sectors starting from 0 and separated with spaces. May be
 useful for backup tools.
+.TP
+.B \-f file
+Print out a list of fragments that compose the given file. Each fragment is
+printed on its own line, as the start offset (in bytes) into the file system,
+and the length (in bytes).
 .TP
 .BI \-V
 Print version and copyright.
