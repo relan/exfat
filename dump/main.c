@@ -233,8 +233,6 @@ int main(int argc, char* argv[])
 	bool used_sectors = false;
 	const char* file_path = NULL;
 
-	printf("dumpexfat %s\n", VERSION);
-
 	while ((opt = getopt(argc, argv, "suVf:")) != -1)
 	{
 		switch (opt)
@@ -249,6 +247,7 @@ int main(int argc, char* argv[])
 			file_path = optarg;
 			break;
 		case 'V':
+			printf("dumpexfat %s\n", VERSION);
 			puts("Copyright (C) 2011-2016  Andrew Nayenko");
 			return 0;
 		default:
