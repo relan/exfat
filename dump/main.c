@@ -140,9 +140,88 @@ static int dump_full(const char* spec, bool used_sectors)
 	return 0;
 }
 
+static int dump_file(const char* spec, const char* path)
+{
+	struct exfat ef;
+	struct exfat_node* node;
+	cluster_t cluster, next_cluster;
+	cluster_t start_cluster = EXFAT_CLUSTER_FREE;
+	off_t remainder;
+	off_t fragment_size;
+	off_t lsize;
+	int rc = 1;
+
+	if (exfat_mount(&ef, spec, "ro") != 0)
+		return 1;
+
+	if (exfat_lookup(&ef, &node, path) != 0)
+	{
+		exfat_unmount(&ef);
+		exfat_error("Failed to lookup path: %s", path);
+		return 1;
+	}
+
+	remainder = node->size;
+	if (remainder == 0) {
+		rc = 0;
+		goto out;
+	}
+
+	cluster = node->start_cluster;
+	if (CLUSTER_INVALID(cluster))
+	{
+		exfat_error("invalid cluster 0x%x while reading", cluster);
+		goto out;
+	}
+
+	while (remainder > 0)
+	{
+		if (start_cluster == EXFAT_CLUSTER_FREE)
+		{
+			/* Start a new fragment */
+			start_cluster = cluster;
+			fragment_size = 0;
+		}
+
+		lsize = MIN(CLUSTER_SIZE(*ef.sb), remainder);
+		fragment_size += lsize;
+
+		if (remainder <= CLUSTER_SIZE(*ef.sb))
+		{
+			/* We're at the end of the file, print last fragment */
+			printf("%"PRIu64" %"PRIu64"\n",
+					exfat_c2o(&ef, start_cluster), fragment_size);
+			break;
+		}
+
+		remainder -= lsize;
+		next_cluster = exfat_next_cluster(&ef, node, cluster);
+		if (CLUSTER_INVALID(next_cluster))
+		{
+			exfat_error("file has invalid cluster 0x%x", next_cluster);
+			goto out;
+		}
+		if (next_cluster != cluster + 1)
+		{
+			/* detected that the next cluster is not contiguous,
+			 * that marks the end of the fragment. */
+			printf("%"PRIu64" %"PRIu64"\n",
+					exfat_c2o(&ef, start_cluster), fragment_size);
+			start_cluster = EXFAT_CLUSTER_FREE;
+		}
+		cluster = next_cluster;
+	}
+
+	rc = 0;
+out:
+	exfat_put_node(&ef, node);
+	exfat_unmount(&ef);
+	return rc;
+}
+
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-s] [-u] [-V] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-s] [-u] [-f file] [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -152,10 +231,9 @@ int main(int argc, char* argv[])
 	const char* spec = NULL;
 	bool sb_only = false;
 	bool used_sectors = false;
+	const char* file_path = NULL;
 
-	printf("dumpexfat %s\n", VERSION);
-
-	while ((opt = getopt(argc, argv, "suV")) != -1)
+	while ((opt = getopt(argc, argv, "suVf:")) != -1)
 	{
 		switch (opt)
 		{
@@ -165,7 +243,11 @@ int main(int argc, char* argv[])
 		case 'u':
 			used_sectors = true;
 			break;
+		case 'f':
+			file_path = optarg;
+			break;
 		case 'V':
+			printf("dumpexfat %s\n", VERSION);
 			puts("Copyright (C) 2011-2016  Andrew Nayenko");
 			return 0;
 		default:
@@ -175,6 +257,9 @@ int main(int argc, char* argv[])
 	if (argc - optind != 1)
 		usage(argv[0]);
 	spec = argv[optind];
+
+	if (file_path)
+		return dump_file(spec, file_path);
 
 	if (sb_only)
 		return dump_sb(spec);
