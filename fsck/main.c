@@ -33,7 +33,7 @@ uint64_t files_count, directories_count;
 static int nodeck(struct exfat* ef, struct exfat_node* node)
 {
 	const cluster_t cluster_size = CLUSTER_SIZE(*ef->sb);
-	cluster_t clusters = (node->size + cluster_size - 1) / cluster_size;
+	cluster_t clusters = DIV_ROUND_UP(node->size, cluster_size);
 	cluster_t c = node->start_cluster;
 	int rc = 0;
 

@@ -67,7 +67,7 @@ static cluster_t s2c(const struct exfat* ef, off_t sector)
 static uint32_t bytes2clusters(const struct exfat* ef, uint64_t bytes)
 {
 	uint64_t cluster_size = CLUSTER_SIZE(*ef->sb);
-	return (bytes + cluster_size - 1) / cluster_size;
+	return DIV_ROUND_UP(bytes, cluster_size);
 }
 
 cluster_t exfat_next_cluster(const struct exfat* ef,
