@@ -109,6 +109,7 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 	if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
 			exfat_c2o(ef, it->cluster)) < 0)
 	{
+		free(it->chunk);
 		exfat_error("failed to read directory cluster %#x", it->cluster);
 		return -EIO;
 	}
