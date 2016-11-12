@@ -94,21 +94,28 @@ static off_t co2o(struct exfat* ef, cluster_t cluster, off_t offset)
 static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		struct iterator* it)
 {
+	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
-		exfat_bug("not a directory");
+	{
+		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
+		exfat_bug("'%s' is not a directory", buffer);
+	}
 	it->cluster = dir->start_cluster;
 	it->offset = 0;
 	it->chunk = malloc(CLUSTER_SIZE(*ef->sb));
 	if (it->chunk == NULL)
 	{
-		exfat_error("out of memory");
+		exfat_error("failed to allocate memory for directory cluster");
 		return -ENOMEM;
 	}
 	if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
 			exfat_c2o(ef, it->cluster)) < 0)
 	{
 		free(it->chunk);
-		exfat_error("failed to read directory cluster %#x", it->cluster);
+		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
+		exfat_error("failed to read '%s' directory cluster %#x", buffer,
+				it->cluster);
 		return -EIO;
 	}
 	return 0;
