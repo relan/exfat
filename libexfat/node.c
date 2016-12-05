@@ -30,7 +30,6 @@ struct iterator
 {
 	cluster_t cluster;
 	off_t offset;
-	int contiguous;
 	char* chunk;
 };
 
@@ -99,7 +98,6 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		exfat_bug("not a directory");
 	it->cluster = dir->start_cluster;
 	it->offset = 0;
-	it->contiguous = IS_CONTIGUOUS(*dir);
 	it->chunk = malloc(CLUSTER_SIZE(*ef->sb));
 	if (it->chunk == NULL)
 	{
@@ -120,7 +118,6 @@ static void closedir(struct iterator* it)
 {
 	it->cluster = 0;
 	it->offset = 0;
-	it->contiguous = 0;
 	free(it->chunk);
 	it->chunk = NULL;
 }
