@@ -1,3 +1,8 @@
+1.2.5 (2016-12-05)
+* Added an option for dumpexfat to show file fragments [Daniel Drake].
+* Fixed crash when directory starts with an invalid cluster.
+* Daylight saving time in now properly reflected in file timestamps.
+
 1.2.4 (2016-06-03)
 
 * Fixed wrong files names hashes when upper case table is compressed.
