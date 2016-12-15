@@ -34,7 +34,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define EXFAT_NAME_MAX 256
+#define EXFAT_NAME_MAX 255
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000
 #define EXFAT_ATTRIB_CACHED     0x20000
 #define EXFAT_ATTRIB_DIRTY      0x40000
