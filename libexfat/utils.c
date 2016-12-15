@@ -52,6 +52,20 @@ void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
 		exfat_bug("failed to convert name to UTF-8");
 }
 
+static uint16_t add_checksum_byte(uint16_t sum, uint8_t byte)
+{
+	return ((sum << 15) | (sum >> 1)) + byte;
+}
+
+static uint16_t add_checksum_bytes(uint16_t sum, const void* buffer, size_t n)
+{
+	int i;
+
+	for (i = 0; i < n; i++)
+		sum = add_checksum_byte(sum, ((const uint8_t*) buffer)[i]);
+	return sum;
+}
+
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry)
 {
 	uint16_t sum = 0;
@@ -59,35 +73,30 @@ uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry)
 
 	for (i = 0; i < sizeof(struct exfat_entry); i++)
 		if (i != 2 && i != 3) /* skip checksum field itself */
-			sum = ((sum << 15) | (sum >> 1)) + ((const uint8_t*) entry)[i];
+			sum = add_checksum_byte(sum, ((const uint8_t*) entry)[i]);
 	return sum;
 }
 
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum)
 {
-	int i;
-
-	for (i = 0; i < sizeof(struct exfat_entry); i++)
-		sum = ((sum << 15) | (sum >> 1)) + ((const uint8_t*) entry)[i];
-	return sum;
+	return add_checksum_bytes(sum, entry, sizeof(struct exfat_entry));
 }
 
 le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
 		const struct exfat_entry_meta2* meta2, const le16_t* name)
 {
 	uint16_t checksum;
-	const int name_entries = DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX);
+	const int name_entries = DIV_ROUND_UP(meta2->name_length, EXFAT_ENAME_MAX);
 	int i;
 
 	checksum = exfat_start_checksum(meta1);
 	checksum = exfat_add_checksum(meta2, checksum);
 	for (i = 0; i < name_entries; i++)
 	{
-		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
-		memcpy(name_entry.name, name + i * EXFAT_ENAME_MAX,
-				MIN(EXFAT_ENAME_MAX, EXFAT_NAME_MAX - i * EXFAT_ENAME_MAX) *
-				sizeof(le16_t));
-		checksum = exfat_add_checksum(&name_entry, checksum);
+		checksum = add_checksum_byte(checksum, EXFAT_ENTRY_FILE_NAME);
+		checksum = add_checksum_byte(checksum, 0);
+		checksum = add_checksum_bytes(checksum, name + i * EXFAT_ENAME_MAX,
+				EXFAT_ENAME_MAX * sizeof(le16_t));
 	}
 	return cpu_to_le16(checksum);
 }
