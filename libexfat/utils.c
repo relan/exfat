@@ -122,10 +122,10 @@ uint32_t exfat_vbr_add_checksum(const void* sector, size_t size, uint32_t sum)
 	return sum;
 }
 
-le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name)
+le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name,
+		size_t length)
 {
 	size_t i;
-	size_t length = utf16_length(name);
 	uint16_t hash = 0;
 
 	for (i = 0; i < length; i++)

@@ -957,7 +957,7 @@ static int write_entry(struct exfat* ef, struct exfat_node* dir,
 	meta2.type = EXFAT_ENTRY_FILE_INFO;
 	meta2.flags = EXFAT_FLAG_ALWAYS1;
 	meta2.name_length = name_length;
-	meta2.name_hash = exfat_calc_name_hash(ef, node->name);
+	meta2.name_hash = exfat_calc_name_hash(ef, node->name, name_length);
 	meta2.start_cluster = cpu_to_le32(EXFAT_CLUSTER_FREE);
 
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
@@ -1099,7 +1099,7 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 		return -EIO;
 	}
 	meta1.continuations = 1 + name_entries;
-	meta2.name_hash = exfat_calc_name_hash(ef, name);
+	meta2.name_hash = exfat_calc_name_hash(ef, name, name_length);
 	meta2.name_length = name_length;
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, name);
 
