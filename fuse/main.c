@@ -130,7 +130,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	}
 	while ((node = exfat_readdir(&ef, &it)))
 	{
-		exfat_get_name(node, name, sizeof(name) - 1);
+		exfat_get_name(node, name);
 		exfat_debug("[%s] %s: %s, %"PRId64" bytes, cluster 0x%x", __func__,
 				name, IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);

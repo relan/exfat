@@ -43,7 +43,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 		{
 			char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 
-			exfat_get_name(node, name, sizeof(name) - 1);
+			exfat_get_name(node, name);
 			exfat_error("file '%s' has invalid cluster 0x%x", name, c);
 			rc = 1;
 			break;
@@ -52,7 +52,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 		{
 			char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
 
-			exfat_get_name(node, name, sizeof(name) - 1);
+			exfat_get_name(node, name);
 			exfat_error("cluster 0x%x of file '%s' is not allocated", c, name);
 			rc = 1;
 		}
@@ -100,8 +100,7 @@ static void dirck(struct exfat* ef, const char* path)
 	}
 	while ((node = exfat_readdir(ef, &it)))
 	{
-		exfat_get_name(node, entry_path + path_length + 1,
-				UTF8_BYTES(EXFAT_NAME_MAX));
+		exfat_get_name(node, entry_path + path_length + 1);
 		exfat_debug("%s: %s, %"PRIu64" bytes, cluster %u", entry_path,
 				IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);

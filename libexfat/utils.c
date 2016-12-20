@@ -46,9 +46,11 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 	stbuf->st_ctime = node->mtime;
 }
 
-void exfat_get_name(const struct exfat_node* node, char* buffer, size_t n)
+void exfat_get_name(const struct exfat_node* node,
+		char buffer[UTF8_BYTES(EXFAT_NAME_MAX)])
 {
-	if (utf16_to_utf8(buffer, node->name, n, EXFAT_NAME_MAX) != 0)
+	if (utf16_to_utf8(buffer, node->name, UTF8_BYTES(EXFAT_NAME_MAX),
+				EXFAT_NAME_MAX) != 0)
 		exfat_bug("failed to convert name to UTF-8");
 }
 

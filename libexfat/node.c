@@ -48,14 +48,14 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 	--node->references;
 	if (node->references < 0)
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_bug("reference counter of '%s' is below zero", buffer);
 	}
 	else if (node->references == 0 && node != ef->root)
 	{
 		if (node->flags & EXFAT_ATTRIB_DIRTY)
 		{
-			exfat_get_name(node, buffer, sizeof(buffer) - 1);
+			exfat_get_name(node, buffer);
 			exfat_warn("dirty node '%s' with zero references", buffer);
 		}
 	}
@@ -98,12 +98,12 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
 	{
-		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
+		exfat_get_name(dir, buffer);
 		exfat_bug("'%s' is not a directory", buffer);
 	}
 	if (CLUSTER_INVALID(dir->start_cluster))
 	{
-		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
+		exfat_get_name(dir, buffer);
 		exfat_error("'%s' directory starts with invalid cluster %#x", buffer,
 				dir->start_cluster);
 		return -EIO;
@@ -120,7 +120,7 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 			exfat_c2o(ef, it->cluster)) < 0)
 	{
 		free(it->chunk);
-		exfat_get_name(dir, buffer, sizeof(buffer) - 1);
+		exfat_get_name(dir, buffer);
 		exfat_error("failed to read '%s' directory cluster %#x", buffer,
 				it->cluster);
 		return -EIO;
@@ -217,7 +217,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	*/
 	if (actual_checksum != reference_checksum)
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_error("'%s' has invalid checksum (%#hx != %#hx)", buffer,
 				actual_checksum, reference_checksum);
 		ret = false;
@@ -231,7 +231,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	*/
 	if (valid_size > node->size)
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_error("'%s' has valid size (%"PRIu64") greater than size "
 				"(%"PRIu64")", buffer, valid_size, node->size);
 		ret = false;
@@ -245,14 +245,14 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	*/
 	if (node->size == 0 && node->start_cluster != EXFAT_CLUSTER_FREE)
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_error("'%s' is empty but start cluster is %#x", buffer,
 				node->start_cluster);
 		ret = false;
 	}
 	if (node->size > 0 && CLUSTER_INVALID(node->start_cluster))
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_error("'%s' points to invalid cluster %#x", buffer,
 				node->start_cluster);
 		ret = false;
@@ -261,7 +261,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	/* Empty file or directory must be marked as non-contiguous. */
 	if (node->size == 0 && (node->flags & EXFAT_ATTRIB_CONTIGUOUS))
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_error("'%s' is empty but marked as contiguous (%#x)", buffer,
 				node->flags);
 		ret = false;
@@ -270,7 +270,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	/* Directory size must be aligned on at cluster boundary. */
 	if ((node->flags & EXFAT_ATTRIB_DIR) && node->size % cluster_size != 0)
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_error("'%s' directory size %"PRIu64" is not divisible by %d", buffer,
 				node->size, cluster_size);
 		ret = false;
@@ -639,13 +639,13 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 	node->flags &= ~EXFAT_ATTRIB_CACHED;
 	if (node->references != 0)
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_warn("non-zero reference counter (%d) for '%s'",
 				node->references, buffer);
 	}
 	if (node != ef->root && (node->flags & EXFAT_ATTRIB_DIRTY))
 	{
-		exfat_get_name(node, buffer, sizeof(buffer) - 1);
+		exfat_get_name(node, buffer);
 		exfat_bug("node '%s' is dirty", buffer);
 	}
 	while (node->references)
