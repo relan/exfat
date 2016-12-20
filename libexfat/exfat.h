@@ -178,7 +178,7 @@ int exfat_find_used_sectors(const struct exfat* ef, off_t* a, off_t* b);
 void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		struct stat* stbuf);
 void exfat_get_name(const struct exfat_node* node,
-		char buffer[UTF8_BYTES(EXFAT_NAME_MAX)]);
+		char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1]);
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,

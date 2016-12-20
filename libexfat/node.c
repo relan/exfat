@@ -523,7 +523,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			if (utf16_to_utf8(ef->label, label->name,
-						sizeof(ef->label) - 1, EXFAT_ENAME_MAX) != 0)
+						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
 				goto error;
 			break;
 
@@ -1303,7 +1303,7 @@ int exfat_set_label(struct exfat* ef, const char* label)
 	struct exfat_entry_label entry;
 
 	memset(label_utf16, 0, sizeof(label_utf16));
-	rc = utf8_to_utf16(label_utf16, label, EXFAT_ENAME_MAX, strlen(label));
+	rc = utf8_to_utf16(label_utf16, label, EXFAT_ENAME_MAX + 1, strlen(label));
 	if (rc != 0)
 		return rc;
 
