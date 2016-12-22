@@ -1300,36 +1300,19 @@ const char* exfat_get_label(struct exfat* ef)
 	return ef->label;
 }
 
-static int find_label(struct exfat* ef, cluster_t* cluster, off_t* offset)
+static int find_label(struct exfat* ef, off_t* offset)
 {
-	struct iterator it;
+	struct exfat_entry entry;
 	int rc;
 
-	rc = opendir(ef, ef->root, &it);
-	if (rc != 0)
-		return rc;
-
-	for (;;)
+	for (*offset = 0; ; *offset += sizeof(entry))
 	{
-		if (it.offset >= ef->root->size)
-		{
-			closedir(&it);
-			return -ENOENT;
-		}
+		rc = read_entries(ef, ef->root, &entry, 1, *offset);
+		if (rc != 0)
+			return rc;
 
-		if (get_entry_ptr(ef, &it)->type == EXFAT_ENTRY_LABEL)
-		{
-			*cluster = it.cluster;
-			*offset = it.offset;
-			closedir(&it);
+		if (entry.type == EXFAT_ENTRY_LABEL)
 			return 0;
-		}
-
-		if (!fetch_next_entry(ef, ef->root, &it))
-		{
-			closedir(&it);
-			return -EIO;
-		}
 	}
 }
 
@@ -1346,7 +1329,7 @@ int exfat_set_label(struct exfat* ef, const char* label)
 	if (rc != 0)
 		return rc;
 
-	rc = find_label(ef, &cluster, &offset);
+	rc = find_label(ef, &offset);
 	if (rc == -ENOENT)
 		rc = find_slot(ef, ef->root, &cluster, &offset, 1);
 	if (rc != 0)
