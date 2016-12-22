@@ -166,6 +166,46 @@ static bool fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
 	return true;
 }
 
+static int read_entries(struct exfat* ef, struct exfat_node* dir,
+		struct exfat_entry* entries, int n, off_t offset)
+{
+	ssize_t size;
+
+	if (!(dir->attrib & EXFAT_ATTRIB_DIR))
+		exfat_bug("attempted to read entries from a file");
+
+	size = exfat_generic_pread(ef, dir, entries,
+			sizeof(struct exfat_entry[n]), offset);
+	if (size == sizeof(struct exfat_entry[n]))
+		return 0; /* success */
+	if (size == 0)
+		return -ENOENT;
+	if (size < 0)
+		return -EIO;
+	exfat_error("read %zd bytes instead of %zu bytes", size,
+			sizeof(struct exfat_entry[n]));
+	return -EIO;
+}
+
+static int write_entries(struct exfat* ef, struct exfat_node* dir,
+		const struct exfat_entry* entries, int n, off_t offset)
+{
+	ssize_t size;
+
+	if (!(dir->attrib & EXFAT_ATTRIB_DIR))
+		exfat_bug("attempted to write entries into a file");
+
+	size = exfat_generic_pwrite(ef, dir, entries,
+			sizeof(struct exfat_entry[n]), offset);
+	if (size == sizeof(struct exfat_entry[n]))
+		return 0; /* success */
+	if (size < 0)
+		return -EIO;
+	exfat_error("wrote %zd bytes instead of %zu bytes", size,
+			sizeof(struct exfat_entry[n]));
+	return -EIO;
+}
+
 static struct exfat_node* allocate_node(void)
 {
 	struct exfat_node* node = malloc(sizeof(struct exfat_node));
