@@ -1358,12 +1358,10 @@ int exfat_set_label(struct exfat* ef, const char* label)
 	if (entry.length == 0)
 		entry.type ^= EXFAT_ENTRY_VALID;
 
-	if (exfat_pwrite(ef->dev, &entry, sizeof(struct exfat_entry_label),
-			co2o(ef, cluster, offset)) < 0)
-	{
-		exfat_error("failed to write label entry");
-		return -EIO;
-	}
+	rc = write_entries(ef, ef->root, (struct exfat_entry*) &entry, 1, offset);
+	if (rc != 0)
+		return rc;
+
 	strcpy(ef->label, label);
 	return 0;
 }
