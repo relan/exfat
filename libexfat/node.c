@@ -222,6 +222,7 @@ static void init_node_meta1(struct exfat_node* node,
 		const struct exfat_entry_meta1* meta1)
 {
 	node->attrib = le16_to_cpu(meta1->attrib);
+	node->continuations = meta1->continuations;
 	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime,
 			meta1->mtime_cs);
 	/* there is no centiseconds field for atime */
@@ -780,42 +781,36 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	return exfat_flush(ef);
 }
 
-static bool erase_entry(struct exfat* ef, struct exfat_node* node)
+static int erase_entries(struct exfat* ef, struct exfat_node* dir, int n,
+		off_t offset)
 {
-	cluster_t cluster = node->entry_cluster;
-	off_t offset = node->entry_offset;
-	int name_entries = DIV_ROUND_UP(utf16_length(node->name), EXFAT_ENAME_MAX);
-	uint8_t entry_type;
+	struct exfat_entry entries[n];
+	int rc;
+	int i;
 
-	entry_type = EXFAT_ENTRY_FILE & ~EXFAT_ENTRY_VALID;
-	if (exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset)) < 0)
-	{
-		exfat_error("failed to erase meta1 entry");
-		return false;
-	}
+	rc = read_entries(ef, dir, entries, n, offset);
+	if (rc != 0)
+		return rc;
+	for (i = 0; i < n; i++)
+		entries[i].type &= ~EXFAT_ENTRY_VALID;
+	return write_entries(ef, dir, entries, n, offset);
+}
 
-	if (!next_entry(ef, node->parent, &cluster, &offset))
-		return false;
-	entry_type = EXFAT_ENTRY_FILE_INFO & ~EXFAT_ENTRY_VALID;
-	if (exfat_pwrite(ef->dev, &entry_type, 1, co2o(ef, cluster, offset)) < 0)
-	{
-		exfat_error("failed to erase meta2 entry");
-		return false;
-	}
+static int erase_node(struct exfat* ef, struct exfat_node* node)
+{
+	int rc;
 
-	while (name_entries--)
+	exfat_get_node(node->parent);
+	rc = erase_entries(ef, node->parent, 1 + node->continuations,
+			node->entry_offset);
+	if (rc != 0)
 	{
-		if (!next_entry(ef, node->parent, &cluster, &offset))
-			return false;
-		entry_type = EXFAT_ENTRY_FILE_NAME & ~EXFAT_ENTRY_VALID;
-		if (exfat_pwrite(ef->dev, &entry_type, 1,
-				co2o(ef, cluster, offset)) < 0)
-		{
-			exfat_error("failed to erase name entry");
-			return false;
-		}
+		exfat_put_node(ef, node->parent);
+		return rc;
 	}
-	return true;
+	rc = exfat_flush_node(ef, node->parent);
+	exfat_put_node(ef, node->parent);
+	return rc;
 }
 
 static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
@@ -870,12 +865,12 @@ static int delete(struct exfat* ef, struct exfat_node* node)
 	int rc;
 
 	exfat_get_node(parent);
-	if (!erase_entry(ef, node))
+	rc = erase_node(ef, node);
+	if (rc != 0)
 	{
 		exfat_put_node(ef, parent);
-		return -EIO;
+		return rc;
 	}
-	exfat_update_mtime(parent);
 	tree_detach(node);
 	rc = shrink_directory(ef, parent, deleted_offset);
 	node->is_unlinked = true;
@@ -885,6 +880,7 @@ static int delete(struct exfat* ef, struct exfat_node* node)
 		exfat_put_node(ef, parent);
 		return rc;
 	}
+	exfat_update_mtime(parent);
 	rc = exfat_flush_node(ef, parent);
 	exfat_put_node(ef, parent);
 	return rc;
@@ -1107,6 +1103,7 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 	off_t old_offset = node->entry_offset;
 	const size_t name_length = utf16_length(name);
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
+	int rc;
 	int i;
 
 	if (exfat_pread(ef->dev, &meta1, sizeof(meta1),
@@ -1128,11 +1125,13 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 	meta2.name_length = name_length;
 	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, name);
 
-	if (!erase_entry(ef, node))
-		return -EIO;
+	rc = erase_node(ef, node);
+	if (rc != 0)
+		return rc;
 
 	node->entry_cluster = new_cluster;
 	node->entry_offset = new_offset;
+	node->continuations = 1 + name_entries;
 
 	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
 			co2o(ef, new_cluster, new_offset)) < 0)
