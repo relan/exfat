@@ -969,11 +969,47 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 		const le16_t* name, cluster_t cluster, off_t offset, uint16_t attrib)
 {
 	struct exfat_node* node;
-	struct exfat_entry_meta1 meta1;
-	struct exfat_entry_meta2 meta2;
 	const size_t name_length = utf16_length(name);
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
+	struct exfat_entry entries[2 + name_entries];
+	struct exfat_entry_meta1* meta1 = (struct exfat_entry_meta1*) &entries[0];
+	struct exfat_entry_meta2* meta2 = (struct exfat_entry_meta2*) &entries[1];
 	int i;
+	int rc;
+
+	memset(entries, 0, sizeof(struct exfat_entry[2]));
+
+	meta1->type = EXFAT_ENTRY_FILE;
+	meta1->continuations = 1 + name_entries;
+	meta1->attrib = cpu_to_le16(attrib);
+	exfat_unix2exfat(time(NULL), &meta1->crdate, &meta1->crtime,
+			&meta1->crtime_cs);
+	meta1->adate = meta1->mdate = meta1->crdate;
+	meta1->atime = meta1->mtime = meta1->crtime;
+	meta1->mtime_cs = meta1->crtime_cs; /* there is no atime_cs */
+
+	meta2->type = EXFAT_ENTRY_FILE_INFO;
+	meta2->flags = EXFAT_FLAG_ALWAYS1;
+	meta2->name_length = name_length;
+	meta2->name_hash = exfat_calc_name_hash(ef, name, name_length);
+	meta2->start_cluster = cpu_to_le32(EXFAT_CLUSTER_FREE);
+
+	meta1->checksum = exfat_calc_checksum(meta1, meta2, name);
+
+	for (i = 0; i < name_entries; i++)
+	{
+		struct exfat_entry_name* name_entry;
+
+		name_entry = (struct exfat_entry_name*) &entries[2 + i];
+		name_entry->type = EXFAT_ENTRY_FILE_NAME;
+		name_entry->__unknown = 0;
+		memcpy(name_entry->name, name + i * EXFAT_ENAME_MAX,
+				EXFAT_ENAME_MAX * sizeof(le16_t));
+	}
+
+	rc = write_entries(ef, dir, entries, 2 + name_entries, offset);
+	if (rc != 0)
+		return rc;
 
 	node = allocate_node();
 	if (node == NULL)
@@ -981,61 +1017,10 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	node->entry_cluster = cluster;
 	node->entry_offset = offset;
 	memcpy(node->name, name, name_length * sizeof(le16_t));
-
-	memset(&meta1, 0, sizeof(meta1));
-	meta1.type = EXFAT_ENTRY_FILE;
-	meta1.continuations = 1 + name_entries;
-	meta1.attrib = cpu_to_le16(attrib);
-	exfat_unix2exfat(time(NULL), &meta1.crdate, &meta1.crtime,
-			&meta1.crtime_cs);
-	meta1.adate = meta1.mdate = meta1.crdate;
-	meta1.atime = meta1.mtime = meta1.crtime;
-	meta1.mtime_cs = meta1.crtime_cs; /* there is no atime_cs */
-
-	memset(&meta2, 0, sizeof(meta2));
-	meta2.type = EXFAT_ENTRY_FILE_INFO;
-	meta2.flags = EXFAT_FLAG_ALWAYS1;
-	meta2.name_length = name_length;
-	meta2.name_hash = exfat_calc_name_hash(ef, node->name, name_length);
-	meta2.start_cluster = cpu_to_le32(EXFAT_CLUSTER_FREE);
-
-	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
-
-	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1),
-			co2o(ef, cluster, offset)) < 0)
-	{
-		exfat_error("failed to write meta1 entry");
-		return -EIO;
-	}
-	if (!next_entry(ef, dir, &cluster, &offset))
-		return -EIO;
-	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2),
-			co2o(ef, cluster, offset)) < 0)
-	{
-		exfat_error("failed to write meta2 entry");
-		return -EIO;
-	}
-	for (i = 0; i < name_entries; i++)
-	{
-		struct exfat_entry_name name_entry = {EXFAT_ENTRY_FILE_NAME, 0};
-		memcpy(name_entry.name, node->name + i * EXFAT_ENAME_MAX,
-				MIN(EXFAT_ENAME_MAX, EXFAT_NAME_MAX - i * EXFAT_ENAME_MAX) *
-				sizeof(le16_t));
-		if (!next_entry(ef, dir, &cluster, &offset))
-			return -EIO;
-		if (exfat_pwrite(ef->dev, &name_entry, sizeof(name_entry),
-				co2o(ef, cluster, offset)) < 0)
-		{
-			exfat_error("failed to write name entry");
-			return -EIO;
-		}
-	}
-
-	init_node_meta1(node, &meta1);
-	init_node_meta2(node, &meta2);
+	init_node_meta1(node, meta1);
+	init_node_meta2(node, meta2);
 
 	tree_attach(dir, node);
-	exfat_update_mtime(dir);
 	return 0;
 }
 
@@ -1071,6 +1056,7 @@ static int create(struct exfat* ef, const char* path, uint16_t attrib)
 		exfat_put_node(ef, dir);
 		return rc;
 	}
+	exfat_update_mtime(dir);
 	rc = exfat_flush_node(ef, dir);
 	exfat_put_node(ef, dir);
 	return rc;
