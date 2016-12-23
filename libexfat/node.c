@@ -926,7 +926,7 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 	return 0;
 }
 
-static int write_entry(struct exfat* ef, struct exfat_node* dir,
+static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 		const le16_t* name, cluster_t cluster, off_t offset, uint16_t attrib)
 {
 	struct exfat_node* node;
@@ -1026,7 +1026,7 @@ static int create(struct exfat* ef, const char* path, uint16_t attrib)
 		exfat_put_node(ef, dir);
 		return rc;
 	}
-	rc = write_entry(ef, dir, name, cluster, offset, attrib);
+	rc = commit_entry(ef, dir, name, cluster, offset, attrib);
 	if (rc != 0)
 	{
 		exfat_put_node(ef, dir);
