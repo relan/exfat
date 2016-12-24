@@ -316,7 +316,7 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		remainder -= lsize;
 		cluster = exfat_next_cluster(ef, node, cluster);
 	}
-	if (!ef->ro && !ef->noatime)
+	if (!(node->attrib & EXFAT_ATTRIB_DIR) && !ef->ro && !ef->noatime)
 		exfat_update_atime(node);
 	return MIN(size, node->size - offset) - remainder;
 }
@@ -372,6 +372,9 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		remainder -= lsize;
 		cluster = exfat_next_cluster(ef, node, cluster);
 	}
-	exfat_update_mtime(node);
+	if (!(node->attrib & EXFAT_ATTRIB_DIR))
+		/* directory's mtime should be updated by the caller only when it
+		   creates or removes something in this directory */
+		exfat_update_mtime(node);
 	return size - remainder;
 }
