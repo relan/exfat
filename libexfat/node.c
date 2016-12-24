@@ -83,14 +83,6 @@ int exfat_cleanup_node(struct exfat* ef, struct exfat_node* node)
 	return rc;
 }
 
-/**
- * Cluster + offset from the beginning of the directory to absolute offset.
- */
-static off_t co2o(struct exfat* ef, cluster_t cluster, off_t offset)
-{
-	return exfat_c2o(ef, cluster) + offset % CLUSTER_SIZE(*ef->sb);
-}
-
 static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		struct iterator* it)
 {
@@ -697,30 +689,12 @@ void exfat_reset_cache(struct exfat* ef)
 	reset_cache(ef, ef->root);
 }
 
-static bool next_entry(struct exfat* ef, const struct exfat_node* parent,
-		cluster_t* cluster, off_t* offset)
-{
-	*offset += sizeof(struct exfat_entry);
-	if (*offset % CLUSTER_SIZE(*ef->sb) == 0)
-	{
-		*cluster = exfat_next_cluster(ef, parent, *cluster);
-		if (CLUSTER_INVALID(*cluster))
-		{
-			exfat_error("invalid cluster %#x while getting next entry",
-					*cluster);
-			return false;
-		}
-	}
-	return true;
-}
-
 int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 {
-	cluster_t cluster;
-	off_t offset;
-	off_t meta1_offset, meta2_offset;
-	struct exfat_entry_meta1 meta1;
-	struct exfat_entry_meta2 meta2;
+	struct exfat_entry entries[2];
+	struct exfat_entry_meta1* meta1 = (struct exfat_entry_meta1*) &entries[0];
+	struct exfat_entry_meta2* meta2 = (struct exfat_entry_meta2*) &entries[1];
+	int rc;
 
 	if (!node->is_dirty)
 		return 0; /* no need to flush */
@@ -731,51 +705,38 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	if (node->parent == NULL)
 		return 0; /* do not flush unlinked node */
 
-	cluster = node->entry_cluster;
-	offset = node->entry_offset;
-	meta1_offset = co2o(ef, cluster, offset);
-	if (!next_entry(ef, node->parent, &cluster, &offset))
-		return -EIO;
-	meta2_offset = co2o(ef, cluster, offset);
+	rc = read_entries(ef, node->parent, entries, 2, node->entry_offset);
+	if (rc != 0)
+		return rc;
 
-	if (exfat_pread(ef->dev, &meta1, sizeof(meta1), meta1_offset) < 0)
+	if (meta1->type != EXFAT_ENTRY_FILE)
 	{
-		exfat_error("failed to read meta1 entry on flush");
+		exfat_error("invalid type of meta1: %#hhx", meta1->type);
 		return -EIO;
 	}
-	if (meta1.type != EXFAT_ENTRY_FILE)
-		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
-	meta1.attrib = cpu_to_le16(node->attrib);
-	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime, &meta1.mtime_cs);
-	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime, NULL);
+	meta1->attrib = cpu_to_le16(node->attrib);
+	exfat_unix2exfat(node->mtime, &meta1->mdate, &meta1->mtime,
+			&meta1->mtime_cs);
+	exfat_unix2exfat(node->atime, &meta1->adate, &meta1->atime, NULL);
 
-	if (exfat_pread(ef->dev, &meta2, sizeof(meta2), meta2_offset) < 0)
+	if (meta2->type != EXFAT_ENTRY_FILE_INFO)
 	{
-		exfat_error("failed to read meta2 entry on flush");
+		exfat_error("invalid type of meta2: %#hhx", meta2->type);
 		return -EIO;
 	}
-	if (meta2.type != EXFAT_ENTRY_FILE_INFO)
-		exfat_bug("invalid type of meta2: 0x%hhx", meta2.type);
-	meta2.size = meta2.valid_size = cpu_to_le64(node->size);
-	meta2.start_cluster = cpu_to_le32(node->start_cluster);
-	meta2.flags = EXFAT_FLAG_ALWAYS1;
+	meta2->size = meta2->valid_size = cpu_to_le64(node->size);
+	meta2->start_cluster = cpu_to_le32(node->start_cluster);
+	meta2->flags = EXFAT_FLAG_ALWAYS1;
 	/* empty files must not be marked as contiguous */
 	if (node->size != 0 && node->is_contiguous)
-		meta2.flags |= EXFAT_FLAG_CONTIGUOUS;
+		meta2->flags |= EXFAT_FLAG_CONTIGUOUS;
 	/* name hash remains unchanged, no need to recalculate it */
 
-	meta1.checksum = exfat_calc_checksum(&meta1, &meta2, node->name);
+	meta1->checksum = exfat_calc_checksum(meta1, meta2, node->name);
 
-	if (exfat_pwrite(ef->dev, &meta1, sizeof(meta1), meta1_offset) < 0)
-	{
-		exfat_error("failed to write meta1 entry on flush");
-		return -EIO;
-	}
-	if (exfat_pwrite(ef->dev, &meta2, sizeof(meta2), meta2_offset) < 0)
-	{
-		exfat_error("failed to write meta2 entry on flush");
-		return -EIO;
-	}
+	rc = write_entries(ef, node->parent, entries, 2, node->entry_offset);
+	if (rc != 0)
+		return rc;
 
 	node->is_dirty = false;
 	return exfat_flush(ef);
