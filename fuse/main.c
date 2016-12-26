@@ -104,7 +104,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	struct exfat_node* node;
 	struct exfat_iterator it;
 	int rc;
-	char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+	char name[EXFAT_UTF8_NAME_BUFFER_MAX];
 
 	exfat_debug("[%s] %s", __func__, path);
 

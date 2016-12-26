@@ -43,7 +43,7 @@ struct exfat_node* exfat_get_node(struct exfat_node* node)
 
 void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 {
-	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 
 	--node->references;
 	if (node->references < 0)
@@ -94,7 +94,7 @@ static off_t co2o(struct exfat* ef, cluster_t cluster, off_t offset)
 static int opendir(struct exfat* ef, const struct exfat_node* dir,
 		struct iterator* it)
 {
-	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
 	{
@@ -208,7 +208,7 @@ static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
 static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		uint16_t reference_checksum, uint64_t valid_size, int cluster_size)
 {
-	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 	bool ret = true;
 
 	/*
@@ -627,7 +627,7 @@ static void tree_detach(struct exfat_node* node)
 
 static void reset_cache(struct exfat* ef, struct exfat_node* node)
 {
-	char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 
 	while (node->child)
 	{

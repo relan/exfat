@@ -41,7 +41,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 	{
 		if (CLUSTER_INVALID(c))
 		{
-			char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+			char name[EXFAT_UTF8_NAME_BUFFER_MAX];
 
 			exfat_get_name(node, name);
 			exfat_error("file '%s' has invalid cluster 0x%x", name, c);
@@ -50,7 +50,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 		}
 		if (BMAP_GET(ef->cmap.chunk, c - EXFAT_FIRST_DATA_CLUSTER) == 0)
 		{
-			char name[UTF8_BYTES(EXFAT_NAME_MAX) + 1];
+			char name[EXFAT_UTF8_NAME_BUFFER_MAX];
 
 			exfat_get_name(node, name);
 			exfat_error("cluster 0x%x of file '%s' is not allocated", c, name);
@@ -81,7 +81,7 @@ static void dirck(struct exfat* ef, const char* path)
 	}
 
 	path_length = strlen(path);
-	entry_path = malloc(path_length + 1 + UTF8_BYTES(EXFAT_NAME_MAX) + 1);
+	entry_path = malloc(path_length + 1 + EXFAT_UTF8_NAME_BUFFER_MAX);
 	if (entry_path == NULL)
 	{
 		exfat_put_node(ef, parent);

@@ -35,6 +35,12 @@
 #include <sys/types.h>
 
 #define EXFAT_NAME_MAX 255
+/* UTF-16 encodes code points up to U+FFFF as single 16-bit code units.
+   UTF-8 uses up to 3 bytes (i.e. 8-bit code units) to encode code points
+   up to U+FFFF. One additional character is for null terminator. */
+#define EXFAT_UTF8_NAME_BUFFER_MAX (EXFAT_NAME_MAX * 3 + 1)
+#define EXFAT_UTF8_ENAME_BUFFER_MAX (EXFAT_ENAME_MAX * 3 + 1)
+
 #define EXFAT_ATTRIB_CONTIGUOUS 0x10000
 #define EXFAT_ATTRIB_CACHED     0x20000
 #define EXFAT_ATTRIB_DIRTY      0x40000
@@ -49,7 +55,6 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
 #define ROUND_UP(x, d) (DIV_ROUND_UP(x, d) * (d))
-#define UTF8_BYTES(c) ((c) * 6) /* UTF-8 character can occupy up to 6 bytes */
 
 #define BMAP_SIZE(count) (ROUND_UP(count, sizeof(bitmap_t) * 8) / 8)
 #define BMAP_BLOCK(index) ((index) / sizeof(bitmap_t) / 8)
@@ -108,7 +113,7 @@ struct exfat
 		bool dirty;
 	}
 	cmap;
-	char label[UTF8_BYTES(EXFAT_ENAME_MAX) + 1];
+	char label[EXFAT_UTF8_ENAME_BUFFER_MAX];
 	void* zero_cluster;
 	int dmask, fmask;
 	uid_t uid;
@@ -178,7 +183,7 @@ int exfat_find_used_sectors(const struct exfat* ef, off_t* a, off_t* b);
 void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		struct stat* stbuf);
 void exfat_get_name(const struct exfat_node* node,
-		char buffer[UTF8_BYTES(EXFAT_NAME_MAX) + 1]);
+		char buffer[EXFAT_UTF8_NAME_BUFFER_MAX]);
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
 le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
