@@ -111,10 +111,10 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	rc = exfat_lookup(&ef, &parent, path);
 	if (rc != 0)
 		return rc;
-	if (!(parent->flags & EXFAT_ATTRIB_DIR))
+	if (!(parent->attrib & EXFAT_ATTRIB_DIR))
 	{
 		exfat_put_node(&ef, parent);
-		exfat_error("'%s' is not a directory (0x%x)", path, parent->flags);
+		exfat_error("'%s' is not a directory (%#hx)", path, parent->attrib);
 		return -ENOTDIR;
 	}
 

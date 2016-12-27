@@ -72,8 +72,8 @@ static void dirck(struct exfat* ef, const char* path)
 
 	if (exfat_lookup(ef, &parent, path) != 0)
 		exfat_bug("directory '%s' is not found", path);
-	if (!(parent->flags & EXFAT_ATTRIB_DIR))
-		exfat_bug("'%s' is not a directory (0x%x)", path, parent->flags);
+	if (!(parent->attrib & EXFAT_ATTRIB_DIR))
+		exfat_bug("'%s' is not a directory (%#hx)", path, parent->attrib);
 	if (nodeck(ef, parent) != 0)
 	{
 		exfat_put_node(ef, parent);
@@ -104,7 +104,7 @@ static void dirck(struct exfat* ef, const char* path)
 		exfat_debug("%s: %s, %"PRIu64" bytes, cluster %u", entry_path,
 				node->is_contiguous ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
-		if (node->flags & EXFAT_ATTRIB_DIR)
+		if (node->attrib & EXFAT_ATTRIB_DIR)
 		{
 			directories_count++;
 			dirck(ef, entry_path);

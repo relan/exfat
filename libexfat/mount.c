@@ -287,7 +287,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -ENOMEM;
 	}
 	memset(ef->root, 0, sizeof(struct exfat_node));
-	ef->root->flags = EXFAT_ATTRIB_DIR;
+	ef->root->attrib = EXFAT_ATTRIB_DIR;
 	ef->root->start_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
 	ef->root->fptr_cluster = ef->root->start_cluster;
 	ef->root->name[0] = cpu_to_le16('\0');

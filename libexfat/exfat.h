@@ -78,7 +78,7 @@ struct exfat_node
 	cluster_t entry_cluster;
 	off_t entry_offset;
 	cluster_t start_cluster;
-	int flags;
+	uint16_t attrib;
 	bool is_contiguous : 1;
 	bool is_cached : 1;
 	bool is_dirty : 1;

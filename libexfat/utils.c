@@ -29,7 +29,7 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 		struct stat* stbuf)
 {
 	memset(stbuf, 0, sizeof(struct stat));
-	if (node->flags & EXFAT_ATTRIB_DIR)
+	if (node->attrib & EXFAT_ATTRIB_DIR)
 		stbuf->st_mode = S_IFDIR | (0777 & ~ef->dmask);
 	else
 		stbuf->st_mode = S_IFREG | (0777 & ~ef->fmask);

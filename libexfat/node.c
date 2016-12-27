@@ -96,7 +96,7 @@ static int opendir(struct exfat* ef, const struct exfat_node* dir,
 {
 	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 
-	if (!(dir->flags & EXFAT_ATTRIB_DIR))
+	if (!(dir->attrib & EXFAT_ATTRIB_DIR))
 	{
 		exfat_get_name(dir, buffer);
 		exfat_bug("'%s' is not a directory", buffer);
@@ -181,7 +181,7 @@ static struct exfat_node* allocate_node(void)
 static void init_node_meta1(struct exfat_node* node,
 		const struct exfat_entry_meta1* meta1)
 {
-	node->flags = le16_to_cpu(meta1->attrib);
+	node->attrib = le16_to_cpu(meta1->attrib);
 	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime,
 			meta1->mtime_cs);
 	/* there is no centiseconds field for atime */
@@ -261,13 +261,13 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	if (node->size == 0 && node->is_contiguous)
 	{
 		exfat_get_name(node, buffer);
-		exfat_error("'%s' is empty but marked as contiguous (%#x)", buffer,
-				node->flags);
+		exfat_error("'%s' is empty but marked as contiguous (%#hx)", buffer,
+				node->attrib);
 		ret = false;
 	}
 
 	/* Directory size must be aligned on at cluster boundary. */
-	if ((node->flags & EXFAT_ATTRIB_DIR) && node->size % cluster_size != 0)
+	if ((node->attrib & EXFAT_ATTRIB_DIR) && node->size % cluster_size != 0)
 	{
 		exfat_get_name(node, buffer);
 		exfat_error("'%s' directory size %"PRIu64" is not divisible by %d", buffer,
@@ -704,7 +704,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	}
 	if (meta1.type != EXFAT_ENTRY_FILE)
 		exfat_bug("invalid type of meta1: 0x%hhx", meta1.type);
-	meta1.attrib = cpu_to_le16(node->flags);
+	meta1.attrib = cpu_to_le16(node->attrib);
 	exfat_unix2exfat(node->mtime, &meta1.mdate, &meta1.mtime, &meta1.mtime_cs);
 	exfat_unix2exfat(node->atime, &meta1.adate, &meta1.atime, NULL);
 
@@ -786,7 +786,7 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 	uint64_t entries = 0;
 	uint64_t new_size;
 
-	if (!(dir->flags & EXFAT_ATTRIB_DIR))
+	if (!(dir->attrib & EXFAT_ATTRIB_DIR))
 		exfat_bug("attempted to shrink a file");
 	if (!dir->is_cached)
 		exfat_bug("attempted to shrink uncached directory");
@@ -852,7 +852,7 @@ static int delete(struct exfat* ef, struct exfat_node* node)
 
 int exfat_unlink(struct exfat* ef, struct exfat_node* node)
 {
-	if (node->flags & EXFAT_ATTRIB_DIR)
+	if (node->attrib & EXFAT_ATTRIB_DIR)
 		return -EISDIR;
 	return delete(ef, node);
 }
@@ -861,7 +861,7 @@ int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
 {
 	int rc;
 
-	if (!(node->flags & EXFAT_ATTRIB_DIR))
+	if (!(node->attrib & EXFAT_ATTRIB_DIR))
 		return -ENOTDIR;
 	/* check that directory is empty */
 	rc = exfat_cache_directory(ef, node);
@@ -1166,7 +1166,7 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 	}
 
 	/* check that target is not a subdirectory of the source */
-	if (node->flags & EXFAT_ATTRIB_DIR)
+	if (node->attrib & EXFAT_ATTRIB_DIR)
 	{
 		struct exfat_node* p;
 
@@ -1186,16 +1186,16 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 		/* remove target if it's not the same node as source */
 		if (existing != node)
 		{
-			if (existing->flags & EXFAT_ATTRIB_DIR)
+			if (existing->attrib & EXFAT_ATTRIB_DIR)
 			{
-				if (node->flags & EXFAT_ATTRIB_DIR)
+				if (node->attrib & EXFAT_ATTRIB_DIR)
 					rc = exfat_rmdir(ef, existing);
 				else
 					rc = -ENOTDIR;
 			}
 			else
 			{
-				if (!(node->flags & EXFAT_ATTRIB_DIR))
+				if (!(node->attrib & EXFAT_ATTRIB_DIR))
 					rc = exfat_unlink(ef, existing);
 				else
 					rc = -EISDIR;
