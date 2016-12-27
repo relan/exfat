@@ -292,7 +292,7 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 	if (CLUSTER_INVALID(cluster))
 	{
 		exfat_error("invalid cluster 0x%x while reading", cluster);
-		return -1;
+		return -EIO;
 	}
 
 	loffset = offset % CLUSTER_SIZE(*ef->sb);
@@ -302,14 +302,14 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		if (CLUSTER_INVALID(cluster))
 		{
 			exfat_error("invalid cluster 0x%x while reading", cluster);
-			return -1;
+			return -EIO;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
 		if (exfat_pread(ef->dev, bufp, lsize,
 					exfat_c2o(ef, cluster) + loffset) < 0)
 		{
 			exfat_error("failed to read cluster %#x", cluster);
-			return -1;
+			return -EIO;
 		}
 		bufp += lsize;
 		loffset = 0;
@@ -324,16 +324,23 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		const void* buffer, size_t size, off_t offset)
 {
+	int rc;
 	cluster_t cluster;
 	const char* bufp = buffer;
 	off_t lsize, loffset, remainder;
 
  	if (offset > node->size)
- 		if (exfat_truncate(ef, node, offset, true) != 0)
- 			return -1;
+	{
+		rc = exfat_truncate(ef, node, offset, true);
+		if (rc != 0)
+			return rc;
+	}
   	if (offset + size > node->size)
- 		if (exfat_truncate(ef, node, offset + size, false) != 0)
- 			return -1;
+	{
+		rc = exfat_truncate(ef, node, offset + size, false);
+		if (rc != 0)
+			return rc;
+	}
 	if (size == 0)
 		return 0;
 
@@ -341,7 +348,7 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 	if (CLUSTER_INVALID(cluster))
 	{
 		exfat_error("invalid cluster 0x%x while writing", cluster);
-		return -1;
+		return -EIO;
 	}
 
 	loffset = offset % CLUSTER_SIZE(*ef->sb);
@@ -351,14 +358,14 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		if (CLUSTER_INVALID(cluster))
 		{
 			exfat_error("invalid cluster 0x%x while writing", cluster);
-			return -1;
+			return -EIO;
 		}
 		lsize = MIN(CLUSTER_SIZE(*ef->sb) - loffset, remainder);
 		if (exfat_pwrite(ef->dev, bufp, lsize,
 				exfat_c2o(ef, cluster) + loffset) < 0)
 		{
 			exfat_error("failed to write cluster %#x", cluster);
-			return -1;
+			return -EIO;
 		}
 		bufp += lsize;
 		loffset = 0;
