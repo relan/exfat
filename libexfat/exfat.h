@@ -41,11 +41,6 @@
 #define EXFAT_UTF8_NAME_BUFFER_MAX (EXFAT_NAME_MAX * 3 + 1)
 #define EXFAT_UTF8_ENAME_BUFFER_MAX (EXFAT_ENAME_MAX * 3 + 1)
 
-#define EXFAT_ATTRIB_CONTIGUOUS 0x10000
-#define EXFAT_ATTRIB_CACHED     0x20000
-#define EXFAT_ATTRIB_DIRTY      0x40000
-#define EXFAT_ATTRIB_UNLINKED   0x80000
-#define IS_CONTIGUOUS(node) (((node).flags & EXFAT_ATTRIB_CONTIGUOUS) != 0)
 #define SECTOR_SIZE(sb) (1 << (sb).sector_bits)
 #define CLUSTER_SIZE(sb) (SECTOR_SIZE(sb) << (sb).spc_bits)
 #define CLUSTER_INVALID(c) \
@@ -84,6 +79,10 @@ struct exfat_node
 	off_t entry_offset;
 	cluster_t start_cluster;
 	int flags;
+	bool is_contiguous : 1;
+	bool is_cached : 1;
+	bool is_dirty : 1;
+	bool is_unlinked : 1;
 	uint64_t size;
 	time_t mtime, atime;
 	le16_t name[EXFAT_NAME_MAX + 1];

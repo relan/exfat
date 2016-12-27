@@ -102,7 +102,7 @@ static void dirck(struct exfat* ef, const char* path)
 	{
 		exfat_get_name(node, entry_path + path_length + 1);
 		exfat_debug("%s: %s, %"PRIu64" bytes, cluster %u", entry_path,
-				IS_CONTIGUOUS(*node) ? "contiguous" : "fragmented",
+				node->is_contiguous ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
 		if (node->flags & EXFAT_ATTRIB_DIR)
 		{

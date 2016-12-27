@@ -53,7 +53,7 @@ void exfat_put_node(struct exfat* ef, struct exfat_node* node)
 	}
 	else if (node->references == 0 && node != ef->root)
 	{
-		if (node->flags & EXFAT_ATTRIB_DIRTY)
+		if (node->is_dirty)
 		{
 			exfat_get_name(node, buffer);
 			exfat_warn("dirty node '%s' with zero references", buffer);
@@ -73,7 +73,7 @@ int exfat_cleanup_node(struct exfat* ef, struct exfat_node* node)
 		exfat_bug("unable to cleanup a node with %d references",
 				node->references);
 
-	if (node->flags & EXFAT_ATTRIB_UNLINKED)
+	if (node->is_unlinked)
 	{
 		/* free all clusters and node structure itself */
 		rc = exfat_truncate(ef, node, 0, true);
@@ -194,8 +194,7 @@ static void init_node_meta2(struct exfat_node* node,
 	node->size = le64_to_cpu(meta2->size);
 	node->start_cluster = le32_to_cpu(meta2->start_cluster);
 	node->fptr_cluster = node->start_cluster;
-	if (meta2->flags & EXFAT_FLAG_CONTIGUOUS)
-		node->flags |= EXFAT_ATTRIB_CONTIGUOUS;
+	node->is_contiguous = ((meta2->flags & EXFAT_FLAG_CONTIGUOUS) != 0);
 }
 
 static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
@@ -259,7 +258,7 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	}
 
 	/* Empty file or directory must be marked as non-contiguous. */
-	if (node->size == 0 && (node->flags & EXFAT_ATTRIB_CONTIGUOUS))
+	if (node->size == 0 && node->is_contiguous)
 	{
 		exfat_get_name(node, buffer);
 		exfat_error("'%s' is empty but marked as contiguous (%#x)", buffer,
@@ -564,7 +563,7 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 	struct exfat_node* node;
 	struct exfat_node* current = NULL;
 
-	if (dir->flags & EXFAT_ATTRIB_CACHED)
+	if (dir->is_cached)
 		return 0; /* already cached */
 
 	rc = opendir(ef, dir, &it);
@@ -597,7 +596,7 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 		return rc;
 	}
 
-	dir->flags |= EXFAT_ATTRIB_CACHED;
+	dir->is_cached = true;
 	return 0;
 }
 
@@ -636,14 +635,14 @@ static void reset_cache(struct exfat* ef, struct exfat_node* node)
 		tree_detach(p);
 		free(p);
 	}
-	node->flags &= ~EXFAT_ATTRIB_CACHED;
+	node->is_cached = false;
 	if (node->references != 0)
 	{
 		exfat_get_name(node, buffer);
 		exfat_warn("non-zero reference counter (%d) for '%s'",
 				node->references, buffer);
 	}
-	if (node != ef->root && (node->flags & EXFAT_ATTRIB_DIRTY))
+	if (node != ef->root && node->is_dirty)
 	{
 		exfat_get_name(node, buffer);
 		exfat_bug("node '%s' is dirty", buffer);
@@ -682,7 +681,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	struct exfat_entry_meta1 meta1;
 	struct exfat_entry_meta2 meta2;
 
-	if (!(node->flags & EXFAT_ATTRIB_DIRTY))
+	if (!node->is_dirty)
 		return 0; /* no need to flush */
 
 	if (ef->ro)
@@ -720,7 +719,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	meta2.start_cluster = cpu_to_le32(node->start_cluster);
 	meta2.flags = EXFAT_FLAG_ALWAYS1;
 	/* empty files must not be marked as contiguous */
-	if (node->size != 0 && IS_CONTIGUOUS(*node))
+	if (node->size != 0 && node->is_contiguous)
 		meta2.flags |= EXFAT_FLAG_CONTIGUOUS;
 	/* name hash remains unchanged, no need to recalculate it */
 
@@ -737,7 +736,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 		return -EIO;
 	}
 
-	node->flags &= ~EXFAT_ATTRIB_DIRTY;
+	node->is_dirty = false;
 	return exfat_flush(ef);
 }
 
@@ -789,7 +788,7 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 
 	if (!(dir->flags & EXFAT_ATTRIB_DIR))
 		exfat_bug("attempted to shrink a file");
-	if (!(dir->flags & EXFAT_ATTRIB_CACHED))
+	if (!dir->is_cached)
 		exfat_bug("attempted to shrink uncached directory");
 
 	for (last_node = node = dir->child; node; node = node->next)
@@ -839,7 +838,7 @@ static int delete(struct exfat* ef, struct exfat_node* node)
 	exfat_update_mtime(parent);
 	tree_detach(node);
 	rc = shrink_directory(ef, parent, deleted_offset);
-	node->flags |= EXFAT_ATTRIB_UNLINKED;
+	node->is_unlinked = true;
 	if (rc != 0)
 	{
 		exfat_flush_node(ef, parent);
@@ -1241,19 +1240,19 @@ void exfat_utimes(struct exfat_node* node, const struct timespec tv[2])
 {
 	node->atime = tv[0].tv_sec;
 	node->mtime = tv[1].tv_sec;
-	node->flags |= EXFAT_ATTRIB_DIRTY;
+	node->is_dirty = true;
 }
 
 void exfat_update_atime(struct exfat_node* node)
 {
 	node->atime = time(NULL);
-	node->flags |= EXFAT_ATTRIB_DIRTY;
+	node->is_dirty = true;
 }
 
 void exfat_update_mtime(struct exfat_node* node)
 {
 	node->mtime = time(NULL);
-	node->flags |= EXFAT_ATTRIB_DIRTY;
+	node->is_dirty = true;
 }
 
 const char* exfat_get_label(struct exfat* ef)
