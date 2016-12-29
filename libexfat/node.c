@@ -869,57 +869,87 @@ int exfat_rmdir(struct exfat* ef, struct exfat_node* node)
 	return delete(ef, node);
 }
 
-static int grow_directory(struct exfat* ef, struct exfat_node* dir,
-		uint64_t asize, uint32_t difference)
+static int check_slot(struct exfat* ef, struct exfat_node* dir, off_t offset,
+		int n)
 {
-	return exfat_truncate(ef, dir,
-			DIV_ROUND_UP(asize + difference, CLUSTER_SIZE(*ef->sb))
-				* CLUSTER_SIZE(*ef->sb), true);
+	struct exfat_entry entries[n];
+	int rc;
+	size_t i;
+
+	/* Root directory contains entries, that don't have any nodes associated
+	   with them (clusters bitmap, upper case table, label). We need to be
+	   careful not to overwrite them. */
+	if (dir != ef->root)
+		return 0;
+
+	rc = read_entries(ef, dir, entries, n, offset);
+	if (rc != 0)
+		return rc;
+	for (i = 0; i < n; i++)
+		if (entries[i].type & EXFAT_ENTRY_VALID)
+			return -EINVAL;
+	return 0;
 }
 
 static int find_slot(struct exfat* ef, struct exfat_node* dir,
-		cluster_t* cluster, off_t* offset, int subentries)
+		off_t* offset, int n)
 {
-	struct iterator it;
-	int rc;
-	const struct exfat_entry* entry;
+	bitmap_t* dmap;
+	struct exfat_node* p;
+	size_t i;
 	int contiguous = 0;
 
-	rc = opendir(ef, dir, &it);
-	if (rc != 0)
-		return rc;
-	for (;;)
+	if (!dir->is_cached)
+		exfat_bug("directory is not cached");
+
+	/* build a bitmap of valid entries in the directory */
+	dmap = calloc(BMAP_SIZE(dir->size / sizeof(struct exfat_entry)),
+			sizeof(bitmap_t));
+	if (dmap == NULL)
 	{
-		if (contiguous == 0)
-		{
-			*cluster = it.cluster;
-			*offset = it.offset;
-		}
-		entry = get_entry_ptr(ef, &it);
-		if (entry->type & EXFAT_ENTRY_VALID)
-			contiguous = 0;
-		else
-			contiguous++;
-		if (contiguous == subentries)
-			break;	/* suitable slot is found */
-		if (it.offset + sizeof(struct exfat_entry) >= dir->size)
-		{
-			rc = grow_directory(ef, dir, dir->size,
-					(subentries - contiguous) * sizeof(struct exfat_entry));
-			if (rc != 0)
-			{
-				closedir(&it);
-				return rc;
-			}
-		}
-		if (!fetch_next_entry(ef, dir, &it))
-		{
-			closedir(&it);
-			return -EIO;
-		}
+		exfat_error("failed to allocate directory bitmap (%"PRIu64")",
+				dir->size / sizeof(struct exfat_entry));
+		return -ENOMEM;
 	}
-	closedir(&it);
-	return 0;
+	for (p = dir->child; p != NULL; p = p->next)
+		for (i = 0; i < 1 + p->continuations; i++)
+			BMAP_SET(dmap, p->entry_offset / sizeof(struct exfat_entry) + i);
+
+	/* find a slot in the directory entries bitmap */
+	for (i = 0; i < dir->size / sizeof(struct exfat_entry); i++)
+	{
+		if (BMAP_GET(dmap, i) == 0)
+		{
+			if (contiguous++ == 0)
+				*offset = (off_t) i * sizeof(struct exfat_entry);
+			if (contiguous == n)
+				/* suitable slot is found, check that it's not occupied */
+				switch (check_slot(ef, dir, *offset, n))
+				{
+				case 0:
+					free(dmap);
+					return 0;
+				case -EIO:
+					free(dmap);
+					return -EIO;
+				case -EINVAL:
+					/* slot is occupied, continue searching */
+					contiguous = 0;
+					break;
+				}
+		}
+		else
+			contiguous = 0;
+	}
+	free(dmap);
+
+	/* no suitable slots found, extend the directory */
+	if (contiguous == 0)
+		*offset = dir->size;
+	return exfat_truncate(ef, dir,
+			ROUND_UP(dir->size + sizeof(struct exfat_entry[n - contiguous]),
+					CLUSTER_SIZE(*ef->sb)),
+			true);
 }
 
 static int commit_entry(struct exfat* ef, struct exfat_node* dir,
@@ -1000,7 +1030,7 @@ static int create(struct exfat* ef, const char* path, uint16_t attrib)
 		return -EEXIST;
 	}
 
-	rc = find_slot(ef, dir, &cluster, &offset,
+	rc = find_slot(ef, dir, &offset,
 			2 + DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX));
 	if (rc != 0)
 	{
@@ -1182,7 +1212,7 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 			exfat_put_node(ef, existing);
 	}
 
-	rc = find_slot(ef, dir, &cluster, &offset,
+	rc = find_slot(ef, dir, &offset,
 			2 + DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX));
 	if (rc != 0)
 	{
@@ -1248,7 +1278,6 @@ int exfat_set_label(struct exfat* ef, const char* label)
 {
 	le16_t label_utf16[EXFAT_ENAME_MAX + 1];
 	int rc;
-	cluster_t cluster;
 	off_t offset;
 	struct exfat_entry_label entry;
 
@@ -1259,7 +1288,7 @@ int exfat_set_label(struct exfat* ef, const char* label)
 
 	rc = find_label(ef, &offset);
 	if (rc == -ENOENT)
-		rc = find_slot(ef, ef->root, &cluster, &offset, 1);
+		rc = find_slot(ef, ef->root, &offset, 1);
 	if (rc != 0)
 		return rc;
 
