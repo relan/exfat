@@ -75,7 +75,6 @@ struct exfat_node
 	int references;
 	uint32_t fptr_index;
 	cluster_t fptr_cluster;
-	cluster_t entry_cluster;
 	off_t entry_offset;
 	cluster_t start_cluster;
 	uint16_t attrib;

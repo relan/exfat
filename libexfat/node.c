@@ -25,14 +25,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-/* on-disk nodes iterator */
-struct iterator
-{
-	cluster_t cluster;
-	off_t offset;
-	char* chunk;
-};
-
 struct exfat_node* exfat_get_node(struct exfat_node* node)
 {
 	/* if we switch to multi-threaded mode we will need atomic
@@ -81,81 +73,6 @@ int exfat_cleanup_node(struct exfat* ef, struct exfat_node* node)
 		free(node);
 	}
 	return rc;
-}
-
-static int opendir(struct exfat* ef, const struct exfat_node* dir,
-		struct iterator* it)
-{
-	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
-
-	if (!(dir->attrib & EXFAT_ATTRIB_DIR))
-	{
-		exfat_get_name(dir, buffer);
-		exfat_bug("'%s' is not a directory", buffer);
-	}
-	if (CLUSTER_INVALID(dir->start_cluster))
-	{
-		exfat_get_name(dir, buffer);
-		exfat_error("'%s' directory starts with invalid cluster %#x", buffer,
-				dir->start_cluster);
-		return -EIO;
-	}
-	it->cluster = dir->start_cluster;
-	it->offset = 0;
-	it->chunk = malloc(CLUSTER_SIZE(*ef->sb));
-	if (it->chunk == NULL)
-	{
-		exfat_error("failed to allocate memory for directory cluster");
-		return -ENOMEM;
-	}
-	if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
-			exfat_c2o(ef, it->cluster)) < 0)
-	{
-		free(it->chunk);
-		exfat_get_name(dir, buffer);
-		exfat_error("failed to read '%s' directory cluster %#x", buffer,
-				it->cluster);
-		return -EIO;
-	}
-	return 0;
-}
-
-static void closedir(struct iterator* it)
-{
-	it->cluster = 0;
-	it->offset = 0;
-	free(it->chunk);
-	it->chunk = NULL;
-}
-
-static bool fetch_next_entry(struct exfat* ef, const struct exfat_node* parent,
-		struct iterator* it)
-{
-	/* move iterator to the next entry in the directory */
-	it->offset += sizeof(struct exfat_entry);
-	/* fetch the next cluster if needed */
-	if ((it->offset & (CLUSTER_SIZE(*ef->sb) - 1)) == 0)
-	{
-		/* reached the end of directory; the caller should check this
-		   condition too */
-		if (it->offset >= parent->size)
-			return true;
-		it->cluster = exfat_next_cluster(ef, parent, it->cluster);
-		if (CLUSTER_INVALID(it->cluster))
-		{
-			exfat_error("invalid cluster 0x%x while reading directory",
-					it->cluster);
-			return false;
-		}
-		if (exfat_pread(ef->dev, it->chunk, CLUSTER_SIZE(*ef->sb),
-				exfat_c2o(ef, it->cluster)) < 0)
-		{
-			exfat_error("failed to read the next directory cluster %#x",
-					it->cluster);
-			return false;
-		}
-	}
-	return true;
 }
 
 static int read_entries(struct exfat* ef, struct exfat_node* dir,
@@ -230,13 +147,6 @@ static void init_node_meta2(struct exfat_node* node,
 	node->is_contiguous = ((meta2->flags & EXFAT_FLAG_CONTIGUOUS) != 0);
 }
 
-static const struct exfat_entry* get_entry_ptr(const struct exfat* ef,
-		const struct iterator* it)
-{
-	return (const struct exfat_entry*)
-			(it->chunk + it->offset % CLUSTER_SIZE(*ef->sb));
-}
-
 static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 		uint16_t reference_checksum, uint64_t valid_size, int cluster_size)
 {
@@ -272,8 +182,8 @@ static bool check_node(const struct exfat_node* node, uint16_t actual_checksum,
 	/*
 	   Empty file must have zero start cluster. Non-empty file must start
 	   with a valid cluster. Directories cannot be empty (i.e. must always
-	   have a valid start cluster), but we will check this later in opendir()
-	   to give user a chance to read current directory.
+	   have a valid start cluster), but we will check this later while
+	   reading that directory to give user a chance to read this directory.
 	*/
 	if (node->size == 0 && node->start_cluster != EXFAT_CLUSTER_FREE)
 	{
@@ -332,14 +242,14 @@ static void decompress_upcase(uint16_t* output, const le16_t* source,
 }
 
 /*
- * Reads one entry in directory at position pointed by iterator and fills
- * node structure.
+ * Read one entry in a directory at offset position and build a new node
+ * structure.
  */
-static int readdir(struct exfat* ef, const struct exfat_node* parent,
-		struct exfat_node** node, struct iterator* it)
+static int readdir(struct exfat* ef, struct exfat_node* parent,
+		struct exfat_node** node, off_t* offset)
 {
-	int rc = -EIO;
-	const struct exfat_entry* entry;
+	int rc;
+	struct exfat_entry entry;
 	const struct exfat_entry_meta1* meta1;
 	const struct exfat_entry_meta2* meta2;
 	const struct exfat_entry_name* file_name;
@@ -358,39 +268,45 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 
 	for (;;)
 	{
-		if (it->offset >= parent->size)
+		rc = read_entries(ef, parent, &entry, 1, *offset);
+		if (rc == -ENOENT)
 		{
 			if (continuations != 0)
 			{
 				exfat_error("expected %hhu continuations", continuations);
+				rc = -EIO;
 				goto error;
 			}
 			return -ENOENT; /* that's OK, means end of directory */
 		}
+		if (rc != 0)
+			goto error;
 
-		entry = get_entry_ptr(ef, it);
-		switch (entry->type)
+		switch (entry.type)
 		{
 		case EXFAT_ENTRY_FILE:
 			if (continuations != 0)
 			{
 				exfat_error("expected %hhu continuations before new entry",
 						continuations);
+				rc = -EIO;
 				goto error;
 			}
-			meta1 = (const struct exfat_entry_meta1*) entry;
+			meta1 = (const struct exfat_entry_meta1*) &entry;
 			continuations = meta1->continuations;
 			/* each file entry must have at least 2 continuations:
 			   info and name */
 			if (continuations < 2)
 			{
 				exfat_error("too few continuations (%hhu)", continuations);
+				rc = -EIO;
 				goto error;
 			}
 			if (continuations > 1 +
 					DIV_ROUND_UP(EXFAT_NAME_MAX, EXFAT_ENAME_MAX))
 			{
 				exfat_error("too many continuations (%hhu)", continuations);
+				rc = -EIO;
 				goto error;
 			}
 			reference_checksum = le16_to_cpu(meta1->checksum);
@@ -402,8 +318,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				goto error;
 			}
 			/* new node has zero reference counter */
-			(*node)->entry_cluster = it->cluster;
-			(*node)->entry_offset = it->offset;
+			(*node)->entry_offset = *offset;
 			init_node_meta1(*node, meta1);
 			namep = (*node)->name;
 			break;
@@ -413,16 +328,18 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			{
 				exfat_error("unexpected continuation (%hhu)",
 						continuations);
+				rc = -EIO;
 				goto error;
 			}
-			meta2 = (const struct exfat_entry_meta2*) entry;
+			meta2 = (const struct exfat_entry_meta2*) &entry;
 			if (meta2->flags & ~(EXFAT_FLAG_ALWAYS1 | EXFAT_FLAG_CONTIGUOUS))
 			{
 				exfat_error("unknown flags in meta2 (0x%hhx)", meta2->flags);
+				rc = -EIO;
 				goto error;
 			}
 			init_node_meta2(*node, meta2);
-			actual_checksum = exfat_add_checksum(entry, actual_checksum);
+			actual_checksum = exfat_add_checksum(&entry, actual_checksum);
 			valid_size = le64_to_cpu(meta2->valid_size);
 			--continuations;
 			break;
@@ -431,10 +348,11 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			if (continuations == 0)
 			{
 				exfat_error("unexpected continuation");
+				rc = -EIO;
 				goto error;
 			}
-			file_name = (const struct exfat_entry_name*) entry;
-			actual_checksum = exfat_add_checksum(entry, actual_checksum);
+			file_name = (const struct exfat_entry_name*) &entry;
+			actual_checksum = exfat_add_checksum(&entry, actual_checksum);
 
 			memcpy(namep, file_name->name,
 					MIN(EXFAT_ENAME_MAX,
@@ -445,9 +363,11 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			{
 				if (!check_node(*node, actual_checksum, reference_checksum,
 						valid_size, CLUSTER_SIZE(*ef->sb)))
+				{
+					rc = -EIO;
 					goto error;
-				if (!fetch_next_entry(ef, parent, it))
-					goto error;
+				}
+				*offset += sizeof(entry);
 				return 0; /* entry completed */
 			}
 			break;
@@ -455,11 +375,12 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 		case EXFAT_ENTRY_UPCASE:
 			if (ef->upcase != NULL)
 				break;
-			upcase = (const struct exfat_entry_upcase*) entry;
+			upcase = (const struct exfat_entry_upcase*) &entry;
 			if (CLUSTER_INVALID(le32_to_cpu(upcase->start_cluster)))
 			{
 				exfat_error("invalid cluster 0x%x in upcase table",
 						le32_to_cpu(upcase->start_cluster));
+				rc = -EIO;
 				goto error;
 			}
 			upcase_size = le64_to_cpu(upcase->size);
@@ -469,6 +390,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			{
 				exfat_error("bad upcase table size (%"PRIu64" bytes)",
 						upcase_size);
+				rc = -EIO;
 				goto error;
 			}
 			upcase_comp = malloc(upcase_size);
@@ -489,6 +411,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						"(%"PRIu64" bytes starting at cluster %#x)",
 						upcase_size,
 						le32_to_cpu(upcase->start_cluster));
+				rc = -EIO;
 				goto error;
 			}
 
@@ -507,12 +430,13 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 			break;
 
 		case EXFAT_ENTRY_BITMAP:
-			bitmap = (const struct exfat_entry_bitmap*) entry;
+			bitmap = (const struct exfat_entry_bitmap*) &entry;
 			ef->cmap.start_cluster = le32_to_cpu(bitmap->start_cluster);
 			if (CLUSTER_INVALID(ef->cmap.start_cluster))
 			{
 				exfat_error("invalid cluster 0x%x in clusters bitmap",
 						ef->cmap.start_cluster);
+				rc = -EIO;
 				goto error;
 			}
 			ef->cmap.size = le32_to_cpu(ef->sb->cluster_count) -
@@ -523,6 +447,7 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 						" (expected at least %u)",
 						le64_to_cpu(bitmap->size),
 						DIV_ROUND_UP(ef->cmap.size, 8));
+				rc = -EIO;
 				goto error;
 			}
 			/* FIXME bitmap can be rather big, up to 512 MB */
@@ -543,43 +468,48 @@ static int readdir(struct exfat* ef, const struct exfat_node* parent,
 				exfat_error("failed to read clusters bitmap "
 						"(%"PRIu64" bytes starting at cluster %#x)",
 						le64_to_cpu(bitmap->size), ef->cmap.start_cluster);
+				rc = -EIO;
 				goto error;
 			}
 			break;
 
 		case EXFAT_ENTRY_LABEL:
-			label = (const struct exfat_entry_label*) entry;
+			label = (const struct exfat_entry_label*) &entry;
 			if (label->length > EXFAT_ENAME_MAX)
 			{
 				exfat_error("too long label (%hhu chars)", label->length);
+				rc = -EIO;
 				goto error;
 			}
 			if (utf16_to_utf8(ef->label, label->name,
 						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
+			{
+				rc = -EIO;
 				goto error;
+			}
 			break;
 
 		default:
-			if (!(entry->type & EXFAT_ENTRY_VALID))
+			if (!(entry.type & EXFAT_ENTRY_VALID))
 				break; /* deleted entry, ignore it */
-			if (!(entry->type & EXFAT_ENTRY_OPTIONAL))
+			if (!(entry.type & EXFAT_ENTRY_OPTIONAL))
 			{
-				exfat_error("unknown entry type %#hhx", entry->type);
+				exfat_error("unknown entry type %#hhx", entry.type);
+				rc = -EIO;
 				goto error;
 			}
 			/* optional entry, warn and skip */
-			exfat_warn("unknown entry type %#hhx", entry->type);
+			exfat_warn("unknown entry type %#hhx", entry.type);
 			if (continuations == 0)
 			{
 				exfat_error("unexpected continuation");
+				rc = -EIO;
 				goto error;
 			}
 			--continuations;
 			break;
 		}
-
-		if (!fetch_next_entry(ef, parent, it))
-			goto error;
+		*offset += sizeof(entry);
 	}
 	/* we never reach here */
 
@@ -591,7 +521,7 @@ error:
 
 int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 {
-	struct iterator it;
+	off_t offset = 0;
 	int rc;
 	struct exfat_node* node;
 	struct exfat_node* current = NULL;
@@ -599,10 +529,7 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 	if (dir->is_cached)
 		return 0; /* already cached */
 
-	rc = opendir(ef, dir, &it);
-	if (rc != 0)
-		return rc;
-	while ((rc = readdir(ef, dir, &node, &it)) == 0)
+	while ((rc = readdir(ef, dir, &node, &offset)) == 0)
 	{
 		node->parent = dir;
 		if (current != NULL)
@@ -615,7 +542,6 @@ int exfat_cache_directory(struct exfat* ef, struct exfat_node* dir)
 
 		current = node;
 	}
-	closedir(&it);
 
 	if (rc != -ENOENT)
 	{
@@ -1001,7 +927,6 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	node = allocate_node();
 	if (node == NULL)
 		return -ENOMEM;
-	node->entry_cluster = cluster;
 	node->entry_offset = offset;
 	memcpy(node->name, name, name_length * sizeof(le16_t));
 	init_node_meta1(node, meta1);
@@ -1109,7 +1034,6 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 	if (rc != 0)
 		return rc;
 
-	node->entry_cluster = new_cluster;
 	node->entry_offset = new_offset;
 	node->continuations = 1 + name_entries;
 
