@@ -185,8 +185,7 @@ void exfat_get_name(const struct exfat_node* node,
 		char buffer[EXFAT_UTF8_NAME_BUFFER_MAX]);
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry);
 uint16_t exfat_add_checksum(const void* entry, uint16_t sum);
-le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
-		const struct exfat_entry_meta2* meta2, const le16_t* name);
+le16_t exfat_calc_checksum(const struct exfat_entry* entries, int n);
 uint32_t exfat_vbr_start_checksum(const void* sector, size_t size);
 uint32_t exfat_vbr_add_checksum(const void* sector, size_t size, uint32_t sum);
 le16_t exfat_calc_name_hash(const struct exfat* ef, const le16_t* name,

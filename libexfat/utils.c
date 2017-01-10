@@ -83,22 +83,14 @@ uint16_t exfat_add_checksum(const void* entry, uint16_t sum)
 	return add_checksum_bytes(sum, entry, sizeof(struct exfat_entry));
 }
 
-le16_t exfat_calc_checksum(const struct exfat_entry_meta1* meta1,
-		const struct exfat_entry_meta2* meta2, const le16_t* name)
+le16_t exfat_calc_checksum(const struct exfat_entry* entries, int n)
 {
 	uint16_t checksum;
-	const int name_entries = DIV_ROUND_UP(meta2->name_length, EXFAT_ENAME_MAX);
 	int i;
 
-	checksum = exfat_start_checksum(meta1);
-	checksum = exfat_add_checksum(meta2, checksum);
-	for (i = 0; i < name_entries; i++)
-	{
-		checksum = add_checksum_byte(checksum, EXFAT_ENTRY_FILE_NAME);
-		checksum = add_checksum_byte(checksum, 0);
-		checksum = add_checksum_bytes(checksum, name + i * EXFAT_ENAME_MAX,
-				EXFAT_ENAME_MAX * sizeof(le16_t));
-	}
+	checksum = exfat_start_checksum((const struct exfat_entry_meta1*) entries);
+	for (i = 1; i < n; i++)
+		checksum = exfat_add_checksum(entries + i, checksum);
 	return cpu_to_le16(checksum);
 }
 

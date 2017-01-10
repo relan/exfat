@@ -78,6 +78,9 @@ STATIC_ASSERT(sizeof(struct exfat_super_block) == 512);
 #define EXFAT_ENTRY_FILE      (0x05 | EXFAT_ENTRY_VALID)
 #define EXFAT_ENTRY_FILE_INFO (0x00 | EXFAT_ENTRY_VALID | EXFAT_ENTRY_CONTINUED)
 #define EXFAT_ENTRY_FILE_NAME (0x01 | EXFAT_ENTRY_VALID | EXFAT_ENTRY_CONTINUED)
+#define EXFAT_ENTRY_FILE_TAIL (0x00 | EXFAT_ENTRY_VALID \
+                                    | EXFAT_ENTRY_CONTINUED \
+                                    | EXFAT_ENTRY_OPTIONAL)
 
 struct exfat_entry					/* common container for all entries */
 {
