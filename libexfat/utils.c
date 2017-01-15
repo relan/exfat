@@ -37,8 +37,7 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 	stbuf->st_uid = ef->uid;
 	stbuf->st_gid = ef->gid;
 	stbuf->st_size = node->size;
-	stbuf->st_blocks = DIV_ROUND_UP(node->size, CLUSTER_SIZE(*ef->sb)) *
-		CLUSTER_SIZE(*ef->sb) / 512;
+	stbuf->st_blocks = ROUND_UP(node->size, CLUSTER_SIZE(*ef->sb)) / 512;
 	stbuf->st_mtime = node->mtime;
 	stbuf->st_atime = node->atime;
 	/* set ctime to mtime to ensure we don't break programs that rely on ctime
