@@ -3,7 +3,7 @@
 	exFAT file system checker.
 
 	Free exFAT implementation.
-	Copyright (C) 2011-2016  Andrew Nayenko
+	Copyright (C) 2011-2017  Andrew Nayenko
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 		switch (opt)
 		{
 		case 'V':
-			puts("Copyright (C) 2011-2016  Andrew Nayenko");
+			puts("Copyright (C) 2011-2017  Andrew Nayenko");
 			return 0;
 		default:
 			usage(argv[0]);

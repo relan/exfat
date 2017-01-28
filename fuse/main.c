@@ -3,7 +3,7 @@
 	FUSE-based exFAT implementation. Requires FUSE 2.6 or later.
 
 	Free exFAT implementation.
-	Copyright (C) 2010-2016  Andrew Nayenko
+	Copyright (C) 2010-2017  Andrew Nayenko
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -528,7 +528,7 @@ int main(int argc, char* argv[])
 			break;
 		case 'V':
 			free(mount_options);
-			puts("Copyright (C) 2010-2016  Andrew Nayenko");
+			puts("Copyright (C) 2010-2017  Andrew Nayenko");
 			return 0;
 		case 'v':
 			break;
