@@ -1,4 +1,15 @@
+1.2.6 (2017-01-28)
+
+* Operations with directories (except initial listing) now make less
+read/write system calls.
+* Fixed handling of files with optional tail entries (0xe0-0xff): videoclip
+files created by Sony cameras were missing.
+* Write operations now correctly return ENOSPC (instead of EIO) when there is
+no free disk space left.
+* Fixed max file name length: it's 255 16-bit code units (not 256).
+
 1.2.5 (2016-12-05)
+
 * Added an option for dumpexfat to show file fragments [Daniel Drake].
 * Fixed crash when directory starts with an invalid cluster.
 * Daylight saving time in now properly reflected in file timestamps.
