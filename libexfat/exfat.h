@@ -89,6 +89,7 @@ struct exfat_node
 	bool is_cached : 1;
 	bool is_dirty : 1;
 	bool is_unlinked : 1;
+	bool is_executable : 1;
 	uint64_t valid_size;
 	uint64_t size;
 	time_t mtime, atime;
@@ -126,6 +127,7 @@ struct exfat
 	gid_t gid;
 	int ro;
 	bool noatime;
+	bool showexec;
 	enum { EXFAT_REPAIR_NO, EXFAT_REPAIR_ASK, EXFAT_REPAIR_YES } repair;
 };
 

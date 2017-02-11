@@ -91,6 +91,7 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->gid = get_int_option(options, "gid", 10, getegid());
 
 	ef->noatime = exfat_match_option(options, "noatime");
+	ef->showexec = exfat_match_option(options, "showexec");
 
 	switch (get_int_option(options, "repair", 10, 0))
 	{

@@ -129,10 +129,37 @@ static struct exfat_node* allocate_node(void)
 	return node;
 }
 
-static void set_node_name(struct exfat_node* node, const le16_t* name,
-		int length)
+static bool is_executable(const struct exfat* ef, const le16_t* name,
+		size_t length)
+{
+	uint16_t suffix[4];
+	size_t i;
+	const uint16_t exec[][4] = {{'.', 'E', 'X', 'E'},
+	                            {'.', 'C', 'O', 'M'},
+	                            {'.', 'B', 'A', 'T'}};
+
+	if (!ef->showexec)
+		return true;
+	if (length < 4)
+		return false;
+
+	suffix[0] = ef->upcase[le16_to_cpu(name[length - 4])];
+	suffix[1] = ef->upcase[le16_to_cpu(name[length - 3])];
+	suffix[2] = ef->upcase[le16_to_cpu(name[length - 2])];
+	suffix[3] = ef->upcase[le16_to_cpu(name[length - 1])];
+
+	for (i = 0; i < sizeof(exec) / sizeof(le16_t[4]); i++)
+		if (memcmp(suffix, exec[i], sizeof(le16_t[4])) == 0)
+			return true;
+
+	return false;
+}
+
+static void set_node_name(const struct exfat* ef, struct exfat_node* node,
+		const le16_t* name, int length)
 {
 	memcpy(node->name, name, length * sizeof(le16_t));
+	node->is_executable = is_executable(ef, node->name, length);
 }
 
 static void init_node_meta1(struct exfat_node* node,
@@ -157,7 +184,7 @@ static void init_node_meta2(struct exfat_node* node,
 	node->is_contiguous = ((meta2->flags & EXFAT_FLAG_CONTIGUOUS) != 0);
 }
 
-static void init_node_name(struct exfat_node* node,
+static void init_node_name(const struct exfat* ef, struct exfat_node* node,
 		const struct exfat_entry* entries, int length)
 {
 	int n = DIV_ROUND_UP(length, EXFAT_ENAME_MAX);
@@ -167,6 +194,7 @@ static void init_node_name(struct exfat_node* node,
 		memcpy(node->name + i * EXFAT_ENAME_MAX,
 				((const struct exfat_entry_name*) &entries[i])->name,
 				EXFAT_ENAME_MAX * sizeof(le16_t));
+	node->is_executable = is_executable(ef, node->name, length);
 }
 
 static bool check_entries(const struct exfat_entry* entry, int n)
@@ -332,7 +360,7 @@ static int parse_file_entries(struct exfat* ef, struct exfat_node* node,
 
 	init_node_meta1(node, meta1);
 	init_node_meta2(node, meta2);
-	init_node_name(node, entries + 2, meta2->name_length);
+	init_node_name(ef, node, entries + 2, meta2->name_length);
 
 	if (!check_node(ef, node, exfat_calc_checksum(entries, n), meta1))
 		return -EIO;
@@ -949,7 +977,7 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	if (node == NULL)
 		return -ENOMEM;
 	node->entry_offset = offset;
-	set_node_name(node, name, name_length);
+	set_node_name(ef, node, name, name_length);
 	init_node_meta1(node, meta1);
 	init_node_meta2(node, meta2);
 
@@ -1071,7 +1099,7 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 	if (rc != 0)
 		return rc;
 
-	set_node_name(node, name, EXFAT_NAME_MAX + 1);
+	set_node_name(ef, node, name, EXFAT_NAME_MAX + 1);
 	tree_detach(node);
 	tree_attach(dir, node);
 	return 0;
