@@ -129,6 +129,12 @@ static struct exfat_node* allocate_node(void)
 	return node;
 }
 
+static void set_node_name(struct exfat_node* node, const le16_t* name,
+		int length)
+{
+	memcpy(node->name, name, length * sizeof(le16_t));
+}
+
 static void init_node_meta1(struct exfat_node* node,
 		const struct exfat_entry_meta1* meta1)
 {
@@ -152,8 +158,9 @@ static void init_node_meta2(struct exfat_node* node,
 }
 
 static void init_node_name(struct exfat_node* node,
-		const struct exfat_entry* entries, int n)
+		const struct exfat_entry* entries, int length)
 {
+	int n = DIV_ROUND_UP(length, EXFAT_ENAME_MAX);
 	int i;
 
 	for (i = 0; i < n; i++)
@@ -325,7 +332,7 @@ static int parse_file_entries(struct exfat* ef, struct exfat_node* node,
 
 	init_node_meta1(node, meta1);
 	init_node_meta2(node, meta2);
-	init_node_name(node, entries + 2, mandatory_entries - 2);
+	init_node_name(node, entries + 2, meta2->name_length);
 
 	if (!check_node(ef, node, exfat_calc_checksum(entries, n), meta1))
 		return -EIO;
@@ -942,7 +949,7 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	if (node == NULL)
 		return -ENOMEM;
 	node->entry_offset = offset;
-	memcpy(node->name, name, name_length * sizeof(le16_t));
+	set_node_name(node, name, name_length);
 	init_node_meta1(node, meta1);
 	init_node_meta2(node, meta2);
 
@@ -1064,7 +1071,7 @@ static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 	if (rc != 0)
 		return rc;
 
-	memcpy(node->name, name, (EXFAT_NAME_MAX + 1) * sizeof(le16_t));
+	set_node_name(node, name, EXFAT_NAME_MAX + 1);
 	tree_detach(node);
 	tree_attach(dir, node);
 	return 0;
