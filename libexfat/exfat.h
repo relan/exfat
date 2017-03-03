@@ -24,7 +24,10 @@
 #ifndef EXFAT_H_INCLUDED
 #define EXFAT_H_INCLUDED
 
+#ifndef ANDROID
+/* Android.mk is used instead of autotools when targeting Android */
 #include "config.h"
+#endif
 #include "compiler.h"
 #include "exfatfs.h"
 #include <stdio.h>
