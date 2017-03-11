@@ -64,6 +64,9 @@
 #define BMAP_CLR(bitmap, index) \
 	((bitmap)[BMAP_BLOCK(index)] &= ~BMAP_MASK(index))
 
+#define EXFAT_REPAIR(hook, ef, ...) \
+	(exfat_ask_to_fix(ef) && exfat_fix_ ## hook(ef, __VA_ARGS__))
+
 /* The size of off_t type must be 64 bits. File systems larger than 2 GB will
    be corrupted with 32-bit off_t. */
 STATIC_ASSERT(sizeof(off_t) == 8);
@@ -139,6 +142,7 @@ struct exfat_human_bytes
 };
 
 extern int exfat_errors;
+extern int exfat_errors_fixed;
 
 void exfat_bug(const char* format, ...) PRINTF NORETURN;
 void exfat_error(const char* format, ...) PRINTF;
@@ -228,5 +232,7 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 		uint8_t* centisec);
 void exfat_tzset(void);
+
+bool exfat_ask_to_fix(const struct exfat* ef);
 
 #endif /* ifndef EXFAT_H_INCLUDED */

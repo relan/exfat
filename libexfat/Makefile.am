@@ -33,6 +33,7 @@ libexfat_a_SOURCES = \
 	mount.c \
 	node.c \
 	platform.h \
+	repair.c \
 	time.c \
 	utf.c \
 	utils.c
