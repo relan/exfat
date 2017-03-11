@@ -140,7 +140,8 @@ static void fsck(struct exfat* ef, const char* spec, const char* options)
 
 static void usage(const char* prog)
 {
-	fprintf(stderr, "Usage: %s [-V] <device>\n", prog);
+	fprintf(stderr, "Usage: %s [-a | -n | -p | -y] <device>\n", prog);
+	fprintf(stderr, "       %s -V\n", prog);
 	exit(1);
 }
 
