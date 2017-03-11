@@ -147,15 +147,29 @@ static void usage(const char* prog)
 int main(int argc, char* argv[])
 {
 	int opt;
+	const char* options;
 	const char* spec = NULL;
 	struct exfat ef;
 
 	printf("exfatfsck %s\n", VERSION);
 
-	while ((opt = getopt(argc, argv, "V")) != -1)
+	if (isatty(STDIN_FILENO))
+		options = "repair=1";
+	else
+		options = "repair=0";
+
+	while ((opt = getopt(argc, argv, "anpVy")) != -1)
 	{
 		switch (opt)
 		{
+		case 'a':
+		case 'p':
+		case 'y':
+			options = "repair=2";
+			break;
+		case 'n':
+			options = "repair=0,ro";
+			break;
 		case 'V':
 			puts("Copyright (C) 2011-2018  Andrew Nayenko");
 			return 0;
@@ -169,7 +183,7 @@ int main(int argc, char* argv[])
 	spec = argv[optind];
 
 	printf("Checking file system on %s.\n", spec);
-	fsck(&ef, spec, "ro");
+	fsck(&ef, spec, options);
 	if (exfat_errors != 0)
 	{
 		printf("ERRORS FOUND: %d, FIXED: %d.\n",
