@@ -59,3 +59,20 @@ bool exfat_ask_to_fix(const struct exfat* ef)
 	}
 	exfat_bug("invalid repair option value: %d", ef->repair);
 }
+
+bool exfat_fix_invalid_vbr_checksum(const struct exfat* ef, void* sector,
+		uint32_t vbr_checksum)
+{
+	size_t i;
+	off_t sector_size = SECTOR_SIZE(*ef->sb);
+
+	for (i = 0; i < sector_size / sizeof(vbr_checksum); i++)
+		((le32_t*) sector)[i] = cpu_to_le32(vbr_checksum);
+	if (exfat_pwrite(ef->dev, sector, sector_size, 11 * sector_size) < 0)
+	{
+		exfat_error("failed to write correct VBR checksum");
+		return false;
+	}
+	exfat_errors_fixed++;
+	return true;
+}

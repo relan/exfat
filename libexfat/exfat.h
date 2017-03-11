@@ -234,5 +234,7 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 void exfat_tzset(void);
 
 bool exfat_ask_to_fix(const struct exfat* ef);
+bool exfat_fix_invalid_vbr_checksum(const struct exfat* ef, void* sector,
+		uint32_t vbr_checksum);
 
 #endif /* ifndef EXFAT_H_INCLUDED */

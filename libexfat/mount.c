@@ -150,7 +150,8 @@ static bool verify_vbr_checksum(const struct exfat* ef, void* sector)
 		{
 			exfat_error("invalid VBR checksum 0x%x (expected 0x%x)",
 					le32_to_cpu(((const le32_t*) sector)[i]), vbr_checksum);
-			return false;
+			if (!EXFAT_REPAIR(invalid_vbr_checksum, ef, sector, vbr_checksum))
+				return false;
 		}
 	return true;
 }
