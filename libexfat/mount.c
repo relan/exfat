@@ -103,6 +103,19 @@ static void parse_options(struct exfat* ef, const char* options)
 	ef->gid = get_int_option(options, "gid", 10, getegid());
 
 	ef->noatime = match_option(options, "noatime");
+
+	switch (get_int_option(options, "repair", 10, 0))
+	{
+	case 1:
+		ef->repair = EXFAT_REPAIR_ASK;
+		break;
+	case 2:
+		ef->repair = EXFAT_REPAIR_YES;
+		break;
+	default:
+		ef->repair = EXFAT_REPAIR_NO;
+		break;
+	}
 }
 
 static bool verify_vbr_checksum(struct exfat_dev* dev, void* sector,
