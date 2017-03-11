@@ -121,10 +121,21 @@ static void dirck(struct exfat* ef, const char* path)
 	free(entry_path);
 }
 
-static void fsck(struct exfat* ef)
+static void fsck(struct exfat* ef, const char* spec, const char* options)
 {
+	if (exfat_mount(ef, spec, options) != 0)
+	{
+		fputs("File system checking stopped. ", stdout);
+		return;
+	}
+
 	exfat_print_info(ef->sb, exfat_count_free_clusters(ef));
 	dirck(ef, "");
+	exfat_unmount(ef);
+
+	printf("Totally %"PRIu64" directories and %"PRIu64" files.\n",
+			directories_count, files_count);
+	fputs("File system checking finished. ", stdout);
 }
 
 static void usage(const char* prog)
@@ -157,19 +168,12 @@ int main(int argc, char* argv[])
 		usage(argv[0]);
 	spec = argv[optind];
 
-	if (exfat_mount(&ef, spec, "ro") != 0)
-		return 1;
-
 	printf("Checking file system on %s.\n", spec);
-	fsck(&ef);
-	exfat_unmount(&ef);
-	printf("Totally %"PRIu64" directories and %"PRIu64" files.\n",
-			directories_count, files_count);
-
-	fputs("File system checking finished. ", stdout);
+	fsck(&ef, spec, "ro");
 	if (exfat_errors != 0)
 	{
-		printf("ERRORS FOUND: %d.\n", exfat_errors);
+		printf("ERRORS FOUND: %d, FIXED: %d.\n",
+				exfat_errors, exfat_errors_fixed);
 		return 1;
 	}
 	puts("No errors found.");
