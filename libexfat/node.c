@@ -223,7 +223,8 @@ static bool check_node(const struct exfat* ef, struct exfat_node* node,
 		exfat_get_name(node, buffer);
 		exfat_error("'%s' has invalid checksum (%#hx != %#hx)", buffer,
 				le16_to_cpu(actual_checksum), le16_to_cpu(meta1->checksum));
-		ret = false;
+		if (!EXFAT_REPAIR(invalid_node_checksum, ef, node))
+			ret = false;
 	}
 
 	/*

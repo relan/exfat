@@ -236,5 +236,7 @@ void exfat_tzset(void);
 bool exfat_ask_to_fix(const struct exfat* ef);
 bool exfat_fix_invalid_vbr_checksum(const struct exfat* ef, void* sector,
 		uint32_t vbr_checksum);
+bool exfat_fix_invalid_node_checksum(const struct exfat* ef,
+		struct exfat_node* node);
 
 #endif /* ifndef EXFAT_H_INCLUDED */

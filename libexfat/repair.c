@@ -76,3 +76,13 @@ bool exfat_fix_invalid_vbr_checksum(const struct exfat* ef, void* sector,
 	exfat_errors_fixed++;
 	return true;
 }
+
+bool exfat_fix_invalid_node_checksum(const struct exfat* ef,
+		struct exfat_node* node)
+{
+	/* checksum will be rewritten by exfat_flush_node() */
+	node->is_dirty = true;
+
+	exfat_errors_fixed++;
+	return true;
+}
