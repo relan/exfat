@@ -114,9 +114,11 @@ static void dirck(struct exfat* ef, const char* path)
 			files_count++;
 			nodeck(ef, node);
 		}
+		exfat_flush_node(ef, node);
 		exfat_put_node(ef, node);
 	}
 	exfat_closedir(ef, &it);
+	exfat_flush_node(ef, parent);
 	exfat_put_node(ef, parent);
 	free(entry_path);
 }
