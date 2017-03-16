@@ -151,28 +151,6 @@ static bool is_last_comp(const char* comp, size_t length)
 	return get_comp(p, &p) == 0;
 }
 
-static bool is_allowed(const char* comp, size_t length)
-{
-	size_t i;
-
-	for (i = 0; i < length; i++)
-		switch (comp[i])
-		{
-		case 0x01 ... 0x1f:
-		case '/':
-		case '\\':
-		case ':':
-		case '*':
-		case '?':
-		case '"':
-		case '<':
-		case '>':
-		case '|':
-			return false;
-		}
-	return true;
-}
-
 int exfat_split(struct exfat* ef, struct exfat_node** parent,
 		struct exfat_node** node, le16_t* name, const char* path)
 {
@@ -188,12 +166,6 @@ int exfat_split(struct exfat* ef, struct exfat_node** parent,
 			continue;
 		if (is_last_comp(p, n))
 		{
-			if (!is_allowed(p, n))
-			{
-				/* contains characters that are not allowed */
-				exfat_put_node(ef, *parent);
-				return -ENOENT;
-			}
 			rc = utf8_to_utf16(name, p, EXFAT_NAME_MAX + 1, n);
 			if (rc != 0)
 			{
