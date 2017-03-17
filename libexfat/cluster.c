@@ -214,10 +214,8 @@ static cluster_t allocate_cluster(struct exfat* ef, cluster_t hint)
 
 static void free_cluster(struct exfat* ef, cluster_t cluster)
 {
-	if (CLUSTER_INVALID(*ef->sb, cluster))
-		exfat_bug("freeing invalid cluster 0x%x", cluster);
 	if (cluster - EXFAT_FIRST_DATA_CLUSTER >= ef->cmap.size)
-		exfat_bug("freeing non-existing cluster 0x%x (0x%x)", cluster,
+		exfat_bug("caller must check cluster validity (%#x, %#x)", cluster,
 				ef->cmap.size);
 
 	BMAP_CLR(ef->cmap.chunk, cluster - EXFAT_FIRST_DATA_CLUSTER);
