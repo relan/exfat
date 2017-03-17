@@ -168,7 +168,7 @@ static int dump_file_fragments(const char* spec, const char* path)
 	{
 		off_t lsize;
 
-		if (CLUSTER_INVALID(cluster))
+		if (CLUSTER_INVALID(*ef.sb, cluster))
 		{
 			exfat_error("'%s' has invalid cluster %#x", path, cluster);
 			rc = 1;

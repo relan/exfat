@@ -39,7 +39,7 @@ static int nodeck(struct exfat* ef, struct exfat_node* node)
 
 	while (clusters--)
 	{
-		if (CLUSTER_INVALID(c))
+		if (CLUSTER_INVALID(*ef->sb, c))
 		{
 			char name[EXFAT_UTF8_NAME_BUFFER_MAX];
 

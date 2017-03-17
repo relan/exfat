@@ -44,7 +44,7 @@ static uint64_t rootdir_size(const struct exfat* ef)
 					clusters);
 			return 0;
 		}
-		if (CLUSTER_INVALID(rootdir_cluster))
+		if (CLUSTER_INVALID(*ef->sb, rootdir_cluster))
 		{
 			exfat_error("bad cluster %#x while reading root directory",
 					rootdir_cluster);

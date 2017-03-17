@@ -289,7 +289,7 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		return 0;
 
 	cluster = exfat_advance_cluster(ef, node, offset / CLUSTER_SIZE(*ef->sb));
-	if (CLUSTER_INVALID(cluster))
+	if (CLUSTER_INVALID(*ef->sb, cluster))
 	{
 		exfat_error("invalid cluster 0x%x while reading", cluster);
 		return -EIO;
@@ -299,7 +299,7 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 	remainder = MIN(size, node->size - offset);
 	while (remainder > 0)
 	{
-		if (CLUSTER_INVALID(cluster))
+		if (CLUSTER_INVALID(*ef->sb, cluster))
 		{
 			exfat_error("invalid cluster 0x%x while reading", cluster);
 			return -EIO;
@@ -345,7 +345,7 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		return 0;
 
 	cluster = exfat_advance_cluster(ef, node, offset / CLUSTER_SIZE(*ef->sb));
-	if (CLUSTER_INVALID(cluster))
+	if (CLUSTER_INVALID(*ef->sb, cluster))
 	{
 		exfat_error("invalid cluster 0x%x while writing", cluster);
 		return -EIO;
@@ -355,7 +355,7 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 	remainder = size;
 	while (remainder > 0)
 	{
-		if (CLUSTER_INVALID(cluster))
+		if (CLUSTER_INVALID(*ef->sb, cluster))
 		{
 			exfat_error("invalid cluster 0x%x while writing", cluster);
 			return -EIO;

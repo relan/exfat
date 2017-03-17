@@ -43,8 +43,8 @@
 
 #define SECTOR_SIZE(sb) (1 << (sb).sector_bits)
 #define CLUSTER_SIZE(sb) (SECTOR_SIZE(sb) << (sb).spc_bits)
-#define CLUSTER_INVALID(c) \
-	((c) < EXFAT_FIRST_DATA_CLUSTER || (c) > EXFAT_LAST_DATA_CLUSTER)
+#define CLUSTER_INVALID(sb, c) ((c) < EXFAT_FIRST_DATA_CLUSTER || \
+	(c) - EXFAT_FIRST_DATA_CLUSTER >= le32_to_cpu((sb).cluster_count))
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

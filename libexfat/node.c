@@ -252,7 +252,7 @@ static bool check_node(const struct exfat* ef, struct exfat_node* node,
 				node->start_cluster);
 		ret = false;
 	}
-	if (node->size > 0 && CLUSTER_INVALID(node->start_cluster))
+	if (node->size > 0 && CLUSTER_INVALID(*ef->sb, node->start_cluster))
 	{
 		exfat_get_name(node, buffer);
 		exfat_error("'%s' points to invalid cluster %#x", buffer,
@@ -401,7 +401,7 @@ static int readdir(struct exfat* ef, struct exfat_node* parent,
 			if (ef->upcase != NULL)
 				break;
 			upcase = (const struct exfat_entry_upcase*) &entry;
-			if (CLUSTER_INVALID(le32_to_cpu(upcase->start_cluster)))
+			if (CLUSTER_INVALID(*ef->sb, le32_to_cpu(upcase->start_cluster)))
 			{
 				exfat_error("invalid cluster 0x%x in upcase table",
 						le32_to_cpu(upcase->start_cluster));
@@ -452,7 +452,7 @@ static int readdir(struct exfat* ef, struct exfat_node* parent,
 		case EXFAT_ENTRY_BITMAP:
 			bitmap = (const struct exfat_entry_bitmap*) &entry;
 			ef->cmap.start_cluster = le32_to_cpu(bitmap->start_cluster);
-			if (CLUSTER_INVALID(ef->cmap.start_cluster))
+			if (CLUSTER_INVALID(*ef->sb, ef->cmap.start_cluster))
 			{
 				exfat_error("invalid cluster 0x%x in clusters bitmap",
 						ef->cmap.start_cluster);
