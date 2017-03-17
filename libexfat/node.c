@@ -204,10 +204,11 @@ static bool check_entries(const struct exfat_entry* entry, int n)
 	return true;
 }
 
-static bool check_node(const struct exfat_node* node, le16_t actual_checksum,
-		int cluster_size, const struct exfat_entry_meta1* meta1,
+static bool check_node(const struct exfat* ef, struct exfat_node* node,
+		le16_t actual_checksum, const struct exfat_entry_meta1* meta1,
 		const struct exfat_entry_meta2* meta2)
 {
+	int cluster_size = CLUSTER_SIZE(*ef->sb);
 	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 	bool ret = true;
 
@@ -314,8 +315,7 @@ static int parse_file_entries(struct exfat* ef, struct exfat_node* parent,
 	init_node_meta2(node, meta2);
 	init_node_name(node, entries + 2, mandatory_entries - 2);
 
-	if (!check_node(node, exfat_calc_checksum(entries, n),
-			CLUSTER_SIZE(*ef->sb), meta1, meta2))
+	if (!check_node(ef, node, exfat_calc_checksum(entries, n), meta1, meta2))
 		return -EIO;
 
 	return 0;
