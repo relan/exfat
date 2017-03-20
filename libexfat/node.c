@@ -209,6 +209,8 @@ static bool check_node(const struct exfat* ef, struct exfat_node* node,
 		const struct exfat_entry_meta2* meta2)
 {
 	int cluster_size = CLUSTER_SIZE(*ef->sb);
+	uint64_t clusters_heap_size =
+			(uint64_t) le32_to_cpu(ef->sb->cluster_count) * cluster_size;
 	char buffer[EXFAT_UTF8_NAME_BUFFER_MAX];
 	bool ret = true;
 
@@ -257,6 +259,15 @@ static bool check_node(const struct exfat* ef, struct exfat_node* node,
 		exfat_get_name(node, buffer);
 		exfat_error("'%s' points to invalid cluster %#x", buffer,
 				node->start_cluster);
+		ret = false;
+	}
+
+	/* File or directory cannot be larger than clusters heap. */
+	if (node->size > clusters_heap_size)
+	{
+		exfat_get_name(node, buffer);
+		exfat_error("'%s' is larger than clusters heap: %"PRIu64" > %"PRIu64,
+				buffer, node->size, clusters_heap_size);
 		ret = false;
 	}
 
