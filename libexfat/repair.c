@@ -86,3 +86,17 @@ bool exfat_fix_invalid_node_checksum(const struct exfat* ef,
 	exfat_errors_fixed++;
 	return true;
 }
+
+bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
+		const struct exfat_entry* entry, off_t offset)
+{
+	struct exfat_entry deleted = *entry;
+
+	deleted.type &= ~EXFAT_ENTRY_VALID;
+	if (exfat_generic_pwrite(ef, dir, &deleted, sizeof(struct exfat_entry),
+			offset) != sizeof(struct exfat_entry))
+		return false;
+
+	exfat_errors_fixed++;
+	return true;
+}

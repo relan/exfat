@@ -517,7 +517,8 @@ static int readdir(struct exfat* ef, struct exfat_node* parent,
 				break; /* deleted entry, ignore it */
 
 			exfat_error("unknown entry type %#hhx", entry.type);
-			return -EIO;
+			if (!EXFAT_REPAIR(unknown_entry, ef, parent, &entry, *offset))
+				return -EIO;
 		}
 		*offset += sizeof(entry);
 	}
