@@ -128,7 +128,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 		exfat_error("failed to open directory '%s'", path);
 		return rc;
 	}
-	while ((node = exfat_readdir(&ef, &it)))
+	while ((node = exfat_readdir(&it)))
 	{
 		exfat_get_name(node, name);
 		exfat_debug("[%s] %s: %s, %"PRId64" bytes, cluster 0x%x", __func__,

@@ -161,7 +161,7 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_iterator* it);
 void exfat_closedir(struct exfat* ef, struct exfat_iterator* it);
-struct exfat_node* exfat_readdir(struct exfat* ef, struct exfat_iterator* it);
+struct exfat_node* exfat_readdir(struct exfat_iterator* it);
 int exfat_lookup(struct exfat* ef, struct exfat_node** node,
 		const char* path);
 int exfat_split(struct exfat* ef, struct exfat_node** parent,

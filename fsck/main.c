@@ -98,7 +98,7 @@ static void dirck(struct exfat* ef, const char* path)
 		exfat_put_node(ef, parent);
 		return;
 	}
-	while ((node = exfat_readdir(ef, &it)))
+	while ((node = exfat_readdir(&it)))
 	{
 		exfat_get_name(node, entry_path + path_length + 1);
 		exfat_debug("%s: %s, %"PRIu64" bytes, cluster %u", entry_path,
