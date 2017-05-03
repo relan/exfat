@@ -42,9 +42,6 @@
 	#error FUSE 2.6 or later is required
 #endif
 
-const char* default_options = "ro_fallback,allow_other,blkdev,big_writes,"
-		"default_permissions";
-
 struct exfat ef;
 
 static struct exfat_node* get_node(const struct fuse_file_info* fi)
@@ -510,14 +507,19 @@ int main(int argc, char* argv[])
 {
 	const char* spec = NULL;
 	char* mount_point = NULL;
-	char* mount_options;
+	char* fuse_options;
+	char* exfat_options;
 	int opt;
 	int rc;
 
 	printf("FUSE exfat %s\n", VERSION);
 
-	mount_options = strdup(default_options);
-	if (mount_options == NULL)
+	fuse_options = strdup("allow_other,"
+			"big_writes,"
+			"blkdev,"
+			"default_permissions");
+	exfat_options = strdup("ro_fallback");
+	if (fuse_options == NULL || exfat_options == NULL)
 	{
 		exfat_error("failed to allocate options string");
 		return 1;
@@ -528,53 +530,65 @@ int main(int argc, char* argv[])
 		switch (opt)
 		{
 		case 'd':
-			mount_options = add_option(mount_options, "debug", NULL);
-			if (mount_options == NULL)
+			fuse_options = add_option(fuse_options, "debug", NULL);
+			if (fuse_options == NULL)
+			{
+				free(exfat_options);
 				return 1;
+			}
 			break;
 		case 'n':
 			break;
 		case 'o':
-			mount_options = add_option(mount_options, optarg, NULL);
-			if (mount_options == NULL)
+			exfat_options = add_option(exfat_options, optarg, NULL);
+			if (exfat_options == NULL)
+			{
+				free(fuse_options);
 				return 1;
+			}
 			break;
 		case 'V':
-			free(mount_options);
+			free(exfat_options);
+			free(fuse_options);
 			puts("Copyright (C) 2010-2018  Andrew Nayenko");
 			return 0;
 		case 'v':
 			break;
 		default:
-			free(mount_options);
+			free(exfat_options);
+			free(fuse_options);
 			usage(argv[0]);
 			break;
 		}
 	}
 	if (argc - optind != 2)
 	{
-		free(mount_options);
+		free(exfat_options);
+		free(fuse_options);
 		usage(argv[0]);
 	}
 	spec = argv[optind];
 	mount_point = argv[optind + 1];
 
-	if (exfat_mount(&ef, spec, mount_options) != 0)
+	if (exfat_mount(&ef, spec, exfat_options) != 0)
 	{
-		free(mount_options);
+		free(exfat_options);
+		free(fuse_options);
 		return 1;
 	}
 
-	mount_options = add_fuse_options(mount_options, spec, (ef.ro == -1));
-	if (mount_options == NULL)
+	free(exfat_options);
+
+	fuse_options = add_fuse_options(fuse_options, spec, (ef.ro == -1));
+	if (fuse_options == NULL)
 	{
 		exfat_unmount(&ef);
 		return 1;
 	}
 
 	/* let FUSE do all its wizardry */
-	rc = fuse_exfat_main(mount_options, mount_point);
+	rc = fuse_exfat_main(fuse_options, mount_point);
 
-	free(mount_options);
+	free(fuse_options);
 	return rc;
 }
