@@ -21,7 +21,9 @@
 */
 
 #include <exfat.h>
+#ifndef FUSE_USE_VERSION
 #define FUSE_USE_VERSION 26
+#endif
 #include <fuse.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -115,8 +117,13 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 		return -ENOTDIR;
 	}
 
+#if (FUSE_USE_VERSION < 30)
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
+#else
+	filler(buffer, ".", NULL, 0, 0);
+	filler(buffer, "..", NULL, 0, 0);
+#endif
 
 	rc = exfat_opendir(&ef, parent, &it);
 	if (rc != 0)
@@ -131,7 +138,11 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 		exfat_debug("[%s] %s: %s, %"PRId64" bytes, cluster 0x%x", __func__,
 				name, node->is_contiguous ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
+#if (FUSE_USE_VERSION < 30)
 		filler(buffer, name, NULL, 0);
+#else
+		filler(buffer, name, NULL, 0, 0);
+#endif
 		exfat_put_node(&ef, node);
 	}
 	exfat_closedir(&ef, &it);
