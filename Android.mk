@@ -39,6 +39,9 @@ libexfat_headers := \
     $(LOCAL_PATH)/android \
     $(LOCAL_PATH)/libexfat
 
+libexfat_shared_libraries := \
+    liblog
+
 ## TARGET ##
 include $(CLEAR_VARS)
 
@@ -47,6 +50,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_SRC_FILES := $(libexfat_src_files)
 LOCAL_CFLAGS := $(exfat_common_cflags)
 LOCAL_C_INCLUDES := $(libexfat_headers)
+LOCAL_SHARED_LIBRARIES := $(libexfat_shared_libraries)
 
 include $(BUILD_STATIC_LIBRARY)
 
