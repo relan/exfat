@@ -117,8 +117,13 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 		return -ENOTDIR;
 	}
 
+#if FUSE_USE_VERSION < 30
 	filler(buffer, ".", NULL, 0);
 	filler(buffer, "..", NULL, 0);
+#else
+	filler(buffer, ".", NULL, 0, 0);
+	filler(buffer, "..", NULL, 0, 0);
+#endif
 
 	rc = exfat_opendir(&ef, parent, &it);
 	if (rc != 0)
@@ -134,7 +139,11 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 				name, node->is_contiguous ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
 		exfat_stat(&ef, node, &stbuf);
+#if FUSE_USE_VERSION < 30
 		filler(buffer, name, &stbuf, 0);
+#else
+		filler(buffer, name, &stbuf, 0, 0);
+#endif
 		exfat_put_node(&ef, node);
 	}
 	exfat_closedir(&ef, &it);
