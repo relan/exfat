@@ -1,3 +1,9 @@
+1.2.7 (2017-06-05)
+
+* Fixed handling of two last clusters: operations with files that occupy these
+clusters could fail.
+* Fixed crash when started with stdin, stdout or stderr closed.
+
 1.2.6 (2017-01-28)
 
 * Operations with directories (except initial listing) now make less
