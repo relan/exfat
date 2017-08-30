@@ -84,7 +84,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 	   started with stdin (0), stdout (1) or stderr (2) closed, the system
 	   will give us descriptor 0, 1 or 2 later when we open block device,
 	   FUSE communication pipe, etc. As a result, functions using stdin,
-	   stdout or stderr will actualy work with a different thing and can
+	   stdout or stderr will actually work with a different thing and can
 	   corrupt it. Protect descriptors 0, 1 and 2 from such misuse. */
 	while (!is_open(STDIN_FILENO)
 		|| !is_open(STDOUT_FILENO)
