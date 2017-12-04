@@ -590,7 +590,7 @@ int main(int argc, char* argv[])
 
 	free(exfat_options);
 
-	fuse_options = add_fuse_options(fuse_options, spec, (ef.ro == -1));
+	fuse_options = add_fuse_options(fuse_options, spec, ef.ro != 0);
 	if (fuse_options == NULL)
 	{
 		exfat_unmount(&ef);
