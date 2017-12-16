@@ -35,8 +35,9 @@
 #include <sys/disklabel.h>
 #include <sys/dkio.h>
 #include <sys/ioctl.h>
-#endif
+#elif __linux__
 #include <sys/mount.h>
+#endif
 
 struct exfat_dev
 {
