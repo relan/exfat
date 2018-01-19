@@ -855,7 +855,8 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 					free(dmap);
 					return -EIO;
 				case -EINVAL:
-					/* slot is occupied, continue searching */
+					/* slot at (i-n) is occupied, go back and check (i-n+1) */
+					i -= contiguous - 1;
 					contiguous = 0;
 					break;
 				}
