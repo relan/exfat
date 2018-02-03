@@ -1,3 +1,9 @@
+1.2.8 (2018-02-03)
+
+* Fixed new files or directories creation in the root directory: ensure there
+are no 0x00 entries before valid ones; otherwise Windows can corrupt them.
+* Fixed compilation on GNU/HURD platform.
+
 1.2.7 (2017-06-05)
 
 * Fixed handling of two last clusters: operations with files that occupy these
