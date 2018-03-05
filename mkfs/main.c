@@ -31,6 +31,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -155,9 +156,9 @@ static uint32_t setup_volume_serial(uint32_t user_defined)
 	return (now.tv_sec << 20) | now.tv_usec;
 }
 
-static int setup(struct exfat_dev* dev, int sector_bits, int spc_bits,
-		const char* volume_label, uint32_t volume_serial,
-		uint64_t first_sector)
+static int setup(struct exfat_dev* dev, int sector_bits,
+		int spc_bits, const char* volume_label, uint32_t volume_serial,
+		uint64_t first_sector, bool trim)
 {
 	param.sector_bits = sector_bits;
 	param.first_sector = first_sector;
@@ -174,7 +175,7 @@ static int setup(struct exfat_dev* dev, int sector_bits, int spc_bits,
 	if (param.volume_serial == 0)
 		return 1;
 
-	return mkfs(dev, param.volume_size);
+	return mkfs(dev, param.volume_size, trim);
 }
 
 static int logarithm2(int n)
@@ -191,7 +192,7 @@ static void usage(const char* prog)
 {
 	fprintf(stderr, "Usage: %s [-i volume-id] [-n label] "
 			"[-p partition-first-sector] "
-			"[-s sectors-per-cluster] [-V] <device>\n", prog);
+			"[-s sectors-per-cluster] [-t] [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -199,6 +200,7 @@ int main(int argc, char* argv[])
 {
 	const char* spec = NULL;
 	int opt;
+	bool trim = false;
 	int spc_bits = -1;
 	const char* volume_label = NULL;
 	uint32_t volume_serial = 0;
@@ -207,7 +209,7 @@ int main(int argc, char* argv[])
 
 	printf("mkexfatfs %s\n", VERSION);
 
-	while ((opt = getopt(argc, argv, "i:n:p:s:V")) != -1)
+	while ((opt = getopt(argc, argv, "i:n:p:s:tV")) != -1)
 	{
 		switch (opt)
 		{
@@ -228,6 +230,9 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 			break;
+		case 't':
+			trim = true;
+			break;
 		case 'V':
 			puts("Copyright (C) 2011-2023  Andrew Nayenko");
 			return 0;
@@ -244,7 +249,7 @@ int main(int argc, char* argv[])
 	if (dev == NULL)
 		return 1;
 	if (setup(dev, 9, spc_bits, volume_label, volume_serial,
-				first_sector) != 0)
+				first_sector, trim) != 0)
 	{
 		exfat_close(dev);
 		return 1;

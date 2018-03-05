@@ -25,6 +25,7 @@
 #include <unistd.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 
 static int check_size(uint64_t volume_size)
@@ -124,10 +125,18 @@ static int create(struct exfat_dev* dev)
 	return 0;
 }
 
-int mkfs(struct exfat_dev* dev, uint64_t volume_size)
+int mkfs(struct exfat_dev* dev, uint64_t volume_size, bool trim)
 {
 	if (check_size(volume_size) != 0)
 		return 1;
+
+	if (trim)
+	{
+		fputs("Trimming... ", stdout);
+		fflush(stdout);
+		exfat_generic_trim(dev, 0, volume_size);
+		puts("done.");
+	}
 
 	fputs("Creating... ", stdout);
 	fflush(stdout);

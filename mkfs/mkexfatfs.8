@@ -1,6 +1,6 @@
 .\" Copyright (C) 2011-2023  Andrew Nayenko
 .\"
-.TH MKEXFATFS 8 "January 2014"
+.TH MKEXFATFS 8 "September 2018"
 .SH NAME
 .B mkexfatfs
 \- create an exFAT file system
@@ -57,6 +57,9 @@ exceed 32 MB. Default cluster sizes are:
 4 KB if volume size is less than 256 MB,
 32 KB if volume size is from 256 MB to 32 GB,
 128 KB if volume size is 32 GB or larger.
+.TP
+.BI \-t
+Attempt to TRIM the device before creating the new file system.
 .TP
 .BI \-V
 Print version and copyright.
