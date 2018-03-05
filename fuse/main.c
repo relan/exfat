@@ -347,6 +347,36 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2]
 	return rc;
 }
 
+static int fuse_exfat_bmap(const char* path, size_t block_size, uint64_t* index)
+{
+	size_t cluster_size = CLUSTER_SIZE(*ef.sb);
+	int rc;
+	struct exfat_node* node;
+	off_t offset;
+	cluster_t cluster;
+
+	exfat_debug("[%s] %s @ %zu x %"PRIu64, __func__, path, block_size, *index);
+
+	if (block_size <= 0 || block_size > cluster_size)
+		return -EINVAL;
+	if (UINT64_MAX / block_size > *index)
+		return -EINVAL;
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+
+	offset = *index * block_size;
+	cluster = exfat_advance_cluster(&ef, node, offset / cluster_size);
+	if (CLUSTER_INVALID(*ef.sb, cluster))
+		rc = -EIO;
+	else
+		*index = (exfat_c2o(&ef, cluster) + offset % cluster_size) / block_size;
+
+	exfat_put_node(&ef, node);
+	return rc;
+}
+
 static int fuse_exfat_chmod(UNUSED const char* path, mode_t mode
 #if FUSE_USE_VERSION >= 30
 		, UNUSED struct fuse_file_info* fi
@@ -451,6 +481,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.mkdir		= fuse_exfat_mkdir,
 	.rename		= fuse_exfat_rename,
 	.utimens	= fuse_exfat_utimens,
+	.bmap		= fuse_exfat_bmap,
 	.chmod		= fuse_exfat_chmod,
 	.chown		= fuse_exfat_chown,
 	.statfs		= fuse_exfat_statfs,
