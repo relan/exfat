@@ -25,6 +25,10 @@
 #include <fuse.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
+#ifdef HAVE_LINUX_FS_H
+#include <linux/fs.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -300,6 +304,91 @@ static int fuse_exfat_utimens(const char* path, const struct timespec tv[2])
 	return rc;
 }
 
+static int fuse_exfat_bmap(const char* path, size_t blocksize, uint64_t* idx)
+{
+	struct exfat_node* node;
+	int rc;
+	size_t count;
+	uint64_t extra;
+	cluster_t cluster;
+
+	exfat_debug("[%s] %s @ %zu x %"PRIu64, __func__, path, blocksize, *idx);
+
+	if (0 >= blocksize || blocksize > CLUSTER_SIZE(*ef.sb))
+		return -EINVAL;
+
+	rc = exfat_lookup(&ef, &node, path);
+	if (rc != 0)
+		return rc;
+
+	count = (blocksize * *idx) / CLUSTER_SIZE(*ef.sb);
+	extra = (blocksize * *idx) % CLUSTER_SIZE(*ef.sb);
+	cluster = exfat_advance_cluster(&ef, node, count);
+	if (CLUSTER_INVALID(*ef.sb, cluster))
+		return -EINVAL;
+
+	*idx = (exfat_c2o(&ef, cluster) + extra) / blocksize;
+	rc = 0;
+
+	exfat_put_node(&ef, node);
+	return rc;
+}
+
+#if HAVE_STRUCT_FSTRIM_RANGE
+static int fuse_exfat_fstrim(struct fstrim_range* data)
+{
+	off_t trim_start, trim_end;
+	off_t used_start, used_end;
+	off_t trimmed = 0;
+	int rc = 0;
+
+	exfat_debug("[%s] start=%"PRIu64" len=%"PRIu64" minlen=%"PRIu64,
+			__func__, data->start, data->len, data->minlen);
+
+	trim_start = DIV_ROUND_UP(data->start, SECTOR_SIZE(*ef.sb));
+	trim_end = MIN(data->start + data->len, exfat_get_size(ef.dev)) / SECTOR_SIZE(*ef.sb);
+
+	while (trim_start < trim_end)
+	{
+		used_start = used_end = trim_start;
+		if (exfat_find_used_sectors(&ef, &used_start, &used_end))
+			used_start = used_end = trim_end;
+		if (trim_start < used_start && (used_start - trim_start) * CLUSTER_SIZE(*ef.sb) >= data->minlen)
+		{
+			exfat_debug("[%s] %zu-%zu", __func__, trim_start, used_start);
+			trimmed += used_start - trim_start;
+			rc = exfat_generic_trim(ef.dev,
+					trim_start * SECTOR_SIZE(*ef.sb),
+					used_start * SECTOR_SIZE(*ef.sb));
+		}
+		if (rc)
+			break;
+		trim_start = used_end;
+	}
+
+        data->len = trimmed * CLUSTER_SIZE(*ef.sb);
+	return rc;
+}
+#endif
+
+#ifdef FUSE_CAP_IOCTL_DIR
+static int fuse_exfat_ioctl(const char* path, int cmd, void* arg,
+		struct fuse_file_info* fi, unsigned int flags, void* data)
+{
+	exfat_debug("[%s] %s 0x%x", __func__, path, cmd);
+
+	switch (cmd)
+	{
+#if HAVE_DECL_FITRIM && HAVE_STRUCT_FSTRIM_RANGE
+	case FITRIM:
+		return fuse_exfat_fstrim(data);
+#endif
+	default:
+		return -EINVAL;
+	}
+}
+#endif
+
 static int fuse_exfat_chmod(const char* path, mode_t mode)
 {
 	const mode_t VALID_MODE_MASK = S_IFREG | S_IFDIR |
@@ -349,6 +438,9 @@ static void* fuse_exfat_init(struct fuse_conn_info* fci)
 #ifdef FUSE_CAP_BIG_WRITES
 	fci->want |= FUSE_CAP_BIG_WRITES;
 #endif
+#ifdef FUSE_CAP_IOCTL_DIR
+	fci->want |= FUSE_CAP_IOCTL_DIR;
+#endif
 	return NULL;
 }
 
@@ -383,6 +475,10 @@ static struct fuse_operations fuse_exfat_ops =
 	.mkdir		= fuse_exfat_mkdir,
 	.rename		= fuse_exfat_rename,
 	.utimens	= fuse_exfat_utimens,
+	.bmap           = fuse_exfat_bmap,
+#ifdef FUSE_CAP_IOCTL_DIR
+	.ioctl          = fuse_exfat_ioctl,
+#endif
 	.chmod		= fuse_exfat_chmod,
 	.chown		= fuse_exfat_chown,
 	.statfs		= fuse_exfat_statfs,
