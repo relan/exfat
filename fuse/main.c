@@ -24,6 +24,10 @@
 #include <fuse.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
+#ifdef HAVE_LINUX_FS_H
+#include <linux/fs.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -377,6 +381,64 @@ static int fuse_exfat_bmap(const char* path, size_t block_size, uint64_t* index)
 	return rc;
 }
 
+#if HAVE_STRUCT_FSTRIM_RANGE
+static int fuse_exfat_fstrim(struct fstrim_range* data)
+{
+	off_t trim_start, trim_end;
+	off_t used_start, used_end;
+	off_t trimmed = 0;
+	int rc = 0;
+
+	exfat_debug("[%s] start=%"PRIu64" len=%"PRIu64" minlen=%"PRIu64,
+			__func__, data->start, data->len, data->minlen);
+
+	trim_start = DIV_ROUND_UP(data->start, SECTOR_SIZE(*ef.sb));
+	trim_end = MIN(data->start + data->len, exfat_get_size(ef.dev)) / SECTOR_SIZE(*ef.sb);
+
+	while (trim_start < trim_end)
+	{
+		off_t minlen = data->minlen;
+
+		used_start = used_end = trim_start;
+		if (exfat_find_used_sectors(&ef, &used_start, &used_end) != 0)
+			used_start = used_end = trim_end;
+		if (trim_start < used_start && (used_start - trim_start) * CLUSTER_SIZE(*ef.sb) >= minlen)
+		{
+			exfat_debug("[%s] %zu-%zu", __func__, trim_start, used_start);
+			trimmed += used_start - trim_start;
+			rc = exfat_generic_trim(ef.dev,
+					trim_start * SECTOR_SIZE(*ef.sb),
+					used_start * SECTOR_SIZE(*ef.sb));
+			if (rc != 0)
+				break;
+		}
+		trim_start = used_end;
+	}
+
+	data->len = trimmed * SECTOR_SIZE(*ef.sb);
+	return rc;
+}
+#endif
+
+#ifdef FUSE_CAP_IOCTL_DIR
+static int fuse_exfat_ioctl(UNUSED const char* path, int cmd, UNUSED void* arg,
+		UNUSED struct fuse_file_info* fi, UNUSED unsigned flags,
+		UNUSED void* data)
+{
+	exfat_debug("[%s] %s 0x%x", __func__, path, cmd);
+
+	switch (cmd)
+	{
+#if HAVE_DECL_FITRIM && HAVE_STRUCT_FSTRIM_RANGE
+	case FITRIM:
+		return fuse_exfat_fstrim(data);
+#endif
+	default:
+		return -EINVAL;
+	}
+}
+#endif
+
 static int fuse_exfat_chmod(UNUSED const char* path, mode_t mode
 #if FUSE_USE_VERSION >= 30
 		, UNUSED struct fuse_file_info* fi
@@ -443,6 +505,9 @@ static void* fuse_exfat_init(
 #ifdef FUSE_CAP_BIG_WRITES
 	fci->want |= FUSE_CAP_BIG_WRITES;
 #endif
+#ifdef FUSE_CAP_IOCTL_DIR
+	fci->want |= FUSE_CAP_IOCTL_DIR;
+#endif
 
 	/* mark super block as dirty; failure isn't a big deal */
 	exfat_soil_super_block(&ef);
@@ -482,6 +547,9 @@ static struct fuse_operations fuse_exfat_ops =
 	.rename		= fuse_exfat_rename,
 	.utimens	= fuse_exfat_utimens,
 	.bmap		= fuse_exfat_bmap,
+#ifdef FUSE_CAP_IOCTL_DIR
+	.ioctl		= fuse_exfat_ioctl,
+#endif
 	.chmod		= fuse_exfat_chmod,
 	.chown		= fuse_exfat_chown,
 	.statfs		= fuse_exfat_statfs,

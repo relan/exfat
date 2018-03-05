@@ -27,9 +27,11 @@ AC_INIT([Free exFAT implementation],
 	[https://github.com/relan/exfat])
 AM_INIT_AUTOMAKE([1.11.2 -Wall -Werror foreign subdir-objects])
 AC_PROG_CC
+AC_GNU_SOURCE
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_SYS_LARGEFILE
+AC_HEADER_MAJOR
 AC_CANONICAL_HOST
 PKG_CHECK_MODULES([UBLIO], [libublio], [
   CFLAGS="$CFLAGS $UBLIO_CFLAGS"
@@ -47,6 +49,12 @@ case "$host_os" in
     AC_DEFINE([_DEFAULT_SOURCE], [], [Enable vsyslog().])
 	;;
 esac
+AC_CHECK_HEADERS(
+	[linux/fs.h], [
+		AC_CHECK_DECLS([FITRIM], [], [], [#include <linux/fs.h>])
+		AC_CHECK_TYPES([struct fstrim_range], [], [], [#include <linux/fs.h>])
+	])
+AC_CHECK_DECLS([fallocate], [], [], [#include <fcntl.h>])
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
 	libexfat/Makefile

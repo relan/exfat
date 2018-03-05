@@ -53,6 +53,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define DIV_ROUND_UP(x, d) (((x) + (d) - 1) / (d))
 #define ROUND_UP(x, d) (DIV_ROUND_UP(x, d) * (d))
+#define ROUND_DOWN(x, d) ((x) / (d) * (d))
 
 #define BMAP_SIZE(count) (ROUND_UP(count, sizeof(bitmap_t) * 8) / 8)
 #define BMAP_BLOCK(index) ((index) / sizeof(bitmap_t) / 8)
@@ -166,6 +167,7 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 		void* buffer, size_t size, off_t offset);
 ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		const void* buffer, size_t size, off_t offset);
+int exfat_generic_trim(struct exfat_dev* dev, off_t start, off_t end);
 
 int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_iterator* it);
