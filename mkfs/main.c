@@ -31,6 +31,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <inttypes.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
@@ -190,7 +191,7 @@ static void usage(const char* prog)
 {
 	fprintf(stderr, "Usage: %s [-i volume-id] [-n label] "
 			"[-p partition-first-sector] "
-			"[-s sectors-per-cluster] [-V] <device>\n", prog);
+			"[-s sectors-per-cluster] [-t] [-V] <device>\n", prog);
 	exit(1);
 }
 
@@ -198,6 +199,7 @@ int main(int argc, char* argv[])
 {
 	const char* spec = NULL;
 	int opt;
+	bool try_trim = false;
 	int spc_bits = -1;
 	const char* volume_label = NULL;
 	uint32_t volume_serial = 0;
@@ -206,7 +208,7 @@ int main(int argc, char* argv[])
 
 	printf("mkexfatfs %s\n", VERSION);
 
-	while ((opt = getopt(argc, argv, "i:n:p:s:V")) != -1)
+	while ((opt = getopt(argc, argv, "i:n:p:s:tV")) != -1)
 	{
 		switch (opt)
 		{
@@ -227,6 +229,9 @@ int main(int argc, char* argv[])
 				return 1;
 			}
 			break;
+		case 't':
+			try_trim = true;
+			break;
 		case 'V':
 			puts("Copyright (C) 2011-2018  Andrew Nayenko");
 			return 0;
@@ -242,6 +247,8 @@ int main(int argc, char* argv[])
 	dev = exfat_open(spec, EXFAT_MODE_RW);
 	if (dev == NULL)
 		return 1;
+	if (try_trim)
+		exfat_generic_trim(dev, 0, exfat_get_size(dev));
 	if (setup(dev, 9, spc_bits, volume_label, volume_serial,
 				first_sector) != 0)
 	{
