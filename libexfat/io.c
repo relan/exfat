@@ -26,17 +26,26 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#ifdef HAVE_LINUX_FS_H
+#include <linux/fs.h>
+#endif
 #if defined(__APPLE__)
 #include <sys/disk.h>
 #elif defined(__OpenBSD__)
 #include <sys/param.h>
 #include <sys/disklabel.h>
 #include <sys/dkio.h>
+#endif
 #include <sys/ioctl.h>
-#elif __linux__
-#include <sys/mount.h>
+#ifdef MAJOR_IN_MKDEV
+#include <sys/mkdev.h>
+#endif
+#ifdef MAJOR_IN_SYSMARCROS
+#include <sys/sysmacros.h>
 #endif
 #ifdef USE_UBLIO
 #include <sys/uio.h>
@@ -47,6 +56,9 @@ struct exfat_dev
 {
 	int fd;
 	enum exfat_mode mode;
+	off_t block_discard_alignment;
+	off_t block_discard_granularity;
+	off_t block_discard_max_bytes;
 	off_t size; /* in bytes */
 #ifdef USE_UBLIO
 	off_t pos;
@@ -84,6 +96,34 @@ static int open_rw(const char* spec)
 	return fd;
 }
 
+__attribute__((format(scanf, 4, 5)))
+static int read_sys_block_attr(int dev_major, int dev_minor, const char* attr,
+		const char* format, ...)
+{
+	char path[128];
+	FILE *fp;
+	va_list args;
+	int rc;
+
+	snprintf(path, sizeof(path), "/sys/dev/block/%d:%d/%s", dev_major, dev_minor, attr);
+	fp = fopen(path, "r");
+	if (!fp)
+	{
+		snprintf(path, sizeof(path), "/sys/dev/block/%d:%d/../%s", dev_major, dev_minor, attr);
+		fp = fopen(path, "r");
+	}
+
+	if (!fp)
+		return -ENOENT;
+
+	va_start(args, format);
+	rc = vfscanf(fp, format, args);
+	va_end(args);
+
+	fclose(fp);
+	return rc;
+}
+
 struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 {
 	struct exfat_dev* dev;
@@ -110,7 +150,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		}
 	}
 
-	dev = malloc(sizeof(struct exfat_dev));
+	dev = calloc(1, sizeof(struct exfat_dev));
 	if (dev == NULL)
 	{
 		exfat_error("failed to allocate memory for device structure");
@@ -176,6 +216,25 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		exfat_error("'%s' is neither a device, nor a regular file", spec);
 		return NULL;
 	}
+#ifdef __linux__
+	if (S_ISBLK(stbuf.st_mode))
+	{
+		uintmax_t discard_alignment = 0;
+		uintmax_t discard_granularity = 0;
+		uintmax_t discard_max_bytes = 0;
+		read_sys_block_attr(major(stbuf.st_rdev), minor(stbuf.st_rdev),
+				"discard_alignment", "%"SCNuMAX, &discard_alignment);
+		read_sys_block_attr(major(stbuf.st_rdev), minor(stbuf.st_rdev),
+				"queue/discard_granularity", "%"SCNuMAX, &discard_granularity);
+		read_sys_block_attr(major(stbuf.st_rdev), minor(stbuf.st_rdev),
+				"queue/discard_max_bytes", "%"SCNuMAX, &discard_max_bytes);
+		dev->block_discard_alignment = discard_alignment;
+		dev->block_discard_granularity = discard_granularity;
+		dev->block_discard_max_bytes = discard_max_bytes;
+		if (discard_granularity > 0 && discard_max_bytes > 0)
+			exfat_debug("'%s' supports discard", spec);
+	}
+#endif
 
 #if defined(__APPLE__)
 	if (!S_ISREG(stbuf.st_mode))
@@ -471,4 +530,41 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		   creates or removes something in this directory */
 		exfat_update_mtime(node);
 	return size - remainder;
+}
+
+int exfat_generic_trim(struct exfat_dev* dev, off_t start, off_t end)
+{
+	int rc = -EOPNOTSUPP;
+
+	if (start >= end)
+		return 0;
+
+	if (0) ;
+#ifdef BLKDISCARD
+	else if (dev->block_discard_granularity > 0 && dev->block_discard_max_bytes > 0)
+	{
+		start = ROUND_UP(start - dev->block_discard_alignment, dev->block_discard_granularity)
+			+ dev->block_discard_alignment;
+		end = ROUND_DOWN(end - dev->block_discard_alignment, dev->block_discard_granularity)
+			+ dev->block_discard_alignment;
+		rc = 0;
+		while (!rc && start < end)
+		{
+			uint64_t range[2] = {start, MIN(end - start, dev->block_discard_max_bytes)};
+			exfat_debug("BLKDISCARD(%d, %llu+%llu)", dev->fd, range[0], range[1]);
+			if (range[1] >= dev->block_discard_granularity)
+				rc = ioctl(dev->fd, BLKDISCARD, range) ? -errno : 0;
+			start += range[1];
+		}
+	}
+#endif
+	else {
+#if HAVE_DECL_FALLOCATE
+		exfat_debug("FL_PUNCH_HOLE(%d, %llu+%llu)", dev->fd, start, end - start);
+		rc = fallocate(dev->fd, FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
+				start, end - start) ? -errno : 0;
+#endif
+	}
+
+	return rc;
 }

@@ -28,15 +28,24 @@ AC_INIT([Free exFAT implementation],
 AM_INIT_AUTOMAKE([1.11.2 -Wall -Werror foreign subdir-objects])
 AC_PROG_CC
 AC_PROG_CC_C99
+AC_GNU_SOURCE
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_SYS_LARGEFILE
+AC_HEADER_MAJOR
 PKG_CHECK_MODULES([UBLIO], [libublio], [
   CFLAGS="$CFLAGS $UBLIO_CFLAGS"
   LIBS="$LIBS $UBLIO_LIBS"
   AC_DEFINE([USE_UBLIO], [1],
     [Define if block devices are not supported.])
 ], [:])
+AC_CHECK_HEADERS(
+	[linux/fs.h],
+	[
+		AC_CHECK_DECLS([FITRIM], [], [], [#include <linux/fs.h>])
+		AC_CHECK_TYPES([struct fstrim_range], [], [], [#include <linux/fs.h>])
+	])
+AC_CHECK_DECLS([fallocate], [], [], [#include <fcntl.h>])
 PKG_CHECK_MODULES([FUSE], [fuse])
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
