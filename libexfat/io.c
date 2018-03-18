@@ -38,12 +38,20 @@
 #elif __linux__
 #include <sys/mount.h>
 #endif
+#ifdef USE_UBLIO
+#include <sys/uio.h>
+#include <ublio.h>
+#endif
 
 struct exfat_dev
 {
 	int fd;
 	enum exfat_mode mode;
 	off_t size; /* in bytes */
+#ifdef USE_UBLIO
+	off_t pos;
+	ublio_filehandle_t ufh;
+#endif
 };
 
 static bool is_open(int fd)
@@ -80,6 +88,9 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 {
 	struct exfat_dev* dev;
 	struct stat stbuf;
+#ifdef USE_UBLIO
+	struct ublio_param up;
+#endif
 
 	/* The system allocates file descriptors sequentially. If we have been
 	   started with stdin (0), stdout (1) or stderr (2) closed, the system
@@ -235,6 +246,24 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		}
 	}
 
+#ifdef USE_UBLIO
+	memset(&up, 0, sizeof(struct ublio_param));
+	up.up_blocksize = 256 * 1024;
+	up.up_items = 64;
+	up.up_grace = 32;
+	up.up_priv = &dev->fd;
+
+	dev->pos = 0;
+	dev->ufh = ublio_open(&up);
+	if (dev->ufh == NULL)
+	{
+		close(dev->fd);
+		free(dev);
+		exfat_error("failed to initialize ublio");
+		return NULL;
+	}
+#endif
+
 	return dev;
 }
 
@@ -242,6 +271,13 @@ int exfat_close(struct exfat_dev* dev)
 {
 	int rc = 0;
 
+#ifdef USE_UBLIO
+	if (ublio_close(dev->ufh) != 0)
+	{
+		exfat_error("failed to close ublio");
+		rc = -EIO;
+	}
+#endif
 	if (close(dev->fd) != 0)
 	{
 		exfat_error("failed to close device: %s", strerror(errno));
@@ -255,6 +291,13 @@ int exfat_fsync(struct exfat_dev* dev)
 {
 	int rc = 0;
 
+#ifdef USE_UBLIO
+	if (ublio_fsync(dev->ufh) != 0)
+	{
+		exfat_error("ublio fsync failed");
+		rc = -EIO;
+	}
+#endif
 	if (fsync(dev->fd) != 0)
 	{
 		exfat_error("fsync failed: %s", strerror(errno));
@@ -275,29 +318,56 @@ off_t exfat_get_size(const struct exfat_dev* dev)
 
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence)
 {
+#ifdef USE_UBLIO
+	/* XXX SEEK_CUR will be handled incorrectly */
+	return dev->pos = lseek(dev->fd, offset, whence);
+#else
 	return lseek(dev->fd, offset, whence);
+#endif
 }
 
 ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size)
 {
+#ifdef USE_UBLIO
+	ssize_t result = ublio_pread(dev->ufh, buffer, size, dev->pos);
+	if (result >= 0)
+		dev->pos += size;
+	return result;
+#else
 	return read(dev->fd, buffer, size);
+#endif
 }
 
 ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size)
 {
+#ifdef USE_UBLIO
+	ssize_t result = ublio_pwrite(dev->ufh, buffer, size, dev->pos);
+	if (result >= 0)
+		dev->pos += size;
+	return result;
+#else
 	return write(dev->fd, buffer, size);
+#endif
 }
 
 ssize_t exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
 		off_t offset)
 {
+#ifdef USE_UBLIO
+	return ublio_pread(dev->ufh, buffer, size, offset);
+#else
 	return pread(dev->fd, buffer, size, offset);
+#endif
 }
 
 ssize_t exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
 		off_t offset)
 {
+#ifdef USE_UBLIO
+	return ublio_pwrite(dev->ufh, buffer, size, offset);
+#else
 	return pwrite(dev->fd, buffer, size, offset);
+#endif
 }
 
 ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,

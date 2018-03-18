@@ -31,6 +31,12 @@ AC_PROG_CC_C99
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_SYS_LARGEFILE
+PKG_CHECK_MODULES([UBLIO], [libublio], [
+  CFLAGS="$CFLAGS $UBLIO_CFLAGS"
+  LIBS="$LIBS $UBLIO_LIBS"
+  AC_DEFINE([USE_UBLIO], [1],
+    [Define if block devices are not supported.])
+], [:])
 PKG_CHECK_MODULES([FUSE], [fuse])
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
