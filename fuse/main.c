@@ -105,6 +105,7 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 	struct exfat_iterator it;
 	int rc;
 	char name[EXFAT_UTF8_NAME_BUFFER_MAX];
+	struct stat stbuf;
 
 	exfat_debug("[%s] %s", __func__, path);
 
@@ -134,7 +135,8 @@ static int fuse_exfat_readdir(const char* path, void* buffer,
 		exfat_debug("[%s] %s: %s, %"PRId64" bytes, cluster 0x%x", __func__,
 				name, node->is_contiguous ? "contiguous" : "fragmented",
 				node->size, node->start_cluster);
-		filler(buffer, name, NULL, 0);
+		exfat_stat(&ef, node, &stbuf);
+		filler(buffer, name, &stbuf, 0);
 		exfat_put_node(&ef, node);
 	}
 	exfat_closedir(&ef, &it);
