@@ -42,7 +42,7 @@ cc_library_static {
 
 
 cc_binary {
-    name: "mkexfatfs",
+    name: "mkfs.exfat",
 
     srcs: ["mkfs/*.c"],
     defaults: ["exfat_defaults"],
@@ -51,7 +51,7 @@ cc_binary {
 }
 
 cc_binary {
-    name: "exfatfsck",
+    name: "fsck.exfat",
 
     srcs: ["fsck/main.c"],
     defaults: ["exfat_defaults"],
