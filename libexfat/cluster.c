@@ -280,7 +280,7 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 				shrink_file(ef, node, current + allocated, allocated);
 			return -ENOSPC;
 		}
-		if (next != previous - 1 && node->is_contiguous)
+		if (next != previous + 1 && node->is_contiguous)
 		{
 			/* it's a pity, but we are not able to keep the file contiguous
 			   anymore */
