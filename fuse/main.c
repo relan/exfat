@@ -42,9 +42,6 @@
 	#error FUSE 2.6 or later is required
 #endif
 
-const char* default_options = "ro_fallback,allow_other,blkdev,big_writes,"
-		"default_permissions";
-
 struct exfat ef;
 
 static struct exfat_node* get_node(const struct fuse_file_info* fi)
@@ -447,6 +444,12 @@ static char* add_fsname_option(char* options, const char* spec)
 	return options;
 }
 
+static char* add_ro_option(char* options, bool ro)
+{
+	return ro ? add_option(options, "ro", NULL) : options;
+}
+
+#if defined(__linux__) || defined(__FreeBSD__)
 static char* add_user_option(char* options)
 {
 	struct passwd* pw;
@@ -463,7 +466,9 @@ static char* add_user_option(char* options)
 	}
 	return add_option(options, "user", pw->pw_name);
 }
+#endif
 
+#if defined(__linux__)
 static char* add_blksize_option(char* options, long cluster_size)
 {
 	long page_size = sysconf(_SC_PAGESIZE);
@@ -475,38 +480,57 @@ static char* add_blksize_option(char* options, long cluster_size)
 	snprintf(blksize, sizeof(blksize), "%ld", MIN(page_size, cluster_size));
 	return add_option(options, "blksize", blksize);
 }
+#endif
 
-static char* add_fuse_options(char* options, const char* spec)
+static char* add_fuse_options(char* options, const char* spec, bool ro)
 {
 	options = add_fsname_option(options, spec);
 	if (options == NULL)
 		return NULL;
+	options = add_ro_option(options, ro);
+	if (options == NULL)
+		return NULL;
+#if defined(__linux__) || defined(__FreeBSD__)
 	options = add_user_option(options);
 	if (options == NULL)
 		return NULL;
+#endif
+#if defined(__linux__)
 	options = add_blksize_option(options, CLUSTER_SIZE(*ef.sb));
 	if (options == NULL)
 		return NULL;
-
+#endif
 	return options;
+}
+
+static int fuse_exfat_main(char* mount_options, char* mount_point)
+{
+	char* argv[] = {"exfat", "-s", "-o", mount_options, mount_point, NULL};
+	return fuse_main(sizeof(argv) / sizeof(argv[0]) - 1, argv,
+			&fuse_exfat_ops, NULL);
 }
 
 int main(int argc, char* argv[])
 {
-	struct fuse_args mount_args = FUSE_ARGS_INIT(0, NULL);
-	struct fuse_args newfs_args = FUSE_ARGS_INIT(0, NULL);
 	const char* spec = NULL;
-	const char* mount_point = NULL;
-	char* mount_options;
-	int debug = 0;
-	struct fuse_chan* fc = NULL;
-	struct fuse* fh = NULL;
+	char* mount_point = NULL;
+	char* fuse_options;
+	char* exfat_options;
 	int opt;
+	int rc;
 
 	printf("FUSE exfat %s\n", VERSION);
 
-	mount_options = strdup(default_options);
-	if (mount_options == NULL)
+	fuse_options = strdup("allow_other,"
+#if defined(__linux__) || defined(__FreeBSD__)
+			"big_writes,"
+#endif
+#if defined(__linux__)
+			"blkdev,"
+#endif
+			"default_permissions");
+	exfat_options = strdup("ro_fallback");
+	if (fuse_options == NULL || exfat_options == NULL)
 	{
 		exfat_error("failed to allocate options string");
 		return 1;
@@ -517,122 +541,65 @@ int main(int argc, char* argv[])
 		switch (opt)
 		{
 		case 'd':
-			debug = 1;
+			fuse_options = add_option(fuse_options, "debug", NULL);
+			if (fuse_options == NULL)
+			{
+				free(exfat_options);
+				return 1;
+			}
 			break;
 		case 'n':
 			break;
 		case 'o':
-			mount_options = add_option(mount_options, optarg, NULL);
-			if (mount_options == NULL)
+			exfat_options = add_option(exfat_options, optarg, NULL);
+			if (exfat_options == NULL)
+			{
+				free(fuse_options);
 				return 1;
+			}
 			break;
 		case 'V':
-			free(mount_options);
+			free(exfat_options);
+			free(fuse_options);
 			puts("Copyright (C) 2010-2018  Andrew Nayenko");
 			return 0;
 		case 'v':
 			break;
 		default:
-			free(mount_options);
+			free(exfat_options);
+			free(fuse_options);
 			usage(argv[0]);
 			break;
 		}
 	}
 	if (argc - optind != 2)
 	{
-		free(mount_options);
+		free(exfat_options);
+		free(fuse_options);
 		usage(argv[0]);
 	}
 	spec = argv[optind];
 	mount_point = argv[optind + 1];
 
-	if (exfat_mount(&ef, spec, mount_options) != 0)
+	if (exfat_mount(&ef, spec, exfat_options) != 0)
 	{
-		free(mount_options);
+		free(exfat_options);
+		free(fuse_options);
 		return 1;
 	}
 
-	if (ef.ro == -1) /* read-only fallback was used */
-	{
-		mount_options = add_option(mount_options, "ro", NULL);
-		if (mount_options == NULL)
-		{
-			exfat_unmount(&ef);
-			return 1;
-		}
-	}
+	free(exfat_options);
 
-	mount_options = add_fuse_options(mount_options, spec);
-	if (mount_options == NULL)
+	fuse_options = add_fuse_options(fuse_options, spec, ef.ro != 0);
+	if (fuse_options == NULL)
 	{
 		exfat_unmount(&ef);
 		return 1;
 	}
 
-	/* create arguments for fuse_mount() */
-	if (fuse_opt_add_arg(&mount_args, "exfat") != 0 ||
-		fuse_opt_add_arg(&mount_args, "-o") != 0 ||
-		fuse_opt_add_arg(&mount_args, mount_options) != 0)
-	{
-		exfat_unmount(&ef);
-		free(mount_options);
-		return 1;
-	}
+	/* let FUSE do all its wizardry */
+	rc = fuse_exfat_main(fuse_options, mount_point);
 
-	free(mount_options);
-
-	/* create FUSE mount point */
-	fc = fuse_mount(mount_point, &mount_args);
-	fuse_opt_free_args(&mount_args);
-	if (fc == NULL)
-	{
-		exfat_unmount(&ef);
-		return 1;
-	}
-
-	/* create arguments for fuse_new() */
-	if (fuse_opt_add_arg(&newfs_args, "") != 0 ||
-		(debug && fuse_opt_add_arg(&newfs_args, "-d") != 0))
-	{
-		fuse_unmount(mount_point, fc);
-		exfat_unmount(&ef);
-		return 1;
-	}
-
-	/* create new FUSE file system */
-	fh = fuse_new(fc, &newfs_args, &fuse_exfat_ops,
-			sizeof(struct fuse_operations), NULL);
-	fuse_opt_free_args(&newfs_args);
-	if (fh == NULL)
-	{
-		fuse_unmount(mount_point, fc);
-		exfat_unmount(&ef);
-		return 1;
-	}
-
-	/* exit session on HUP, TERM and INT signals and ignore PIPE signal */
-	if (fuse_set_signal_handlers(fuse_get_session(fh)) != 0)
-	{
-		fuse_unmount(mount_point, fc);
-		fuse_destroy(fh);
-		exfat_unmount(&ef);
-		exfat_error("failed to set signal handlers");
-		return 1;
-	}
-
-	/* go to background (unless "-d" option is passed) and run FUSE
-	   main loop */
-	if (fuse_daemonize(debug) == 0)
-	{
-		if (fuse_loop(fh) != 0)
-			exfat_error("FUSE loop failure");
-	}
-	else
-		exfat_error("failed to daemonize");
-
-	fuse_remove_signal_handlers(fuse_get_session(fh));
-	/* note that fuse_unmount() must be called BEFORE fuse_destroy() */
-	fuse_unmount(mount_point, fc);
-	fuse_destroy(fh);
-	return 0;
+	free(fuse_options);
+	return rc;
 }
