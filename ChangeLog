@@ -1,3 +1,14 @@
+1.3.0 (2018-09-15)
+
+* exfatfsck can now repair some errors.
+* Added experimental Android support for exfat-utils [liminghao, LongPingWEI,
+Pablo Mendez Hernandez, Pierre-Hugues Husson].
+* Cleaned up FUSE code preparing for FUSE 3 support.
+* Removed OpenBSD support as it does not handle -o option in fuse_main().
+* Re-introduced FreeBSD support [Oleksii Samorukov].
+* Fixed DragonFly BSD support [Tomohiro Kusumi].
+* dirent->d_type in now filled on readdir() [Mark Browning].
+
 1.2.8 (2018-02-03)
 
 * Fixed new files or directories creation in the root directory: ensure there
