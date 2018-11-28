@@ -27,7 +27,6 @@ cc_defaults {
         "-DPACKAGE=\"exfat\"",
         "-DVERSION=\"1.3.0\"",
     ],
-    tags: ["optional"],
     shared_libs: ["liblog"],
 }
 
