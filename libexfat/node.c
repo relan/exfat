@@ -135,9 +135,10 @@ static void init_node_meta1(struct exfat_node* node,
 	node->attrib = le16_to_cpu(meta1->attrib);
 	node->continuations = meta1->continuations;
 	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime,
-			meta1->mtime_cs);
+			meta1->mtime_cs, meta1->mtime_tzo);
 	/* there is no centiseconds field for atime */
-	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime, 0);
+	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime,
+			0, meta1->atime_tzo);
 }
 
 static void init_node_meta2(struct exfat_node* node,
@@ -646,8 +647,9 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 
 	meta1->attrib = cpu_to_le16(node->attrib);
 	exfat_unix2exfat(node->mtime, &meta1->mdate, &meta1->mtime,
-			&meta1->mtime_cs);
-	exfat_unix2exfat(node->atime, &meta1->adate, &meta1->atime, NULL);
+			&meta1->mtime_cs, &meta1->mtime_tzo);
+	exfat_unix2exfat(node->atime, &meta1->adate, &meta1->atime,
+			NULL, &meta1->atime_tzo);
 	meta2->size = meta2->valid_size = cpu_to_le64(node->size);
 	meta2->start_cluster = cpu_to_le32(node->start_cluster);
 	meta2->flags = EXFAT_FLAG_ALWAYS1;
@@ -895,10 +897,11 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	meta1->continuations = 1 + name_entries;
 	meta1->attrib = cpu_to_le16(attrib);
 	exfat_unix2exfat(time(NULL), &meta1->crdate, &meta1->crtime,
-			&meta1->crtime_cs);
+			&meta1->crtime_cs, &meta1->crtime_tzo);
 	meta1->adate = meta1->mdate = meta1->crdate;
 	meta1->atime = meta1->mtime = meta1->crtime;
 	meta1->mtime_cs = meta1->crtime_cs; /* there is no atime_cs */
+	meta1->atime_tzo = meta1->mtime_tzo = meta1->crtime_tzo;
 
 	meta2->type = EXFAT_ENTRY_FILE_INFO;
 	meta2->flags = EXFAT_FLAG_ALWAYS1;
