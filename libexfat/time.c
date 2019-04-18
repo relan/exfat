@@ -53,7 +53,8 @@ static const time_t days_in_year[] =
 	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334
 };
 
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
+time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
+		uint8_t tzoffset)
 {
 	time_t unix_time = EPOCH_DIFF_SEC;
 	uint16_t ndate = le16_to_cpu(date);
@@ -100,13 +101,18 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec)
 	unix_time += centisec / 100;
 
 	/* exFAT stores timestamps in local time, so we correct it to UTC */
-	unix_time += exfat_timezone;
+	if (tzoffset & 0x80)
+		/* lower 7 bits are signed timezone offset in 15 minute increments */
+		unix_time -= (int8_t)(tzoffset << 1) * 15 * 60 / 2;
+	else
+		/* timezone offset not present, assume our local timezone */
+		unix_time += exfat_timezone;
 
 	return unix_time;
 }
 
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
-		uint8_t* centisec)
+		uint8_t* centisec, uint8_t* tzoffset)
 {
 	time_t shift = EPOCH_DIFF_SEC + exfat_timezone;
 	uint16_t day, month, year;
@@ -146,6 +152,9 @@ void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 	*time = cpu_to_le16(twosec | (min << 5) | (hour << 11));
 	if (centisec)
 		*centisec = (unix_time % 2) * 100;
+
+	/* record our local timezone offset in exFAT (15 minute increment) format */
+	*tzoffset = (uint8_t)(-exfat_timezone / 60 / 15) | 0x80;
 }
 
 void exfat_tzset(void)

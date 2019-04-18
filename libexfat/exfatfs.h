@@ -144,7 +144,8 @@ struct exfat_entry_meta1			/* file or directory info (part 1) */
 	le16_t atime, adate;			/* latest access date and time */
 	uint8_t crtime_cs;				/* creation time in cs (centiseconds) */
 	uint8_t mtime_cs;				/* latest modification time in cs */
-	uint8_t __unknown2[10];
+	uint8_t crtime_tzo, mtime_tzo, atime_tzo;	/* timezone offset encoded */
+	uint8_t __unknown2[7];
 }
 PACKED;
 STATIC_ASSERT(sizeof(struct exfat_entry_meta1) == 32);

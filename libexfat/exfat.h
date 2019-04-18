@@ -228,9 +228,10 @@ int exfat_set_label(struct exfat* ef, const char* label);
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
 
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec);
+time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
+		uint8_t tzoffset);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
-		uint8_t* centisec);
+		uint8_t* centisec, uint8_t* tzoffset);
 void exfat_tzset(void);
 
 bool exfat_ask_to_fix(const struct exfat* ef);
