@@ -31,6 +31,7 @@ AC_PROG_CC_C99
 AC_PROG_RANLIB
 AM_PROG_AR
 AC_SYS_LARGEFILE
+AC_CANONICAL_HOST
 PKG_CHECK_MODULES([UBLIO], [libublio], [
   CFLAGS="$CFLAGS $UBLIO_CFLAGS"
   LIBS="$LIBS $UBLIO_LIBS"
@@ -38,6 +39,12 @@ PKG_CHECK_MODULES([UBLIO], [libublio], [
     [Define if block devices are not supported.])
 ], [:])
 PKG_CHECK_MODULES([FUSE], [fuse])
+case "$host_os" in
+  *-gnu)
+    AC_DEFINE([_XOPEN_SOURCE], [500], [Enable pread() and pwrite().])
+    AC_DEFINE([_DEFAULT_SOURCE], [], [Enable vsyslog().])
+	;;
+esac
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
 	libexfat/Makefile
