@@ -348,6 +348,10 @@ static void* fuse_exfat_init(struct fuse_conn_info* fci)
 #ifdef FUSE_CAP_BIG_WRITES
 	fci->want |= FUSE_CAP_BIG_WRITES;
 #endif
+
+	/* mark super block as dirty; failure isn't a big deal */
+	exfat_soil_super_block(&ef);
+
 	return NULL;
 }
 

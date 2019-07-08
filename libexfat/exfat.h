@@ -225,6 +225,7 @@ void exfat_update_mtime(struct exfat_node* node);
 const char* exfat_get_label(struct exfat* ef);
 int exfat_set_label(struct exfat* ef, const char* label);
 
+int exfat_soil_super_block(const struct exfat* ef);
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
 

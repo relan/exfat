@@ -166,11 +166,8 @@ static int commit_super_block(const struct exfat* ef)
 	return exfat_fsync(ef->dev);
 }
 
-static int prepare_super_block(const struct exfat* ef)
+int exfat_soil_super_block(const struct exfat* ef)
 {
-	if (le16_to_cpu(ef->sb->volume_state) & EXFAT_STATE_MOUNTED)
-		exfat_warn("volume was not unmounted cleanly");
-
 	if (ef->ro)
 		return 0;
 
@@ -305,6 +302,8 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		exfat_free(ef);
 		return -EIO;
 	}
+	if (le16_to_cpu(ef->sb->volume_state) & EXFAT_STATE_MOUNTED)
+		exfat_warn("volume was not unmounted cleanly");
 
 	ef->root = malloc(sizeof(struct exfat_node));
 	if (ef->root == NULL)
@@ -343,9 +342,6 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		exfat_error("clusters bitmap is not found");
 		goto error;
 	}
-
-	if (prepare_super_block(ef) != 0)
-		goto error;
 
 	return 0;
 

@@ -132,6 +132,7 @@ static void fsck(struct exfat* ef, const char* spec, const char* options)
 	}
 
 	exfat_print_info(ef->sb, exfat_count_free_clusters(ef));
+	exfat_soil_super_block(ef);
 	dirck(ef, "");
 	exfat_unmount(ef);
 
