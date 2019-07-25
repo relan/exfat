@@ -396,6 +396,7 @@ static int readdir(struct exfat* ef, struct exfat_node* parent,
 	const struct exfat_entry_label* label;
 	uint64_t upcase_size = 0;
 	le16_t* upcase_comp = NULL;
+	le16_t label_name[EXFAT_ENAME_MAX];
 
 	for (;;)
 	{
@@ -508,7 +509,10 @@ static int readdir(struct exfat* ef, struct exfat_node* parent,
 				exfat_error("too long label (%hhu chars)", label->length);
 				return -EIO;
 			}
-			if (utf16_to_utf8(ef->label, label->name,
+			/* copy to a temporary buffer to avoid unaligned access to a
+			   packed member */
+			memcpy(label_name, label->name, sizeof(label_name));
+			if (utf16_to_utf8(ef->label, label_name,
 						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
 				return -EIO;
 			break;
@@ -628,6 +632,7 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 	struct exfat_entry_meta1* meta1 = (struct exfat_entry_meta1*) &entries[0];
 	struct exfat_entry_meta2* meta2 = (struct exfat_entry_meta2*) &entries[1];
 	int rc;
+	le16_t edate, etime;
 
 	if (!node->is_dirty)
 		return 0; /* no need to flush */
@@ -646,10 +651,14 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 		return -EIO;
 
 	meta1->attrib = cpu_to_le16(node->attrib);
-	exfat_unix2exfat(node->mtime, &meta1->mdate, &meta1->mtime,
+	exfat_unix2exfat(node->mtime, &edate, &etime,
 			&meta1->mtime_cs, &meta1->mtime_tzo);
-	exfat_unix2exfat(node->atime, &meta1->adate, &meta1->atime,
+	meta1->mdate = edate;
+	meta1->mtime = etime;
+	exfat_unix2exfat(node->atime, &edate, &etime,
 			NULL, &meta1->atime_tzo);
+	meta1->adate = edate;
+	meta1->atime = etime;
 	meta2->size = meta2->valid_size = cpu_to_le64(node->size);
 	meta2->start_cluster = cpu_to_le32(node->start_cluster);
 	meta2->flags = EXFAT_FLAG_ALWAYS1;
@@ -890,16 +899,17 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 	struct exfat_entry_meta2* meta2 = (struct exfat_entry_meta2*) &entries[1];
 	int i;
 	int rc;
+	le16_t edate, etime;
 
 	memset(entries, 0, sizeof(struct exfat_entry[2]));
 
 	meta1->type = EXFAT_ENTRY_FILE;
 	meta1->continuations = 1 + name_entries;
 	meta1->attrib = cpu_to_le16(attrib);
-	exfat_unix2exfat(time(NULL), &meta1->crdate, &meta1->crtime,
+	exfat_unix2exfat(time(NULL), &edate, &etime,
 			&meta1->crtime_cs, &meta1->crtime_tzo);
-	meta1->adate = meta1->mdate = meta1->crdate;
-	meta1->atime = meta1->mtime = meta1->crtime;
+	meta1->adate = meta1->mdate = meta1->crdate = edate;
+	meta1->atime = meta1->mtime = meta1->crtime = etime;
 	meta1->mtime_cs = meta1->crtime_cs; /* there is no atime_cs */
 	meta1->atime_tzo = meta1->mtime_tzo = meta1->crtime_tzo;
 
