@@ -365,7 +365,7 @@ static int fuse_exfat_fstrim(struct fstrim_range* data)
 		trim_start = used_end;
 	}
 
-        data->len = trimmed * CLUSTER_SIZE(*ef.sb);
+	data->len = trimmed * SECTOR_SIZE(*ef.sb);
 	return rc;
 }
 #endif
