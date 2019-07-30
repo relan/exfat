@@ -44,7 +44,7 @@
 #ifdef MAJOR_IN_MKDEV
 #include <sys/mkdev.h>
 #endif
-#ifdef MAJOR_IN_SYSMARCROS
+#ifdef MAJOR_IN_SYSMACROS
 #include <sys/sysmacros.h>
 #endif
 #ifdef USE_UBLIO
