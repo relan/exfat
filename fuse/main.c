@@ -389,6 +389,18 @@ static struct fuse_operations fuse_exfat_ops =
 	.destroy	= fuse_exfat_destroy,
 };
 
+tatic bool find_option(const char* options, const char* option_name)
+{
+    const char* p;
+    size_t length = strlen(option_name);
+
+    for (p = strstr(options, option_name); p; p = strstr(p + 1, option_name))
+        if ((p == options || p[-1] == ',') &&
+                (p[length] == ',' || p[length] == '\0'))
+            return true;
+    return false;
+}
+
 static char* add_option(char* options, const char* name, const char* value)
 {
 	size_t size;
@@ -558,6 +570,8 @@ int main(int argc, char* argv[])
 			{
 				free(fuse_options);
 				return 1;
+			} else if (find_option(exfat_options, "nonempty")) {
+				fuse_options = add_option(fuse_options, "nonempty", NULL);
 			}
 			break;
 		case 'V':
