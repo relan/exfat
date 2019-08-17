@@ -809,7 +809,7 @@ static int check_slot(struct exfat* ef, struct exfat_node* dir, off_t offset,
 {
 	struct exfat_entry entries[n];
 	int rc;
-	size_t i;
+	int i;
 
 	/* Root directory contains entries, that don't have any nodes associated
 	   with them (clusters bitmap, upper case table, label). We need to be

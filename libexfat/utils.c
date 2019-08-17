@@ -60,7 +60,7 @@ static uint16_t add_checksum_byte(uint16_t sum, uint8_t byte)
 
 static uint16_t add_checksum_bytes(uint16_t sum, const void* buffer, size_t n)
 {
-	int i;
+	size_t i;
 
 	for (i = 0; i < n; i++)
 		sum = add_checksum_byte(sum, ((const uint8_t*) buffer)[i]);
@@ -70,7 +70,7 @@ static uint16_t add_checksum_bytes(uint16_t sum, const void* buffer, size_t n)
 uint16_t exfat_start_checksum(const struct exfat_entry_meta1* entry)
 {
 	uint16_t sum = 0;
-	int i;
+	size_t i;
 
 	for (i = 0; i < sizeof(struct exfat_entry); i++)
 		if (i != 2 && i != 3) /* skip checksum field itself */
