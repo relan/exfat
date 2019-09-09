@@ -389,7 +389,7 @@ static struct fuse_operations fuse_exfat_ops =
 	.destroy	= fuse_exfat_destroy,
 };
 
-tatic bool find_option(const char* options, const char* option_name)
+static bool find_option(const char* options, const char* option_name)
 {
     const char* p;
     size_t length = strlen(option_name);
