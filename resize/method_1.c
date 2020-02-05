@@ -25,30 +25,34 @@
 static int change_fileentry_startcluster(struct resizeinfo *ri);
 static int move_datacluster_o2n(struct resizeinfo *ri, cluster_t clu);
 
-//
-// Methods to simply move the entire data clusters
-// (obsolete)
-//
-static int resize_method_1(struct resizeinfo *ri)
+/*
+   Methods to simply move the entire data clusters
+   (obsolete)
+*/
+int resize_method_1(struct resizeinfo *ri)
 {
-	return -1; // don't use
+	return -1;	/* don't use */
 
-    // same cluster size?
+    /* same cluster size? */
     if (ri->sb.spc_bits != ri->osb.spc_bits)
         return -1;
 
 	exfat_debug(__FUNCTION__);
 
-	if (expand_systemArea(ri)) return 1;
+	if (expand_systemArea(ri))
+		return 1;
 
-	// move data cluster to new allocated cluster
+	/* move data cluster to new allocated cluster */
 	change_fileentry_startcluster(ri);
 	off_t movedc = 0;
 	off_t clucnt = le32_to_cpu(ri->sb.cluster_count);
-	for (off_t i = clucnt-1; i >= EXFAT_FIRST_DATA_CLUSTER; --i) {
+	for (off_t i = clucnt-1; i >= EXFAT_FIRST_DATA_CLUSTER; --i)
+	{
 		/*if ((clucnt-i) % 5 == 0)*/ printf(" %ld/%ld\r",clucnt-i,clucnt);
-		if (bmpget(ri,i)) {
-			if (move_datacluster_o2n(ri,i)) {
+		if (bmpget(ri,i))
+		{
+			if (move_datacluster_o2n(ri,i))
+			{
 				exfat_error("Failed to move data cluster");
 				exfat_error("The file system may have been corrupted..");
 				return 1;
@@ -63,7 +67,7 @@ static int resize_method_1(struct resizeinfo *ri)
 		cluster_t bmpcno  = le32_to_cpu(ri->bmp->start_cluster);
 		cluster_t upccno  = le32_to_cpu(ri->upc->start_cluster);
 
-		// set FAT and set "used" to cluster bitmap
+		/* set FAT and set "used" to cluster bitmap */
 		fatset(ri,bmpcno,bmpcno+(ri->bmpsize/clusize)-1);
 		fatset(ri,upccno,upccno+(ri->upcsize/clusize)-1);
 		bmpset(ri,bmpcno,upccno+(ri->upcsize/clusize)-1,1);
@@ -91,7 +95,7 @@ static int move_datacluster_o2n(struct resizeinfo *ri, cluster_t clu)
 	else {
 		off_t fs = c2s(&ri->osb,clu);
 		off_t ts = c2s(&ri->sb,clu+rootofs);
-		//exfat_debug("clusterMove: sec %ld -> sec %ld (%ld)",fs,ts,rootofs);
+		/* exfat_debug("clusterMove: sec %ld -> sec %ld (%ld)",fs,ts,rootofs); */
 	}
 
 	cluster_t fat = fatget(ri,clu);

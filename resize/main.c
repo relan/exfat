@@ -27,49 +27,57 @@
 #include <stdio.h>
 #include <string.h>
 
-#define exfat_debug(format, ...)	// MEMO: disable debug display
-
 #include "ope.h"
 
-#include "method_0.c"
-#include "method_1.c"
-#include "method_2.c"
+/*	int resize_method_0(struct resizeinfo *);
+	int resize_method_1(struct resizeinfo *);	*/
+int resize_method_2(struct resizeinfo *);
 
 static int do_resize(struct exfat_dev *dev, off_t fssize)
 {
-	const int (*methods[])(struct resizeinfo *) = {
-		resize_method_0,
-		resize_method_1,
+	const int (*methods[])(struct resizeinfo *) =
+	{
+	/*	resize_method_0,
+		resize_method_1,	*/
 		resize_method_2,
 		NULL
 	};
 
 	struct resizeinfo *ri = init_resizeinfo(dev,fssize);
-	if (ri==NULL) return 1;
-	if (ri->secdata == NULL) {
+	if (ri==NULL)
+		return 1;
+
+	if (ri->secdata == NULL)
+	{
 		free_resizeinfo(ri);
 		return 0;
 	}
 
 	int r = -1;
-	for(int i=0; methods[i]!=NULL && r!=0; ++i) {
+	for(int i=0; methods[i]!=NULL && r!=0; ++i)
+	{
 		r = methods[i](ri);
-		if (r>0) {
+		if (r>0)
+		{
 			free_resizeinfo(ri);
 			return 1;
 		}
 	}
-	if (r < 0) {
+
+	if (r < 0)
+	{
 		exfat_error("Don't know resize method from the current state");
 		free_resizeinfo(ri);
 		return 1; 
 	}
 
-	// Commit to file system
+	/* Commit to file system */
 	r = commit_resizeinfo(ri);
 	free_resizeinfo(ri);
 
-	if (r == 0) printf("File system resized successfully.\n");
+	if (r == 0)
+		printf("File system resized successfully.\n");
+
 	return r;
 }
 
@@ -91,10 +99,12 @@ static int resize(const char *spec, off_t size_user_defined)
 	if (dev==NULL)
 		return 1;
 
-	// Check partition size
+	/* Check partition size */
 	fssize = exfat_get_size(dev);
-	if (size_user_defined != 0) {
-		if (fssize < size_user_defined) {
+	if (size_user_defined != 0)
+	{
+		if (fssize < size_user_defined)
+		{
 			exfat_error("specified size is too large");
 			return 1;
 		}
@@ -102,7 +112,8 @@ static int resize(const char *spec, off_t size_user_defined)
 	}
 	exfat_debug("partition size: %ld bytes",fssize);
 
-	if (do_resize(dev,fssize)) {
+	if (do_resize(dev,fssize))
+	{
 		exfat_error("Process error occured");
 		exfat_close(dev);
 		return 1;

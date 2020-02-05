@@ -22,6 +22,6 @@
 
 sbin_PROGRAMS = resizeexfatfs
 # dist_man8_MANS = resizeexfatfs.8
-resizeexfatfs_SOURCES = main.c
+resizeexfatfs_SOURCES = main.c method_2.c
 resizeexfatfs_CPPFLAGS = -I$(top_srcdir)/libexfat
 resizeexfatfs_LDADD = ../libexfat/libexfat.a

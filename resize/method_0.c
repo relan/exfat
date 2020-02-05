@@ -22,28 +22,34 @@
 */
 #include "ope.h"
 
-//
-// Most fast method, but only mount under UNIX systems.
-// can't mount under Windows...
-//
-static int resize_method_0(struct resizeinfo *ri)
+/*
+   Most fast method, but only mount under UNIX systems.
+   can't mount under Windows...
+*/
+int resize_method_0(struct resizeinfo *ri)
 {
-	return -1;  // don't use
+	off_t secsize, clusize;
+	off_t fatcount, fathead, fattail, fatcno, fatsno;	
+	off_t bmpsize, bmpsizeR, bmpcno;
+	void *p;
 
-    // same culster size?
+	return -1;  /* don't use */
+
+    /* same culster size? */
 	if (ri->sb.spc_bits != ri->osb.spc_bits)
         return -1;
 
 	exfat_debug(__FUNCTION__);
 
-	// Get parameters from superblock
-	off_t secsize = SECTOR_SIZE(ri->sb);
-	off_t clusize = CLUSTER_SIZE(ri->sb);
+	/* Get parameters from superblock */
+	secsize = SECTOR_SIZE(ri->sb);
+	clusize = CLUSTER_SIZE(ri->sb);
 
-	// allocate FAT
-	off_t fatcount = le32_to_cpu(ri->sb.fat_sector_count);
-	void *p = malloc(fatcount*secsize);
-	if (p==NULL) {
+	/* allocate FAT */
+	fatcount = le32_to_cpu(ri->sb.fat_sector_count);
+	p = malloc(fatcount*secsize);
+	if (p==NULL)
+	{
 		exfat_error("failed to allocate memory");
 		return 1;
 	}
@@ -53,16 +59,17 @@ static int resize_method_0(struct resizeinfo *ri)
 	ri->fatdata = p;
 	ri->fatsize = fatcount*secsize;
 
-	// allocate cluster bitmap
-	off_t fathead  = le32_to_cpu(ri->sb.fat_sector_start);
-	off_t fattail  = fathead + fatcount;
+	/* allocate cluster bitmap */
+	fathead  = le32_to_cpu(ri->sb.fat_sector_start);
+	fattail  = fathead + fatcount;
 	fathead *= secsize;
 	fattail *= secsize;
-	off_t bmpsize  = DIV_ROUND_UP((fattail-fathead)/sizeof(cluster_t),8);
-	off_t bmpsizeR = ROUND_UP(bmpsize,clusize);
-	off_t bmpcno   = le32_to_cpu(ri->sb.cluster_count)-(bmpsizeR/clusize);
+	bmpsize  = DIV_ROUND_UP((fattail-fathead)/sizeof(cluster_t),8);
+	bmpsizeR = ROUND_UP(bmpsize,clusize);
+	bmpcno   = le32_to_cpu(ri->sb.cluster_count)-(bmpsizeR/clusize);
 	p = malloc(bmpsizeR);
-	if (p==NULL) {
+	if (p==NULL)
+	{
 		exfat_error("failed to allocate memory");
 		return 1;
 	}
@@ -77,13 +84,13 @@ static int resize_method_0(struct resizeinfo *ri)
     fatset(ri,bmpcno,bmpcno+(bmpsizeR/clusize)-1);
 	exfat_debug("expand bmpsize: %ld",bmpsize);
 
-	// set new FAT position
-	off_t fatcno = bmpcno - DIV_ROUND_UP(ri->fatsize,clusize);
-	off_t fatsno = c2s(&ri->sb,fatcno) & (off_t)(~128);
+	/* set new FAT position */
+	fatcno = bmpcno - DIV_ROUND_UP(ri->fatsize,clusize);
+	fatsno = c2s(&ri->sb,fatcno) & (off_t)(~128);
 	ri->sb.fat_sector_start = cpu_to_le32(fatsno);
 	ri->fatoffs = fatsno * secsize;
 
-	// set "used" to cluster bitmap
+	/* set "used" to cluster bitmap */
 	bmpset(ri,s2c(&ri->sb,fatsno),le32_to_cpu(ri->sb.cluster_count)-1,1);
 
 	return 0;
