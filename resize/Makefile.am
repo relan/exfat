@@ -1,9 +1,9 @@
 #
-#	Makefile.am (30.03.15)
+#	Makefile.am (08.01.20)
 #	Automake source.
 #
 #	Free exFAT implementation.
-#	Copyright (C) 2010-2018  Andrew Nayenko
+#	Copyright (C) 2011-2018  Andrew Nayenko
 #
 #	This program is free software; you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
@@ -20,4 +20,8 @@
 #	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-SUBDIRS = libexfat dump fsck fuse label mkfs resize
+sbin_PROGRAMS = resizeexfatfs
+# dist_man8_MANS = resizeexfatfs.8
+resizeexfatfs_SOURCES = main.c
+resizeexfatfs_CPPFLAGS = -I$(top_srcdir)/libexfat
+resizeexfatfs_LDADD = ../libexfat/libexfat.a

@@ -53,5 +53,6 @@ AC_CONFIG_FILES([
 	fuse/Makefile
 	label/Makefile
 	mkfs/Makefile
+	resize/Makefile
 	Makefile])
 AC_OUTPUT
