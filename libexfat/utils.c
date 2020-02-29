@@ -48,7 +48,7 @@ void exfat_stat(const struct exfat* ef, const struct exfat_node* node,
 void exfat_get_name(const struct exfat_node* node,
 		char buffer[EXFAT_UTF8_NAME_BUFFER_MAX])
 {
-	if (utf16_to_utf8(buffer, node->name, EXFAT_UTF8_NAME_BUFFER_MAX,
+	if (exfat_utf16_to_utf8(buffer, node->name, EXFAT_UTF8_NAME_BUFFER_MAX,
 				EXFAT_NAME_MAX) != 0)
 		exfat_bug("failed to convert name to UTF-8");
 }

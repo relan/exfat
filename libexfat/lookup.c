@@ -86,7 +86,7 @@ static int lookup_name(struct exfat* ef, struct exfat_node* parent,
 
 	*node = NULL;
 
-	rc = utf8_to_utf16(buffer, name, EXFAT_NAME_MAX + 1, n);
+	rc = exfat_utf8_to_utf16(buffer, name, EXFAT_NAME_MAX + 1, n);
 	if (rc != 0)
 		return rc;
 
@@ -194,7 +194,7 @@ int exfat_split(struct exfat* ef, struct exfat_node** parent,
 				exfat_put_node(ef, *parent);
 				return -ENOENT;
 			}
-			rc = utf8_to_utf16(name, p, EXFAT_NAME_MAX + 1, n);
+			rc = exfat_utf8_to_utf16(name, p, EXFAT_NAME_MAX + 1, n);
 			if (rc != 0)
 			{
 				exfat_put_node(ef, *parent);

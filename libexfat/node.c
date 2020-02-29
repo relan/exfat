@@ -512,7 +512,7 @@ static int readdir(struct exfat* ef, struct exfat_node* parent,
 			/* copy to a temporary buffer to avoid unaligned access to a
 			   packed member */
 			memcpy(label_name, label->name, sizeof(label_name));
-			if (utf16_to_utf8(ef->label, label_name,
+			if (exfat_utf16_to_utf8(ef->label, label_name,
 						sizeof(ef->label), EXFAT_ENAME_MAX) != 0)
 				return -EIO;
 			break;
@@ -741,7 +741,7 @@ static int shrink_directory(struct exfat* ef, struct exfat_node* dir,
 		/* two subentries with meta info */
 		entries += 2;
 		/* subentries with file name */
-		entries += DIV_ROUND_UP(utf16_length(last_node->name),
+		entries += DIV_ROUND_UP(exfat_utf16_length(last_node->name),
 				EXFAT_ENAME_MAX);
 	}
 
@@ -892,7 +892,7 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 		const le16_t* name, off_t offset, uint16_t attrib)
 {
 	struct exfat_node* node;
-	const size_t name_length = utf16_length(name);
+	const size_t name_length = exfat_utf16_length(name);
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
 	struct exfat_entry entries[2 + name_entries];
 	struct exfat_entry_meta1* meta1 = (struct exfat_entry_meta1*) &entries[0];
@@ -966,7 +966,7 @@ static int create(struct exfat* ef, const char* path, uint16_t attrib)
 	}
 
 	rc = find_slot(ef, dir, &offset,
-			2 + DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX));
+			2 + DIV_ROUND_UP(exfat_utf16_length(name), EXFAT_ENAME_MAX));
 	if (rc != 0)
 	{
 		exfat_put_node(ef, dir);
@@ -1022,7 +1022,7 @@ int exfat_mkdir(struct exfat* ef, const char* path)
 static int rename_entry(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_node* node, const le16_t* name, off_t new_offset)
 {
-	const size_t name_length = utf16_length(name);
+	const size_t name_length = exfat_utf16_length(name);
 	const int name_entries = DIV_ROUND_UP(name_length, EXFAT_ENAME_MAX);
 	struct exfat_entry entries[2 + name_entries];
 	struct exfat_entry_meta1* meta1 = (struct exfat_entry_meta1*) &entries[0];
@@ -1145,7 +1145,7 @@ int exfat_rename(struct exfat* ef, const char* old_path, const char* new_path)
 	}
 
 	rc = find_slot(ef, dir, &offset,
-			2 + DIV_ROUND_UP(utf16_length(name), EXFAT_ENAME_MAX));
+			2 + DIV_ROUND_UP(exfat_utf16_length(name), EXFAT_ENAME_MAX));
 	if (rc != 0)
 	{
 		exfat_put_node(ef, dir);
@@ -1214,7 +1214,8 @@ int exfat_set_label(struct exfat* ef, const char* label)
 	struct exfat_entry_label entry;
 
 	memset(label_utf16, 0, sizeof(label_utf16));
-	rc = utf8_to_utf16(label_utf16, label, EXFAT_ENAME_MAX + 1, strlen(label));
+	rc = exfat_utf8_to_utf16(label_utf16, label, EXFAT_ENAME_MAX + 1,
+			strlen(label));
 	if (rc != 0)
 		return rc;
 
@@ -1225,7 +1226,7 @@ int exfat_set_label(struct exfat* ef, const char* label)
 		return rc;
 
 	entry.type = EXFAT_ENTRY_LABEL;
-	entry.length = utf16_length(label_utf16);
+	entry.length = exfat_utf16_length(label_utf16);
 	memcpy(entry.name, label_utf16, sizeof(entry.name));
 	if (entry.length == 0)
 		entry.type ^= EXFAT_ENTRY_VALID;

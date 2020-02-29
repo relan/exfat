@@ -101,7 +101,7 @@ static const le16_t* utf16_to_wchar(const le16_t* input, wchar_t* wc,
 	}
 }
 
-int utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
+int exfat_utf16_to_utf8(char* output, const le16_t* input, size_t outsize,
 		size_t insize)
 {
 	const le16_t* iptr = input;
@@ -204,7 +204,7 @@ static le16_t* wchar_to_utf16(le16_t* output, wchar_t wc, size_t outsize)
 	return output + 2;
 }
 
-int utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
+int exfat_utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
 		size_t insize)
 {
 	const char* iptr = input;
@@ -239,7 +239,7 @@ int utf8_to_utf16(le16_t* output, const char* input, size_t outsize,
 	return 0;
 }
 
-size_t utf16_length(const le16_t* str)
+size_t exfat_utf16_length(const le16_t* str)
 {
 	size_t i = 0;
 

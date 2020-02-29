@@ -41,12 +41,12 @@ static void init_label_entry(struct exfat_entry_label* label_entry)
 	memset(label_entry, 0, sizeof(struct exfat_entry_label));
 	label_entry->type = EXFAT_ENTRY_LABEL ^ EXFAT_ENTRY_VALID;
 
-	if (utf16_length(get_volume_label()) == 0)
+	if (exfat_utf16_length(get_volume_label()) == 0)
 		return;
 
 	memcpy(label_entry->name, get_volume_label(),
 			EXFAT_ENAME_MAX * sizeof(le16_t));
-	label_entry->length = utf16_length(get_volume_label());
+	label_entry->length = exfat_utf16_length(get_volume_label());
 	label_entry->type |= EXFAT_ENTRY_VALID;
 }
 
