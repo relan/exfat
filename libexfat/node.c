@@ -87,7 +87,7 @@ static int read_entries(struct exfat* ef, struct exfat_node* dir,
 
 	size = exfat_generic_pread(ef, dir, entries,
 			sizeof(struct exfat_entry[n]), offset);
-	if (size == sizeof(struct exfat_entry[n]))
+	if (size == sizeof(struct exfat_entry) * n)
 		return 0; /* success */
 	if (size == 0)
 		return -ENOENT;
@@ -108,7 +108,7 @@ static int write_entries(struct exfat* ef, struct exfat_node* dir,
 
 	size = exfat_generic_pwrite(ef, dir, entries,
 			sizeof(struct exfat_entry[n]), offset);
-	if (size == sizeof(struct exfat_entry[n]))
+	if (size == sizeof(struct exfat_entry) * n)
 		return 0; /* success */
 	if (size < 0)
 		return -EIO;
