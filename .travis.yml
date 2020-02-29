@@ -1,0 +1,46 @@
+#
+#   .travis.yml (29.02.20)
+#   Travis Contiguous Integration configuration.
+#
+#   Free exFAT implementation.
+#   Copyright (C) 2010-2020  Andrew Nayenko
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+---
+language: c
+os:
+  - linux
+  - osx
+dist: bionic
+arch: s390x
+addons:
+  apt:
+    packages:
+      - libfuse-dev
+  homebrew:
+    update: true
+    casks:
+      - osxfuse
+
+script:
+  - autoreconf --install
+  - ./configure CFLAGS='-Wall -Wextra'
+  - make -k
+  - dd if=/dev/zero of=foo.img bs=1048576 count=1
+  - mkfs/mkexfatfs -i 12345678 foo.img
+  - fsck/exfatfsck foo.img
+  - echo 'f1b3a11f781533f5b69086596be38367d0ebfb77  foo.img' | shasum -c
