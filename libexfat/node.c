@@ -87,7 +87,7 @@ static int read_entries(struct exfat* ef, struct exfat_node* dir,
 
 	size = exfat_generic_pread(ef, dir, entries,
 			sizeof(struct exfat_entry[n]), offset);
-	if (size == sizeof(struct exfat_entry) * n)
+	if (size == (ssize_t) sizeof(struct exfat_entry) * n)
 		return 0; /* success */
 	if (size == 0)
 		return -ENOENT;
@@ -108,7 +108,7 @@ static int write_entries(struct exfat* ef, struct exfat_node* dir,
 
 	size = exfat_generic_pwrite(ef, dir, entries,
 			sizeof(struct exfat_entry[n]), offset);
-	if (size == sizeof(struct exfat_entry) * n)
+	if (size == (ssize_t) sizeof(struct exfat_entry) * n)
 		return 0; /* success */
 	if (size < 0)
 		return -EIO;
@@ -847,7 +847,7 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 		return -ENOMEM;
 	}
 	for (p = dir->child; p != NULL; p = p->next)
-		for (i = 0; i < 1 + p->continuations; i++)
+		for (i = 0; i < 1u + p->continuations; i++)
 			BMAP_SET(dmap, p->entry_offset / sizeof(struct exfat_entry) + i);
 
 	/* find a slot in the directory entries bitmap */
