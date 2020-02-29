@@ -377,6 +377,8 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 	char* bufp = buffer;
 	off_t lsize, loffset, remainder;
 
+	if (offset < 0)
+		return -EINVAL;
 	if (offset >= node->size)
 		return 0;
 	if (size == 0)
@@ -423,6 +425,8 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 	const char* bufp = buffer;
 	off_t lsize, loffset, remainder;
 
+	if (offset < 0)
+		return -EINVAL;
  	if (offset > node->size)
 	{
 		rc = exfat_truncate(ef, node, offset, true);
