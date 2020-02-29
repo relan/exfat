@@ -83,7 +83,7 @@ static int erase(struct exfat_dev* dev)
 
 	if (block == NULL)
 	{
-		exfat_error("failed to allocate erase block of %zu bytes", block_size);
+		exfat_error("failed to allocate erase block");
 		return 1;
 	}
 	memset(block, 0, block_size);
