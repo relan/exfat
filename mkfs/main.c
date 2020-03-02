@@ -136,7 +136,7 @@ static int setup_volume_label(le16_t label[EXFAT_ENAME_MAX + 1], const char* s)
 	memset(label, 0, (EXFAT_ENAME_MAX + 1) * sizeof(le16_t));
 	if (s == NULL)
 		return 0;
-	return utf8_to_utf16(label, s, EXFAT_ENAME_MAX + 1, strlen(s));
+	return exfat_utf8_to_utf16(label, s, EXFAT_ENAME_MAX + 1, strlen(s));
 }
 
 static uint32_t setup_volume_serial(uint32_t user_defined)

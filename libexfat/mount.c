@@ -122,7 +122,7 @@ static bool verify_vbr_checksum(const struct exfat* ef, void* sector)
 {
 	off_t sector_size = SECTOR_SIZE(*ef->sb);
 	uint32_t vbr_checksum;
-	int i;
+	size_t i;
 
 	if (exfat_pread(ef->dev, sector, sector_size, 0) < 0)
 	{
@@ -283,7 +283,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -EIO;
 	}
 	if (le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb) >
-			exfat_get_size(ef->dev))
+			(uint64_t) exfat_get_size(ef->dev))
 	{
 		/* this can cause I/O errors later but we don't fail mounting to let
 		   user rescue data */

@@ -52,7 +52,7 @@ static int check_size(off_t volume_size)
 }
 
 static int erase_object(struct exfat_dev* dev, const void* block,
-		size_t block_size, off_t start, off_t size)
+		off_t block_size, off_t start, off_t size)
 {
 	const off_t block_count = DIV_ROUND_UP(size, block_size);
 	off_t i;
@@ -78,7 +78,7 @@ static int erase(struct exfat_dev* dev)
 {
 	const struct fs_object** pp;
 	off_t position = 0;
-	const size_t block_size = 1024 * 1024;
+	const off_t block_size = 1024 * 1024;
 	void* block = malloc(block_size);
 
 	if (block == NULL)

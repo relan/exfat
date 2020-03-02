@@ -33,6 +33,7 @@
 #define PRINTF __attribute__((format(printf, 1, 2)))
 #define NORETURN __attribute__((noreturn))
 #define PACKED __attribute__((packed))
+#define UNUSED __attribute__((unused))
 #if __has_extension(c_static_assert)
 #define USE_C11_STATIC_ASSERT
 #endif
@@ -42,6 +43,7 @@
 #define PRINTF __attribute__((format(printf, 1, 2)))
 #define NORETURN __attribute__((noreturn))
 #define PACKED __attribute__((packed))
+#define UNUSED __attribute__((unused))
 #if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6)
 #define USE_C11_STATIC_ASSERT
 #endif
@@ -51,6 +53,7 @@
 #define PRINTF
 #define NORETURN
 #define PACKED
+#define UNUSED
 
 #endif
 
