@@ -512,6 +512,23 @@ static char* add_fuse_options(char* options, const char* spec, bool ro)
 	return options;
 }
 
+static char* add_passthrough_fuse_options(char* fuse_options,
+		const char* options)
+{
+	const char* passthrough_list[] = {"nonempty", NULL};
+	int i;
+
+	for (i = 0; passthrough_list[i] != NULL; i++)
+		if (exfat_match_option(options, passthrough_list[i]))
+		{
+			fuse_options = add_option(fuse_options, passthrough_list[i], NULL);
+			if (fuse_options == NULL)
+				return NULL;
+		}
+
+	return fuse_options;
+}
+
 static int fuse_exfat_main(char* mount_options, char* mount_point)
 {
 	char* argv[] = {"exfat", "-s", "-o", mount_options, mount_point, NULL};
@@ -564,6 +581,12 @@ int main(int argc, char* argv[])
 			if (exfat_options == NULL)
 			{
 				free(fuse_options);
+				return 1;
+			}
+			fuse_options = add_passthrough_fuse_options(fuse_options, optarg);
+			if (fuse_options == NULL)
+			{
+				free(exfat_options);
 				return 1;
 			}
 			break;
