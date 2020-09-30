@@ -26,7 +26,10 @@ os:
   - linux
   - osx
 dist: bionic
-arch: s390x
+arch:
+ - amd64
+ - ppc64le
+ - s390x
 addons:
   apt:
     packages:
