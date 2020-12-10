@@ -29,10 +29,10 @@ static void usage(const char* prog)
 {
 	fprintf(stderr,
 		"Display current attributes:\n"
-		"  %1$s <device> <file>\n"
+		"  %1$s -d <device> <file>\n"
 		"\n"
 		"Set attributes:\n"
-		"  %1$s [FLAGS] <device> <file>\n"
+		"  %1$s [FLAGS] -d <device> <file>\n"
 		"\n"
 		"Flags:\n"
 		"  -r    Set read-only flag\n"
@@ -111,7 +111,7 @@ int main(int argc, char* argv[])
 	uint16_t add_flags = 0;
 	uint16_t clear_flags = 0;
 
-	while ((opt = getopt(argc, argv, "rRiIsSaAhV")) != -1)
+	while ((opt = getopt(argc, argv, "d:rRiIsSaAhV")) != -1)
 	{
 		switch (opt)
 		{
@@ -120,6 +120,15 @@ int main(int argc, char* argv[])
 			puts("Copyright (C) 2011-2018  Andrew Nayenko");
 			puts("Copyright (C) 2020       Endless OS Foundation LLC");
 			return 0;
+		/*
+			The path to the unmounted exFAT partition is a (mandatory) named
+			option rather than a positional parameter. If the FUSE file system
+			ever gains an ioctl to get and set attributes, this option could be
+			made optional, and this tool taught to use the ioctl.
+		*/
+		case 'd':
+			spec = optarg;
+			break;
 		case 'r':
 			add_flags |= EXFAT_ATTRIB_RO;
 			break;
@@ -157,11 +166,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	if (argc - optind != 2)
+	if (spec == NULL || argc - optind != 1)
 		usage(argv[0]);
 
-	spec = argv[optind];
-	file_path = argv[optind + 1];
+	file_path = argv[optind];
 
 	if ((add_flags | clear_flags) == 0)
 		options = "ro";

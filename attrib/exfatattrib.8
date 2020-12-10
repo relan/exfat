@@ -23,6 +23,7 @@
 |
 .B \-A
 ]
+.B \-d
 .I device
 .I file
 .SH DESCRIPTION
@@ -44,6 +45,10 @@ error to set and clear the same flag.
 .SH COMMAND LINE OPTIONS
 Command line options available:
 
+.TP
+.BI \-d " device"
+The path to an unmounted disk partition or disk image file containing an exFAT
+file system. This option is required.
 .TP
 .BI -r
 Set read\-only flag
