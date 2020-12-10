@@ -20,6 +20,7 @@ Makefile
 
 # make
 *.o
+/attrib/exfatattrib
 /dump/dumpexfat
 /fsck/exfatfsck
 /fuse/mount.exfat-fuse

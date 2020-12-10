@@ -1,0 +1,85 @@
+.\" Copyright (C) 2020 Endless OS Foundation
+.\"
+.TH EXFATATTRIB 8 "November 2020"
+.SH NAME
+.B exfatattrib
+\- Set or display exFAT file attributes
+.SH SYNOPSIS
+.B exfatattrib
+[
+.B \-r
+|
+.B \-R
+|
+.B \-i
+|
+.B \-I
+|
+.B \-s
+|
+.B \-S
+|
+.B \-a
+|
+.B \-A
+]
+.I device
+.I file
+.SH DESCRIPTION
+.B exfatattrib
+sets or displays attributes of a file on an exFAT file system.
+
+.I device
+is the path to an unmounted disk partition or disk image file containing an
+exFAT file system.
+
+.I file
+is the path of a file within that file system.
+
+If run with no command line options, the current attributes of
+.I file
+are displayed; otherwise, the specified attributes are set or cleared. It is an
+error to set and clear the same flag.
+
+.SH COMMAND LINE OPTIONS
+Command line options available:
+
+.TP
+.BI -r
+Set read\-only flag
+.TP
+.BI \-R
+Clear read\-only flag
+.TP
+.BI \-i
+Set hidden flag (mnemonic: \fBi\fRnvisible)
+.TP
+.BI \-I
+Clear hidden flag
+.TP
+.BI \-s
+Set system flag
+.TP
+.BI \-S
+Clear system flag
+.TP
+.BI \-a
+Set archive flag
+.TP
+.BI \-A
+Clear archive flag
+.TP
+.BI \-h
+Display this help message
+.TP
+.BI \-V
+Print version and copyright.
+
+.SH EXIT CODES
+Zero is returned if errors were not found. Any other code means an error.
+
+.SH AUTHOR
+Will Thompson
+
+.SH SEE ALSO
+.BR chmod(1)
