@@ -48,6 +48,7 @@ esac
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
 	libexfat/Makefile
+	attrib/Makefile
 	dump/Makefile
 	fsck/Makefile
 	fuse/Makefile

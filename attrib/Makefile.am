@@ -3,7 +3,7 @@
 #	Automake source.
 #
 #	Free exFAT implementation.
-#	Copyright (C) 2010-2018  Andrew Nayenko
+#	Copyright (C) 2020  Endless OS Foundation LLC
 #
 #	This program is free software; you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
@@ -20,4 +20,8 @@
 #	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-SUBDIRS = libexfat attrib dump fsck fuse label mkfs
+sbin_PROGRAMS = exfatattrib
+dist_man8_MANS = exfatattrib.8
+exfatattrib_SOURCES = main.c
+exfatattrib_CPPFLAGS = -I$(top_srcdir)/libexfat
+exfatattrib_LDADD = ../libexfat/libexfat.a
