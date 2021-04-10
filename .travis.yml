@@ -35,6 +35,7 @@ jobs:
       dist: bionic
       arch: s390x
     - os: osx
+      osx_image: xcode12.2
 
 addons:
   apt:
