@@ -515,7 +515,14 @@ static char* add_fuse_options(char* options, const char* spec, bool ro)
 static char* add_passthrough_fuse_options(char* fuse_options,
 		const char* options)
 {
-	const char* passthrough_list[] = {"nonempty", NULL};
+	const char* passthrough_list[] =
+	{
+#if defined(__FreeBSD__)
+		"automounted",
+#endif
+		"nonempty",
+		NULL
+	};
 	int i;
 
 	for (i = 0; passthrough_list[i] != NULL; i++)
