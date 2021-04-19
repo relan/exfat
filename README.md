@@ -1,7 +1,7 @@
 About
 -----
 
-This project aims to provide a full-featured [exFAT][1] file system implementation for Unix-like systems. It consists of a [FUSE][2] module (fuse-exfat) and a set of utilities (exfat-utils).
+This project aims to provide a full-featured [exFAT][1] file system implementation for Unix-like systems. It consists of a [FUSE][2] module (fuse-exfat) and a set of utilities (exfat-utils). If you are using the exFAT kernel driver you should use [exfatprogs][14] instead of exfat-utils.
 
 Supported operating systems:
 
@@ -81,3 +81,4 @@ If you have any questions, issues, suggestions, bug reports, etc. please create 
 [11]: https://en.wikipedia.org/wiki/Xcode
 [12]: https://www.kernel.org/pub/linux/utils/util-linux/
 [13]: https://en.wikipedia.org/wiki/Device_file
+[14]: https://github.com/exfatprogs/exfatprogs
