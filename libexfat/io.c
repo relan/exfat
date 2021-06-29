@@ -35,6 +35,8 @@
 #include <sys/disklabel.h>
 #include <sys/dkio.h>
 #include <sys/ioctl.h>
+#elif defined(__NetBSD__)
+#include <sys/ioctl.h>
 #elif __linux__
 #include <sys/mount.h>
 #endif
@@ -224,6 +226,19 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode)
 		if (pp->p_fstype != FS_NTFS)
 			exfat_warn("partition type is not 0x07 (NTFS/exFAT); "
 					"you can fix this with fdisk(8)");
+	}
+	else
+#elif defined(__NetBSD__)
+	if (!S_ISREG(stbuf.st_mode))
+	{
+		off_t size;
+		if (ioctl(dev->fd, DIOCGMEDIASIZE, &size) == -1) {
+			close(dev->fd);
+			free(dev);
+			exfat_error("failed to get media size");
+			return NULL;
+		}
+		dev->size = size;
 	}
 	else
 #endif
