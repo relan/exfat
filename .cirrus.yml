@@ -1,0 +1,55 @@
+#
+#   .cirrus.yml (29.06.21)
+#   Travis Contiguous Integration configuration.
+#
+#   Free exFAT implementation.
+#   Copyright (C) 2010-2021  Andrew Nayenko
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+---
+task:
+  matrix:
+    - name: debian
+      container:
+        image: gcc:8-buster
+      install_script: |
+        apt-get update
+        apt-get install -y libfuse-dev
+
+    - name: macos
+      macos_instance:
+        image: big-sur-base
+      install_script: |
+        brew update --preinstall
+        brew install automake macfuse
+
+    - name: freebsd
+      freebsd_instance:
+        image_family: freebsd-13-0
+      install_script: |
+        pkg install -y autoconf automake fusefs-libs libublio pkgconf
+
+  compile_script: |
+    autoreconf --install
+    ./configure CFLAGS='-Wall -Wextra'
+    make -k
+
+  test_script: |
+    dd if=/dev/zero of=foo.img bs=1048576 count=1
+    mkfs/mkexfatfs -i 12345678 foo.img
+    fsck/exfatfsck foo.img
+    echo 'f1b3a11f781533f5b69086596be38367d0ebfb77  foo.img' | shasum -c
