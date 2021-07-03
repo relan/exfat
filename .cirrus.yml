@@ -23,7 +23,7 @@
 ---
 task:
   matrix:
-    - name: debian
+    - name: debian-fuse2
       container:
         image: gcc:11-bullseye
       install_script: |
@@ -31,6 +31,13 @@ task:
         apt-get install -y libfuse-dev
       env:
         EXTRA_CFLAGS: -fanalyzer
+
+    - name: debian-fuse3
+      container:
+        image: gcc:11-bullseye
+      install_script: |
+        apt-get update
+        apt-get install -y libfuse3-dev
 
     - name: macos
       macos_instance:
