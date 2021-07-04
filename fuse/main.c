@@ -35,7 +35,7 @@
 #include <unistd.h>
 
 #ifndef DEBUG
-	#define exfat_debug(format, ...)
+	#define exfat_debug(format, ...) do {} while (0)
 #endif
 
 #if !defined(FUSE_VERSION) || (FUSE_VERSION < 26)

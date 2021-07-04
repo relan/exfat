@@ -26,7 +26,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 
-#define exfat_debug(format, ...)
+#define exfat_debug(format, ...) do {} while (0)
 
 uint64_t files_count, directories_count;
 
