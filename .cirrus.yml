@@ -25,10 +25,12 @@ task:
   matrix:
     - name: debian
       container:
-        image: gcc:8-buster
+        image: gcc:11-bullseye
       install_script: |
         apt-get update
         apt-get install -y libfuse-dev
+      env:
+        EXTRA_CFLAGS: -fanalyzer
 
     - name: macos
       macos_instance:
@@ -45,7 +47,7 @@ task:
 
   compile_script: |
     autoreconf --install
-    ./configure CFLAGS='-Wall -Wextra'
+    ./configure CFLAGS="-Wall -Wextra -Werror $EXTRA_CFLAGS"
     make -k
 
   test_script: |

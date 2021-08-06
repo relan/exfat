@@ -358,7 +358,7 @@ ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size)
 ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size)
 {
 #ifdef USE_UBLIO
-	ssize_t result = ublio_pwrite(dev->ufh, buffer, size, dev->pos);
+	ssize_t result = ublio_pwrite(dev->ufh, (void*) buffer, size, dev->pos);
 	if (result >= 0)
 		dev->pos += size;
 	return result;
@@ -381,7 +381,7 @@ ssize_t exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
 		off_t offset)
 {
 #ifdef USE_UBLIO
-	return ublio_pwrite(dev->ufh, buffer, size, offset);
+	return ublio_pwrite(dev->ufh, (void*) buffer, size, offset);
 #else
 	return pwrite(dev->fd, buffer, size, offset);
 #endif
