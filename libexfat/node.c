@@ -858,21 +858,24 @@ static int find_slot(struct exfat* ef, struct exfat_node* dir,
 			if (contiguous++ == 0)
 				*offset = (off_t) i * sizeof(struct exfat_entry);
 			if (contiguous == n)
+			{
+				int rc;
+
 				/* suitable slot is found, check that it's not occupied */
-				switch (check_slot(ef, dir, *offset, n))
+				rc = check_slot(ef, dir, *offset, n);
+				if (rc == -EINVAL)
 				{
-				case 0:
-					free(dmap);
-					return 0;
-				case -EIO:
-					free(dmap);
-					return -EIO;
-				case -EINVAL:
 					/* slot at (i-n) is occupied, go back and check (i-n+1) */
 					i -= contiguous - 1;
 					contiguous = 0;
-					break;
 				}
+				else
+				{
+					/* slot is free or an error occurred */
+					free(dmap);
+					return rc;
+				}
+			}
 		}
 		else
 			contiguous = 0;
