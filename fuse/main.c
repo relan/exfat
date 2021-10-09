@@ -580,18 +580,42 @@ static char* add_passthrough_fuse_options(char* fuse_options,
 #if defined(__FreeBSD__)
 		"automounted",
 #endif
+#if defined(__linux__)
+		"context",
+		"fscontext",
+		"defcontext",
+		"rootcontext",
+#endif
 		"nonempty",
 		NULL
 	};
 	int i;
 
 	for (i = 0; passthrough_list[i] != NULL; i++)
-		if (exfat_match_option(options, passthrough_list[i]))
+	{
+		const char* p = exfat_get_option(options, passthrough_list[i]);
+
+		if (p != NULL)
+		{
+			char* value = exfat_dup_option(p);
+
+			if (value == NULL)
+			{
+				free(fuse_options);
+				return NULL;
+			}
+			fuse_options = add_option(fuse_options, passthrough_list[i], value);
+			free(value);
+			if (fuse_options == NULL)
+				return NULL;
+		}
+		else if (exfat_match_option(options, passthrough_list[i]))
 		{
 			fuse_options = add_option(fuse_options, passthrough_list[i], NULL);
 			if (fuse_options == NULL)
 				return NULL;
 		}
+	}
 
 	return fuse_options;
 }

@@ -190,3 +190,32 @@ bool exfat_match_option(const char* options, const char* option_name)
 			return true;
 	return false;
 }
+
+const char* exfat_get_option(const char* options, const char* option_name)
+{
+	const char* p;
+	size_t length = strlen(option_name);
+
+	for (p = strstr(options, option_name); p; p = strstr(p + 1, option_name))
+		if ((p == options || p[-1] == ',') && p[length] == '=')
+			return p + length + 1;
+	return NULL;
+}
+
+char* exfat_dup_option(const char* value)
+{
+	char* s;
+	/* TODO handle escaped commas */
+	const char* end = strchr(value, ',');
+
+	if (end == NULL)
+		return strdup(value);
+
+	s = malloc(end - value + 1);
+	if (s != NULL)
+	{
+		strncpy(s, value, end - value);
+		s[end - value] = '\0';
+	}
+	return s;
+}
