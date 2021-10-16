@@ -198,7 +198,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		mode = EXFAT_MODE_RW;
 	ef->dev = exfat_open(spec, mode);
 	if (ef->dev == NULL)
-		return -EIO;
+		return -ENODEV;
 	if (exfat_get_mode(ef->dev) == EXFAT_MODE_RO)
 	{
 		if (mode == EXFAT_MODE_ANY)
