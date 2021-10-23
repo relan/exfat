@@ -565,6 +565,8 @@ int main(int argc, char* argv[])
 	exfat_options = strdup("ro_fallback");
 	if (fuse_options == NULL || exfat_options == NULL)
 	{
+		free(fuse_options);
+		free(exfat_options);
 		exfat_error("failed to allocate options string");
 		return 1;
 	}
