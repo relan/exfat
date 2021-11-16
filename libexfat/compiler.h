@@ -30,7 +30,8 @@
 
 #ifdef __GNUC__
 
-#define PRINTF __attribute__((format(printf, 1, 2)))
+#define FORMAT(archetype, stridx, first) \
+	__attribute__((format(archetype, stridx, first)))
 #define NORETURN __attribute__((noreturn))
 #define PACKED __attribute__((packed))
 #define UNUSED __attribute__((unused))
@@ -45,7 +46,7 @@
 
 #else
 
-#define PRINTF
+#define FORMAT(archetype, stridx, first)
 #define NORETURN
 #define PACKED
 #define UNUSED

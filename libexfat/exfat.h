@@ -145,10 +145,10 @@ struct exfat_human_bytes
 extern int exfat_errors;
 extern int exfat_errors_fixed;
 
-void exfat_bug(const char* format, ...) PRINTF NORETURN;
-void exfat_error(const char* format, ...) PRINTF;
-void exfat_warn(const char* format, ...) PRINTF;
-void exfat_debug(const char* format, ...) PRINTF;
+void exfat_bug(const char* format, ...) FORMAT(printf, 1, 2) NORETURN;
+void exfat_error(const char* format, ...) FORMAT(printf, 1, 2);
+void exfat_warn(const char* format, ...) FORMAT(printf, 1, 2);
+void exfat_debug(const char* format, ...) FORMAT(printf, 1, 2);
 
 struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode);
 int exfat_close(struct exfat_dev* dev);
