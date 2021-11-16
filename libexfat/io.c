@@ -49,7 +49,7 @@ struct exfat_dev
 {
 	int fd;
 	enum exfat_mode mode;
-	off_t size; /* in bytes */
+	uint64_t size; /* in bytes */
 #ifdef USE_UBLIO
 	off_t pos;
 	ublio_filehandle_t ufh;
@@ -328,7 +328,7 @@ enum exfat_mode exfat_get_mode(const struct exfat_dev* dev)
 	return dev->mode;
 }
 
-off_t exfat_get_size(const struct exfat_dev* dev)
+uint64_t exfat_get_size(const struct exfat_dev* dev)
 {
 	return dev->size;
 }

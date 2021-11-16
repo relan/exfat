@@ -154,7 +154,7 @@ struct exfat_dev* exfat_open(const char* spec, enum exfat_mode mode);
 int exfat_close(struct exfat_dev* dev);
 int exfat_fsync(struct exfat_dev* dev);
 enum exfat_mode exfat_get_mode(const struct exfat_dev* dev);
-off_t exfat_get_size(const struct exfat_dev* dev);
+uint64_t exfat_get_size(const struct exfat_dev* dev);
 off_t exfat_seek(struct exfat_dev* dev, off_t offset, int whence);
 ssize_t exfat_read(struct exfat_dev* dev, void* buffer, size_t size);
 ssize_t exfat_write(struct exfat_dev* dev, const void* buffer, size_t size);

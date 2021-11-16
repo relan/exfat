@@ -27,10 +27,10 @@
 #include <stdio.h>
 #include <string.h>
 
-static int check_size(off_t volume_size)
+static int check_size(uint64_t volume_size)
 {
 	const struct fs_object** pp;
-	off_t position = 0;
+	uint64_t position = 0;
 
 	for (pp = objects; *pp; pp++)
 	{
@@ -124,7 +124,7 @@ static int create(struct exfat_dev* dev)
 	return 0;
 }
 
-int mkfs(struct exfat_dev* dev, off_t volume_size)
+int mkfs(struct exfat_dev* dev, uint64_t volume_size)
 {
 	if (check_size(volume_size) != 0)
 		return 1;

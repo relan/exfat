@@ -271,7 +271,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 		return -EIO;
 	}
 	if (le64_to_cpu(ef->sb->sector_count) * SECTOR_SIZE(*ef->sb) >
-			(uint64_t) exfat_get_size(ef->dev))
+			exfat_get_size(ef->dev))
 	{
 		/* this can cause I/O errors later but we don't fail mounting to let
 		   user rescue data */
@@ -280,7 +280,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 				le64_to_cpu(ef->sb->sector_count), SECTOR_SIZE(*ef->sb),
 				exfat_get_size(ef->dev));
 	}
-	if ((off_t) le32_to_cpu(ef->sb->cluster_count) * CLUSTER_SIZE(*ef->sb) >
+	if (le32_to_cpu(ef->sb->cluster_count) * CLUSTER_SIZE(*ef->sb) >
 			exfat_get_size(ef->dev))
 	{
 		exfat_error("file system in clusters is larger than device: "
