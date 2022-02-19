@@ -89,6 +89,7 @@ struct exfat_node
 	bool is_cached : 1;
 	bool is_dirty : 1;
 	bool is_unlinked : 1;
+	uint64_t valid_size;
 	uint64_t size;
 	time_t mtime, atime;
 	le16_t name[EXFAT_NAME_MAX + 1];

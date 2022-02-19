@@ -305,7 +305,7 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 	ef->root->start_cluster = le32_to_cpu(ef->sb->rootdir_cluster);
 	ef->root->fptr_cluster = ef->root->start_cluster;
 	ef->root->name[0] = cpu_to_le16('\0');
-	ef->root->size = rootdir_size(ef);
+	ef->root->valid_size = ef->root->size = rootdir_size(ef);
 	if (ef->root->size == 0)
 	{
 		exfat_free(ef);
