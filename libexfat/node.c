@@ -144,6 +144,7 @@ static void init_node_meta1(struct exfat_node* node,
 static void init_node_meta2(struct exfat_node* node,
 		const struct exfat_entry_meta2* meta2)
 {
+	node->valid_size = le64_to_cpu(meta2->valid_size);
 	node->size = le64_to_cpu(meta2->size);
 	node->start_cluster = le32_to_cpu(meta2->start_cluster);
 	node->fptr_cluster = node->start_cluster;
@@ -206,8 +207,7 @@ static bool check_entries(const struct exfat_entry* entry, int n)
 }
 
 static bool check_node(const struct exfat* ef, struct exfat_node* node,
-		le16_t actual_checksum, const struct exfat_entry_meta1* meta1,
-		const struct exfat_entry_meta2* meta2)
+		le16_t actual_checksum, const struct exfat_entry_meta1* meta1)
 {
 	int cluster_size = CLUSTER_SIZE(*ef->sb);
 	uint64_t clusters_heap_size =
@@ -234,12 +234,11 @@ static bool check_node(const struct exfat* ef, struct exfat_node* node,
 	   cannot be greater than file size. See SetFileValidData() function
 	   description in MSDN.
 	*/
-	if (le64_to_cpu(meta2->valid_size) > node->size)
+	if (node->valid_size > node->size)
 	{
 		exfat_get_name(node, buffer);
 		exfat_error("'%s' has valid size (%"PRIu64") greater than size "
-				"(%"PRIu64")", buffer, le64_to_cpu(meta2->valid_size),
-				node->size);
+				"(%"PRIu64")", buffer, node->valid_size, node->size);
 		ret = false;
 	}
 
@@ -328,7 +327,7 @@ static int parse_file_entries(struct exfat* ef, struct exfat_node* node,
 	init_node_meta2(node, meta2);
 	init_node_name(node, entries + 2, mandatory_entries - 2);
 
-	if (!check_node(ef, node, exfat_calc_checksum(entries, n), meta1, meta2))
+	if (!check_node(ef, node, exfat_calc_checksum(entries, n), meta1))
 		return -EIO;
 
 	return 0;
@@ -659,7 +658,8 @@ int exfat_flush_node(struct exfat* ef, struct exfat_node* node)
 			NULL, &meta1->atime_tzo);
 	meta1->adate = edate;
 	meta1->atime = etime;
-	meta2->size = meta2->valid_size = cpu_to_le64(node->size);
+	meta2->valid_size = cpu_to_le64(node->valid_size);
+	meta2->size = cpu_to_le64(node->size);
 	meta2->start_cluster = cpu_to_le32(node->start_cluster);
 	meta2->flags = EXFAT_FLAG_ALWAYS1;
 	/* empty files must not be marked as contiguous */

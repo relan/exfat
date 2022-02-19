@@ -432,6 +432,7 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size,
 	}
 
 	exfat_update_mtime(node);
+	node->valid_size = size;
 	node->size = size;
 	node->is_dirty = true;
 	return 0;
