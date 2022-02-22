@@ -426,13 +426,17 @@ int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size,
 
 	if (erase)
 	{
-		rc = erase_range(ef, node, node->size, size);
+		rc = erase_range(ef, node, node->valid_size, size);
 		if (rc != 0)
 			return rc;
+		node->valid_size = size;
+	}
+	else
+	{
+		node->valid_size = MIN(node->valid_size, size);
 	}
 
 	exfat_update_mtime(node);
-	node->valid_size = size;
 	node->size = size;
 	node->is_dirty = true;
 	return 0;
