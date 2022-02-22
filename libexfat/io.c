@@ -402,6 +402,23 @@ ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
 	if (size == 0)
 		return 0;
 
+	if (uoffset + size > node->valid_size)
+	{
+		ssize_t bytes = 0;
+
+		exfat_debug("Read %ld %zu from %lu %lu file", offset, size, node->valid_size, node->size);
+		if (uoffset < node->valid_size)
+		{
+			bytes = exfat_generic_pread(ef, node, buffer,
+					node->valid_size - uoffset, offset);
+			if (bytes < 0 || (size_t) bytes < node->valid_size - uoffset)
+				return bytes;
+		}
+		memset(buffer + bytes, 0,
+				MIN(size - bytes, node->size - node->valid_size));
+		return MIN(size, node->size - uoffset);
+	}
+
 	cluster = exfat_advance_cluster(ef, node, uoffset / CLUSTER_SIZE(*ef->sb));
 	if (CLUSTER_INVALID(*ef->sb, cluster))
 	{
@@ -487,6 +504,7 @@ ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
 		bufp += lsize;
 		loffset = 0;
 		remainder -= lsize;
+		node->valid_size = MAX(node->valid_size, uoffset + size - remainder);
 		cluster = exfat_next_cluster(ef, node, cluster);
 	}
 	if (!(node->attrib & EXFAT_ATTRIB_DIR))
