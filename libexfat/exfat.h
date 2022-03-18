@@ -71,6 +71,13 @@
    be corrupted with 32-bit off_t. */
 STATIC_ASSERT(sizeof(off_t) == 8);
 
+struct exfat_fptr
+{
+	uint32_t index;
+	cluster_t cluster;
+	struct exfat_fptr* next;
+};
+
 struct exfat_node
 {
 	struct exfat_node* parent;
@@ -79,8 +86,7 @@ struct exfat_node
 	struct exfat_node* prev;
 
 	int references;
-	uint32_t fptr_index;
-	cluster_t fptr_cluster;
+	struct exfat_fptr fptr;
 	off_t entry_offset;
 	cluster_t start_cluster;
 	uint16_t attrib;
@@ -162,9 +168,9 @@ ssize_t exfat_pread(struct exfat_dev* dev, void* buffer, size_t size,
 ssize_t exfat_pwrite(struct exfat_dev* dev, const void* buffer, size_t size,
 		off_t offset);
 ssize_t exfat_generic_pread(const struct exfat* ef, struct exfat_node* node,
-		void* buffer, size_t size, off_t offset);
+		void* buffer, size_t size, off_t offset, struct exfat_fptr* fh);
 ssize_t exfat_generic_pwrite(struct exfat* ef, struct exfat_node* node,
-		const void* buffer, size_t size, off_t offset);
+		const void* buffer, size_t size, off_t offset, struct exfat_fptr* fh);
 
 int exfat_opendir(struct exfat* ef, struct exfat_node* dir,
 		struct exfat_iterator* it);
@@ -179,7 +185,7 @@ off_t exfat_c2o(const struct exfat* ef, cluster_t cluster);
 cluster_t exfat_next_cluster(const struct exfat* ef,
 		const struct exfat_node* node, cluster_t cluster);
 cluster_t exfat_advance_cluster(const struct exfat* ef,
-		struct exfat_node* node, uint32_t count);
+		struct exfat_node* node, uint32_t count, struct exfat_fptr* fptr);
 int exfat_flush_nodes(struct exfat* ef);
 int exfat_flush(struct exfat* ef);
 int exfat_truncate(struct exfat* ef, struct exfat_node* node, uint64_t size,

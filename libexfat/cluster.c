@@ -90,25 +90,31 @@ cluster_t exfat_next_cluster(const struct exfat* ef,
 }
 
 cluster_t exfat_advance_cluster(const struct exfat* ef,
-		struct exfat_node* node, uint32_t count)
+		struct exfat_node* node, uint32_t count,
+		struct exfat_fptr* fptr)
 {
 	uint32_t i;
 
-	if (node->fptr_index > count)
+	if(fptr == NULL)
+		/* Fallback for cases where don't have a per-file-handle file
+		 * pointer. */
+		fptr = &node->fptr;
+
+	if (fptr->index > count)
 	{
-		node->fptr_index = 0;
-		node->fptr_cluster = node->start_cluster;
+		fptr->index = 0;
+		fptr->cluster = node->start_cluster;
 	}
 
-	for (i = node->fptr_index; i < count; i++)
+	for (i = fptr->index; i < count; i++)
 	{
-		node->fptr_cluster = exfat_next_cluster(ef, node, node->fptr_cluster);
-		if (CLUSTER_INVALID(*ef->sb, node->fptr_cluster))
+		fptr->cluster = exfat_next_cluster(ef, node, fptr->cluster);
+		if (CLUSTER_INVALID(*ef->sb, fptr->cluster))
 			break; /* the caller should handle this and print appropriate 
 			          error message */
 	}
-	node->fptr_index = count;
-	return node->fptr_cluster;
+	fptr->index = count;
+	return fptr->cluster;
 }
 
 static cluster_t find_bit_and_set(bitmap_t* bitmap, size_t start, size_t end)
@@ -249,7 +255,7 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 	if (node->start_cluster != EXFAT_CLUSTER_FREE)
 	{
 		/* get the last cluster of the file */
-		previous = exfat_advance_cluster(ef, node, current - 1);
+		previous = exfat_advance_cluster(ef, node, current - 1, NULL);
 		if (CLUSTER_INVALID(*ef->sb, previous))
 		{
 			exfat_error("invalid cluster 0x%x while growing", previous);
@@ -258,14 +264,17 @@ static int grow_file(struct exfat* ef, struct exfat_node* node,
 	}
 	else
 	{
-		if (node->fptr_index != 0)
-			exfat_bug("non-zero pointer index (%u)", node->fptr_index);
 		/* file does not have clusters (i.e. is empty), allocate
 		   the first one for it */
 		previous = allocate_cluster(ef, 0);
 		if (CLUSTER_INVALID(*ef->sb, previous))
 			return -ENOSPC;
-		node->fptr_cluster = node->start_cluster = previous;
+		for(struct exfat_fptr* fptr=&node->fptr; fptr != NULL; fptr=fptr->next) {
+			if (fptr->index != 0)
+				exfat_bug("non-zero pointer index (%u)", fptr->index);
+			fptr->cluster = previous;
+		}
+		node->start_cluster = previous;
 		allocated = 1;
 		/* file consists of only one cluster, so it's contiguous */
 		node->is_contiguous = true;
@@ -318,7 +327,7 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 	if (current > difference)
 	{
 		cluster_t last = exfat_advance_cluster(ef, node,
-				current - difference - 1);
+				current - difference - 1, NULL);
 		if (CLUSTER_INVALID(*ef->sb, last))
 		{
 			exfat_error("invalid cluster 0x%x while shrinking", last);
@@ -335,8 +344,10 @@ static int shrink_file(struct exfat* ef, struct exfat_node* node,
 		node->start_cluster = EXFAT_CLUSTER_FREE;
 		node->is_dirty = true;
 	}
-	node->fptr_index = 0;
-	node->fptr_cluster = node->start_cluster;
+	for(struct exfat_fptr* fptr=&node->fptr; fptr != NULL; fptr=fptr->next) {
+		fptr->index = 0;
+		fptr->cluster = node->start_cluster;
+	}
 
 	/* free remaining clusters */
 	while (difference--)
@@ -379,7 +390,7 @@ static int erase_range(struct exfat* ef, struct exfat_node* node,
 
 	cluster_boundary = (begin | (CLUSTER_SIZE(*ef->sb) - 1)) + 1;
 	cluster = exfat_advance_cluster(ef, node,
-			begin / CLUSTER_SIZE(*ef->sb));
+			begin / CLUSTER_SIZE(*ef->sb), NULL);
 	if (CLUSTER_INVALID(*ef->sb, cluster))
 	{
 		exfat_error("invalid cluster 0x%x while erasing", cluster);

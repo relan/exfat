@@ -67,6 +67,9 @@ int exfat_cleanup_node(struct exfat* ef, struct exfat_node* node)
 		exfat_bug("unable to cleanup a node with %d references",
 				node->references);
 
+	if (node->fptr.next != NULL)
+		exfat_bug("unable to cleanup a node with an open file handle");
+
 	if (node->is_unlinked)
 	{
 		/* free all clusters and node structure itself */
@@ -86,7 +89,7 @@ static int read_entries(struct exfat* ef, struct exfat_node* dir,
 		exfat_bug("attempted to read entries from a file");
 
 	size = exfat_generic_pread(ef, dir, entries,
-			sizeof(struct exfat_entry[n]), offset);
+			sizeof(struct exfat_entry[n]), offset, NULL);
 	if (size == (ssize_t) sizeof(struct exfat_entry) * n)
 		return 0; /* success */
 	if (size == 0)
@@ -107,7 +110,7 @@ static int write_entries(struct exfat* ef, struct exfat_node* dir,
 		exfat_bug("attempted to write entries into a file");
 
 	size = exfat_generic_pwrite(ef, dir, entries,
-			sizeof(struct exfat_entry[n]), offset);
+			sizeof(struct exfat_entry[n]), offset, NULL);
 	if (size == (ssize_t) sizeof(struct exfat_entry) * n)
 		return 0; /* success */
 	if (size < 0)
@@ -146,7 +149,7 @@ static void init_node_meta2(struct exfat_node* node,
 {
 	node->size = le64_to_cpu(meta2->size);
 	node->start_cluster = le32_to_cpu(meta2->start_cluster);
-	node->fptr_cluster = node->start_cluster;
+	node->fptr.cluster = node->start_cluster;
 	node->is_contiguous = ((meta2->flags & EXFAT_FLAG_CONTIGUOUS) != 0);
 }
 
