@@ -94,7 +94,7 @@ bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
 
 	deleted.type &= ~EXFAT_ENTRY_VALID;
 	if (exfat_generic_pwrite(ef, dir, &deleted, sizeof(struct exfat_entry),
-			offset) != sizeof(struct exfat_entry))
+			offset, NULL) != sizeof(struct exfat_entry))
 		return false;
 
 	exfat_errors_fixed++;

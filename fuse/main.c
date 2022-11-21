@@ -44,15 +44,69 @@
 
 struct exfat ef;
 
-static struct exfat_node* get_node(const struct fuse_file_info* fi)
+struct exfat_fh
 {
-	return (struct exfat_node*) (size_t) fi->fh;
+	struct exfat_node *node;
+	struct exfat_fptr fptr;
+};
+
+static struct exfat_fh *get_fh(const struct fuse_file_info *fi) {
+	return (struct exfat_fh *)(size_t)fi->fh;
 }
 
-static void set_node(struct fuse_file_info* fi, struct exfat_node* node)
-{
-	fi->fh = (uint64_t) (size_t) node;
+static struct exfat_node *get_node(const struct fuse_file_info *fi) {
+	return get_fh(fi)->node;
+}
+
+static struct exfat_fptr *get_fptr(const struct fuse_file_info *fi) {
+	return &get_fh(fi)->fptr;
+}
+
+static int add_fh(struct fuse_file_info *fi, struct exfat_node *node) {
+	/* allocate and init new file handle */
+	struct exfat_fh *fh = malloc(sizeof(struct exfat_fh));
+	if (fh == NULL) {
+		exfat_error("failed to allocate file handle");
+		return -ENOMEM;
+	}
+	memset(fh, 0, sizeof(struct exfat_fh));
+	fh->node = node;
+	fh->fptr.cluster = node->start_cluster;
+
+	/* add the file handle's fptr to the node */
+	struct exfat_fptr *p = &node->fptr;
+	int count = 1;
+	while(p->next != NULL) {
+		p = p->next;
+		++count;
+	}
+	p->next = &fh->fptr;
+	exfat_debug("added file handle %d to node", count);
+
+	/* hand the file handle to fuse */
+	fi->fh = (uint64_t)(size_t)fh;
 	fi->keep_cache = 1;
+	return 0;
+}
+
+static void remove_fh(struct fuse_file_info *fi) {
+	struct exfat_fh *fh = get_fh(fi);
+
+	struct exfat_fptr *p = &fh->node->fptr;
+	while (p->next != &fh->fptr) {
+		p = p->next;
+		if (p == NULL)
+			exfat_bug("freeing a file handle that wasn't listed in the node");
+	}
+	p->next = p->next->next;
+
+	exfat_debug("removed a file handle from node");
+	if(fh->node->fptr.next == NULL)
+		exfat_debug("no more file handles open on this node");
+
+	free(fh);
+
+	fi->fh = 0;
 }
 
 static int fuse_exfat_getattr(const char* path, struct stat* stbuf)
@@ -152,7 +206,9 @@ static int fuse_exfat_open(const char* path, struct fuse_file_info* fi)
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
 		return rc;
-	set_node(fi, node);
+	rc = add_fh(fi, node);
+	if (rc != 0)
+		return rc;
 	return 0;
 }
 
@@ -170,7 +226,9 @@ static int fuse_exfat_create(const char* path, UNUSED mode_t mode,
 	rc = exfat_lookup(&ef, &node, path);
 	if (rc != 0)
 		return rc;
-	set_node(fi, node);
+	rc = add_fh(fi, node);
+	if (rc != 0)
+		return rc;
 	return 0;
 }
 
@@ -186,6 +244,7 @@ static int fuse_exfat_release(UNUSED const char* path,
 	exfat_debug("[%s] %s", __func__, path);
  	exfat_flush_node(&ef, get_node(fi));
 	exfat_put_node(&ef, get_node(fi));
+	remove_fh(fi);
 	return 0; /* FUSE ignores this return value */
 }
 
@@ -220,14 +279,14 @@ static int fuse_exfat_read(UNUSED const char* path, char* buffer,
 		size_t size, off_t offset, struct fuse_file_info* fi)
 {
 	exfat_debug("[%s] %s (%zu bytes)", __func__, path, size);
-	return exfat_generic_pread(&ef, get_node(fi), buffer, size, offset);
+	return exfat_generic_pread(&ef, get_node(fi), buffer, size, offset, get_fptr(fi));
 }
 
 static int fuse_exfat_write(UNUSED const char* path, const char* buffer,
 		size_t size, off_t offset, struct fuse_file_info* fi)
 {
 	exfat_debug("[%s] %s (%zu bytes)", __func__, path, size);
-	return exfat_generic_pwrite(&ef, get_node(fi), buffer, size, offset);
+	return exfat_generic_pwrite(&ef, get_node(fi), buffer, size, offset, get_fptr(fi));
 }
 
 static int fuse_exfat_unlink(const char* path)
