@@ -41,7 +41,7 @@ task:
 
     - name: macos
       macos_instance:
-        image: big-sur-base
+        image: ghcr.io/cirruslabs/macos-ventura-base:latest
       install_script: |
         brew update --preinstall
         brew install automake macfuse
