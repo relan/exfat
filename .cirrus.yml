@@ -28,7 +28,8 @@ task:
         image: gcc:12-bullseye
       install_script: |
         apt-get update
-        apt-get install -y libfuse-dev
+        apt-get install -y kmod libfuse-dev
+        modprobe fuse
       env:
         EXTRA_CFLAGS: -fanalyzer
 
@@ -37,7 +38,8 @@ task:
         image: gcc:12-bullseye
       install_script: |
         apt-get update
-        apt-get install -y libfuse3-dev
+        apt-get install -y kmod libfuse3-dev
+        modprobe fuse
       env:
         EXTRA_CFLAGS: -fanalyzer
 
@@ -53,6 +55,7 @@ task:
         image_family: freebsd-13-1
       install_script: |
         pkg install -y autoconf automake fusefs-libs libublio pkgconf
+        kldload fusefs
 
   compile_script: |
     autoreconf --install
@@ -68,3 +71,8 @@ task:
     echo 'f1b3a11f781533f5b69086596be38367d0ebfb77  foo.img' | shasum -c
     label/exfatlabel foo.img ￮￮￮￮￮￮￮￮￮￮￮￮￮￮￮
     echo '4720462db953d5b2094c884f4b3098a138790533  foo.img' | shasum -c
+    mkdir -p foo
+    fuse/mount.exfat-fuse -u foo.img foo
+    sleep 0.2
+    umount foo
+    echo 'f1b3a11f781533f5b69086596be38367d0ebfb77  foo.img' | shasum -c
