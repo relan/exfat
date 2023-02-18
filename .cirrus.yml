@@ -38,6 +38,8 @@ task:
       install_script: |
         apt-get update
         apt-get install -y libfuse3-dev
+      env:
+        EXTRA_CFLAGS: -fanalyzer
 
     - name: macos
       macos_instance:
