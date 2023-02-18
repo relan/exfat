@@ -553,7 +553,8 @@ static char* add_blksize_option(char* options, long cluster_size)
 }
 #endif
 
-static char* add_fuse_options(char* options, const char* spec, bool ro)
+static char* add_fuse_options(char* options, const char* spec, bool ro,
+		bool privileged)
 {
 	options = add_fsname_option(options, spec);
 	if (options == NULL)
@@ -561,13 +562,25 @@ static char* add_fuse_options(char* options, const char* spec, bool ro)
 	options = add_ro_option(options, ro);
 	if (options == NULL)
 		return NULL;
+	if (privileged)
+	{
+		options = add_option(options, "allow_other", NULL);
+		if (options == NULL)
+			return NULL;
+	}
 #if defined(__linux__)
-	options = add_user_option(options);
-	if (options == NULL)
-		return NULL;
-	options = add_blksize_option(options, CLUSTER_SIZE(*ef.sb));
-	if (options == NULL)
-		return NULL;
+	if (privileged)
+	{
+		options = add_user_option(options);
+		if (options == NULL)
+			return NULL;
+		options = add_option(options, "blkdev", NULL);
+		if (options == NULL)
+			return NULL;
+		options = add_blksize_option(options, CLUSTER_SIZE(*ef.sb));
+		if (options == NULL)
+			return NULL;
+	}
 #endif
 	return options;
 }
@@ -610,16 +623,14 @@ int main(int argc, char* argv[])
 	char* fuse_options;
 	char* exfat_options;
 	int opt;
+	bool privileged = true;
 	int rc;
 
 	printf("FUSE exfat %s (libfuse%d)\n", VERSION, FUSE_USE_VERSION / 10);
 
-	fuse_options = strdup("allow_other,"
+	fuse_options = strdup(
 #if FUSE_USE_VERSION < 30 && (defined(__linux__) || defined(__FreeBSD__))
 			"big_writes,"
-#endif
-#if defined(__linux__)
-			"blkdev,"
 #endif
 			"default_permissions");
 	exfat_options = strdup("ro_fallback");
@@ -631,7 +642,7 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
-	while ((opt = getopt(argc, argv, "dno:Vv")) != -1)
+	while ((opt = getopt(argc, argv, "dno:uVv")) != -1)
 	{
 		switch (opt)
 		{
@@ -658,6 +669,9 @@ int main(int argc, char* argv[])
 				free(exfat_options);
 				return 1;
 			}
+			break;
+		case 'u':
+			privileged = false;
 			break;
 		case 'V':
 			free(exfat_options);
@@ -691,7 +705,7 @@ int main(int argc, char* argv[])
 
 	free(exfat_options);
 
-	fuse_options = add_fuse_options(fuse_options, spec, ef.ro != 0);
+	fuse_options = add_fuse_options(fuse_options, spec, ef.ro != 0, privileged);
 	if (fuse_options == NULL)
 	{
 		exfat_unmount(&ef);
