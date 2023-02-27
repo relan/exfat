@@ -246,5 +246,7 @@ bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
 		const struct exfat_entry* entry, off_t offset);
 bool exfat_fix_invalid_date(const struct exfat* ef,
 		uint16_t* month, uint16_t* day);
+bool exfat_fix_invalid_time(const struct exfat* ef,
+		uint16_t* hour, uint16_t* min, uint16_t* twosec, uint8_t* centisec);
 
 #endif /* ifndef EXFAT_H_INCLUDED */

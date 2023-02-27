@@ -75,16 +75,12 @@ time_t exfat_exfat2unix(struct exfat* ef, le16_t date, le16_t time,
 		if (!EXFAT_REPAIR(invalid_date, ef, &month, &day))
 			return 0;
 	}
-	if (hour > 23 || min > 59 || twosec > 29)
+	if (hour > 23 || min > 59 || twosec > 29 || centisec > 199)
 	{
-		exfat_error("bad time %hu:%02hu:%02u",
-				hour, min, twosec * 2);
-		return 0;
-	}
-	if (centisec > 199)
-	{
-		exfat_error("bad centiseconds count %hhu", centisec);
-		return 0;
+		exfat_error("bad time %hu:%02hu:%02u.%hhu",
+				hour, min, twosec, centisec);
+		if (!EXFAT_REPAIR(invalid_time, ef, &hour, &min, &twosec, &centisec))
+			return 0;
 	}
 
 	/* every 4th year between 1904 and 2096 is leap */

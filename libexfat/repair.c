@@ -114,3 +114,19 @@ bool exfat_fix_invalid_date(UNUSED const struct exfat* ef,
 	exfat_errors_fixed++;
 	return true;
 }
+
+bool exfat_fix_invalid_time(UNUSED const struct exfat* ef,
+		uint16_t* hour, uint16_t* min, uint16_t* twosec, uint8_t* centisec)
+{
+	if (*hour > 23)
+		*hour = 23;
+	if (*min > 59)
+		*min = 59;
+	if (*twosec > 29)
+		*twosec = 29;
+	if (*centisec > 199)
+		*centisec = 199;
+
+	exfat_errors_fixed++;
+	return true;
+}
