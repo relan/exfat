@@ -53,8 +53,8 @@ static const time_t days_in_year[] =
 	0,   0,  31,  59,  90, 120, 151, 181, 212, 243, 273, 304, 334
 };
 
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
-		uint8_t tzoffset)
+time_t exfat_exfat2unix(struct exfat* ef, le16_t date, le16_t time,
+		uint8_t centisec, uint8_t tzoffset)
 {
 	time_t unix_time = EPOCH_DIFF_SEC;
 	uint16_t ndate = le16_to_cpu(date);
@@ -72,7 +72,8 @@ time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
 	{
 		exfat_error("bad date %u-%02hu-%02hu",
 				year + EXFAT_EPOCH_YEAR, month, day);
-		return 0;
+		if (!EXFAT_REPAIR(invalid_date, ef, &month, &day))
+			return 0;
 	}
 	if (hour > 23 || min > 59 || twosec > 29)
 	{

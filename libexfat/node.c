@@ -129,15 +129,15 @@ static struct exfat_node* allocate_node(void)
 	return node;
 }
 
-static void init_node_meta1(struct exfat_node* node,
+static void init_node_meta1(struct exfat* ef, struct exfat_node* node,
 		const struct exfat_entry_meta1* meta1)
 {
 	node->attrib = le16_to_cpu(meta1->attrib);
 	node->continuations = meta1->continuations;
-	node->mtime = exfat_exfat2unix(meta1->mdate, meta1->mtime,
+	node->mtime = exfat_exfat2unix(ef, meta1->mdate, meta1->mtime,
 			meta1->mtime_cs, meta1->mtime_tzo);
 	/* there is no centiseconds field for atime */
-	node->atime = exfat_exfat2unix(meta1->adate, meta1->atime,
+	node->atime = exfat_exfat2unix(ef, meta1->adate, meta1->atime,
 			0, meta1->atime_tzo);
 }
 
@@ -323,7 +323,7 @@ static int parse_file_entries(struct exfat* ef, struct exfat_node* node,
 		return -EIO;
 	}
 
-	init_node_meta1(node, meta1);
+	init_node_meta1(ef, node, meta1);
 	init_node_meta2(node, meta2);
 	init_node_name(node, entries + 2, mandatory_entries - 2);
 
@@ -943,7 +943,7 @@ static int commit_entry(struct exfat* ef, struct exfat_node* dir,
 		return -ENOMEM;
 	node->entry_offset = offset;
 	memcpy(node->name, name, name_length * sizeof(le16_t));
-	init_node_meta1(node, meta1);
+	init_node_meta1(ef, node, meta1);
 	init_node_meta2(node, meta2);
 
 	tree_attach(dir, node);

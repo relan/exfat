@@ -231,8 +231,8 @@ int exfat_soil_super_block(const struct exfat* ef);
 int exfat_mount(struct exfat* ef, const char* spec, const char* options);
 void exfat_unmount(struct exfat* ef);
 
-time_t exfat_exfat2unix(le16_t date, le16_t time, uint8_t centisec,
-		uint8_t tzoffset);
+time_t exfat_exfat2unix(struct exfat* ef, le16_t date, le16_t time,
+		uint8_t centisec, uint8_t tzoffset);
 void exfat_unix2exfat(time_t unix_time, le16_t* date, le16_t* time,
 		uint8_t* centisec, uint8_t* tzoffset);
 void exfat_tzset(void);
@@ -244,5 +244,7 @@ bool exfat_fix_invalid_node_checksum(const struct exfat* ef,
 		struct exfat_node* node);
 bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
 		const struct exfat_entry* entry, off_t offset);
+bool exfat_fix_invalid_date(const struct exfat* ef,
+		uint16_t* month, uint16_t* day);
 
 #endif /* ifndef EXFAT_H_INCLUDED */

@@ -100,3 +100,17 @@ bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
 	exfat_errors_fixed++;
 	return true;
 }
+
+bool exfat_fix_invalid_date(UNUSED const struct exfat* ef,
+		uint16_t* month, uint16_t* day)
+{
+	if (*day == 1)
+		*day = 1;
+	if (*month == 0)
+		*month = 1;
+	if (*month > 12)
+		*month = 12;
+
+	exfat_errors_fixed++;
+	return true;
+}
