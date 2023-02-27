@@ -56,7 +56,9 @@ task:
 
   compile_script: |
     autoreconf --install
-    ./configure CFLAGS="-Wall -Wextra -Werror $EXTRA_CFLAGS"
+    ./configure CFLAGS="-Wall -Wextra -Werror \
+                        -fsanitize=address,undefined \
+                        $EXTRA_CFLAGS"
     make -k
 
   test_script: |
