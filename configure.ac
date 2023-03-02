@@ -21,7 +21,7 @@
 #
 
 AC_INIT([Free exFAT implementation],
-	[1.3.0],
+	[1.4.0],
 	[relan@users.noreply.github.com],
 	[exfat],
 	[https://github.com/relan/exfat])

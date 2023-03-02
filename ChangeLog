@@ -1,3 +1,22 @@
+1.4.0 (2023-03-02)
+
+* Added exfatattrib utility which prints or changes file attributes [Will
+Thompson].
+* Added FUSE 3 support. FUSE 2 continues to be supported.
+* Added support for timezone offsets [Nathan Hunsperger].
+* Fixed device opening error being reported as FS error.
+* Fixed possible data leakage when uninitialized clusters were allocated using
+NtSetInformationFile() call under Windows and FS was not unmounted correctly.
+* Improved compatibility with autoconf 2.70.
+* Fixed disk size reading on NetBSD [Dave Vasilevsky].
+* Fixed "automounted" option handling on FreeBSD [Iouri V. Ivliev].
+* Allowed to specify the "nonempty" mount option.
+* Fixed file data contiguity handling bug which could cause performance
+degradation [noctis].
+* Fixed possible crashes on invalid UTF-8 sequences.
+* Fixed a situation when FS could be erroneously marked as dirty (not cleanly
+unmounted).
+
 1.3.0 (2018-09-15)
 
 * exfatfsck can now repair some errors.
