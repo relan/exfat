@@ -3,7 +3,7 @@
 	Prints or changes exFAT file attributes
 
 	Free exFAT implementation.
-	Copyright (C) 2020  Endless OS Foundation LLC
+	Copyright (C) 2020-2023  Endless OS Foundation LLC
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -117,8 +117,8 @@ int main(int argc, char* argv[])
 		{
 		case 'V':
 			printf("exfatattrib %s\n", VERSION);
-			puts("Copyright (C) 2011-2018  Andrew Nayenko");
-			puts("Copyright (C) 2020       Endless OS Foundation LLC");
+			puts("Copyright (C) 2011-2023  Andrew Nayenko");
+			puts("Copyright (C) 2020-2023  Endless OS Foundation LLC");
 			return 0;
 		/*
 			The path to the unmounted exFAT partition is a (mandatory) named
