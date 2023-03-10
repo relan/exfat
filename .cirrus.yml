@@ -25,7 +25,7 @@ task:
   matrix:
     - name: debian-fuse2
       container:
-        image: gcc:11-bullseye
+        image: gcc:12-bullseye
       install_script: |
         apt-get update
         apt-get install -y libfuse-dev
@@ -34,7 +34,7 @@ task:
 
     - name: debian-fuse3
       container:
-        image: gcc:11-bullseye
+        image: gcc:12-bullseye
       install_script: |
         apt-get update
         apt-get install -y libfuse3-dev
