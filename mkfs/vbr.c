@@ -62,8 +62,7 @@ static void init_sb(struct exfat_super_block* sb)
 	sb->cluster_sector_start = cpu_to_le32(
 			get_position(&cbm) / get_sector_size());
 	sb->cluster_count = cpu_to_le32(clusters_max -
-			((le32_to_cpu(sb->fat_sector_start) +
-			  le32_to_cpu(sb->fat_sector_count)) >> get_spc_bits()));
+			(le32_to_cpu(sb->cluster_sector_start) >> get_spc_bits()));
 	sb->rootdir_cluster = cpu_to_le32(
 			(get_position(&rootdir) - get_position(&cbm)) / get_cluster_size()
 			+ EXFAT_FIRST_DATA_CLUSTER);
