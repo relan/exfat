@@ -603,9 +603,17 @@ static int fuse_exfat_main(char* mount_options, char* mount_point)
 			&fuse_exfat_ops, NULL);
 }
 
+static void read_arg(char **param, int *argc, char ***argv) {
+	if (!*param && *argc > optind && (*argv)[optind][0] != '-') {
+		*param = (*argv)[optind];
+		((*argv)++)[1] = (*argv)[0];
+		(*argc)--;
+	}
+}
+
 int main(int argc, char* argv[])
 {
-	const char* spec = NULL;
+	char* spec = NULL;
 	char* mount_point = NULL;
 	char* fuse_options;
 	char* exfat_options;
@@ -613,6 +621,9 @@ int main(int argc, char* argv[])
 	int rc;
 
 	printf("FUSE exfat %s (libfuse%d)\n", VERSION, FUSE_USE_VERSION / 10);
+
+	read_arg(&spec, &argc, &argv);
+	read_arg(&mount_point, &argc, &argv);
 
 	fuse_options = strdup("allow_other,"
 #if FUSE_USE_VERSION < 30 && (defined(__linux__) || defined(__FreeBSD__))
@@ -672,15 +683,16 @@ int main(int argc, char* argv[])
 			usage(argv[0]);
 			break;
 		}
+
+		read_arg(&spec, &argc, &argv);
+		read_arg(&mount_point, &argc, &argv);
 	}
-	if (argc - optind != 2)
+	if (!mount_point || argc > optind)
 	{
 		free(exfat_options);
 		free(fuse_options);
 		usage(argv[0]);
 	}
-	spec = argv[optind];
-	mount_point = argv[optind + 1];
 
 	if (exfat_mount(&ef, spec, exfat_options) != 0)
 	{
