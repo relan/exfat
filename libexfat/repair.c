@@ -58,6 +58,7 @@ bool exfat_ask_to_fix(const struct exfat* ef)
 		return yeah;
 	}
 	exfat_bug("invalid repair option value: %d", ef->repair);
+	return false;
 }
 
 bool exfat_fix_invalid_vbr_checksum(const struct exfat* ef, void* sector,
