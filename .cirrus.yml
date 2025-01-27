@@ -43,9 +43,9 @@ task:
 
     - name: macos
       macos_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
+        image: ghcr.io/cirruslabs/macos-runner:sequoia
       install_script: |
-        brew update --preinstall
+        brew update
         brew install automake macfuse
 
     - name: freebsd
