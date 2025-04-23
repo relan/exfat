@@ -101,6 +101,13 @@ static int vbr_write(struct exfat_dev* dev)
 	}
 	checksum = exfat_vbr_start_checksum(&sb, sizeof(struct exfat_super_block));
 
+	if (exfat_seek(dev, get_sector_size(), SEEK_SET) == (off_t) -1)
+	{
+		free(sector);
+		exfat_error("seek to 0x%"PRIx64" failed", get_sector_size());
+		return 1;
+	}
+
 	memset(sector, 0, get_sector_size());
 	sector[get_sector_size() / sizeof(sector[0]) - 1] =
 			cpu_to_le32(0xaa550000);
