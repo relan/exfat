@@ -159,4 +159,5 @@ off_t get_position(const struct fs_object* object)
 		position += (*pp)->get_size();
 	}
 	exfat_bug("unknown object");
+	return 0;
 }
