@@ -41,10 +41,19 @@ PKG_CHECK_MODULES([FUSE3], [fuse3],
   [AC_DEFINE([FUSE_USE_VERSION], [30], [Required FUSE API version.])],
   [PKG_CHECK_MODULES([FUSE2], [fuse >= 2.6],
     [AC_DEFINE([FUSE_USE_VERSION], [26], [Required FUSE API version.])])])
+AC_MSG_CHECKING([whether host-specific defines are needed for $host_os])
 case "$host_os" in
+  darwin*)
+    AC_MSG_RESULT([yes])
+    AC_DEFINE([FUSE_DARWIN_ENABLE_EXTENSIONS], [0], [macFUSE extensions break compatibility with the mainline FUSE.])
+	;;
   *-gnu)
+    AC_MSG_RESULT([yes])
     AC_DEFINE([_XOPEN_SOURCE], [500], [Enable pread() and pwrite().])
     AC_DEFINE([_DEFAULT_SOURCE], [], [Enable vsyslog().])
+	;;
+  *)
+    AC_MSG_RESULT([no])
 	;;
 esac
 AC_CONFIG_HEADERS([libexfat/config.h])

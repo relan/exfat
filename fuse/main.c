@@ -21,6 +21,8 @@
 */
 
 #include <exfat.h>
+/* exfat.h must be included before fuse.h because it defines macros that
+   affect FUSE API */
 #include <fuse.h>
 #include <errno.h>
 #include <fcntl.h>
