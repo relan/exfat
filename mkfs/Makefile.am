@@ -38,7 +38,7 @@ mkexfatfs_SOURCES = \
 	uctc.h \
 	vbr.c \
 	vbr.h
-mkexfatfs_CPPFLAGS = -I$(top_srcdir)/libexfat
+mkexfatfs_CPPFLAGS = -imacros $(top_srcdir)/libexfat/config.h
 mkexfatfs_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS) $(UBLIO_CFLAGS)
 mkexfatfs_LDADD = $(top_srcdir)/libexfat/libexfat.a $(UBLIO_LIBS)
 
