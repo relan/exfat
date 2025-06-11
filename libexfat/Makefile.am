@@ -37,4 +37,4 @@ libexfat_a_SOURCES = \
 	time.c \
 	utf.c \
 	utils.c
-libexfat_a_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS)
+libexfat_a_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS) $(UBLIO_CFLAGS)

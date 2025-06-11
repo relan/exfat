@@ -24,8 +24,8 @@ sbin_PROGRAMS = mount.exfat-fuse
 dist_man8_MANS = mount.exfat-fuse.8
 mount_exfat_fuse_SOURCES = main.c
 mount_exfat_fuse_CPPFLAGS = -I$(top_srcdir)/libexfat
-mount_exfat_fuse_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS)
-mount_exfat_fuse_LDADD = ../libexfat/libexfat.a $(FUSE2_LIBS) $(FUSE3_LIBS)
+mount_exfat_fuse_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS) $(UBLIO_CFLAGS)
+mount_exfat_fuse_LDADD = $(top_srcdir)/libexfat/libexfat.a $(FUSE2_LIBS) $(FUSE3_LIBS) $(UBLIO_LIBS)
 
 install-exec-hook:
 	ln -sf $(sbin_PROGRAMS) $(DESTDIR)$(sbindir)/mount.exfat

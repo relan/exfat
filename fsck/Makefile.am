@@ -24,8 +24,8 @@ sbin_PROGRAMS = exfatfsck
 dist_man8_MANS = exfatfsck.8
 exfatfsck_SOURCES = main.c
 exfatfsck_CPPFLAGS = -I$(top_srcdir)/libexfat
-exfatfsck_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS)
-exfatfsck_LDADD = ../libexfat/libexfat.a
+exfatfsck_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS) $(UBLIO_CFLAGS)
+exfatfsck_LDADD = $(top_srcdir)/libexfat/libexfat.a $(UBLIO_LIBS)
 
 install-exec-hook:
 	ln -sf $(sbin_PROGRAMS) $(DESTDIR)$(sbindir)/fsck.exfat

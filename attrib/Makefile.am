@@ -24,5 +24,5 @@ sbin_PROGRAMS = exfatattrib
 dist_man8_MANS = exfatattrib.8
 exfatattrib_SOURCES = main.c
 exfatattrib_CPPFLAGS = -I$(top_srcdir)/libexfat
-exfatattrib_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS)
-exfatattrib_LDADD = ../libexfat/libexfat.a
+exfatattrib_CFLAGS = $(FUSE2_CFLAGS) $(FUSE3_CFLAGS) $(UBLIO_CFLAGS)
+exfatattrib_LDADD = $(top_srcdir)/libexfat/libexfat.a $(UBLIO_LIBS)

@@ -31,21 +31,20 @@ AC_PROG_RANLIB
 AM_PROG_AR
 AC_SYS_LARGEFILE
 AC_CANONICAL_HOST
-PKG_CHECK_MODULES([UBLIO], [libublio], [
-  CFLAGS="$CFLAGS $UBLIO_CFLAGS"
-  LIBS="$LIBS $UBLIO_LIBS"
-  AC_DEFINE([USE_UBLIO], [1],
-    [Define if block devices are not supported.])
-], [:])
 PKG_CHECK_MODULES([FUSE3], [fuse3],
   [AC_DEFINE([FUSE_USE_VERSION], [30], [Required FUSE API version.])],
   [PKG_CHECK_MODULES([FUSE2], [fuse >= 2.6],
     [AC_DEFINE([FUSE_USE_VERSION], [26], [Required FUSE API version.])])])
-AC_MSG_CHECKING([whether host-specific defines are needed for $host_os])
+AC_MSG_CHECKING([whether host-specific configuration is needed for $host_os])
 case "$host_os" in
   darwin*)
     AC_MSG_RESULT([yes])
     AC_DEFINE([FUSE_DARWIN_ENABLE_EXTENSIONS], [0], [macFUSE extensions break compatibility with the mainline FUSE.])
+	;;
+  freebsd*)
+    AC_MSG_RESULT([yes])
+    PKG_CHECK_MODULES([UBLIO], [libublio])
+    AC_DEFINE([USE_UBLIO], [1], [Define if block devices are not supported.])
 	;;
   *-gnu)
     AC_MSG_RESULT([yes])
