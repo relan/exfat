@@ -240,5 +240,7 @@ bool exfat_fix_invalid_node_checksum(const struct exfat* ef,
 		struct exfat_node* node);
 bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
 		const struct exfat_entry* entry, off_t offset);
-
+bool exfat_fix_bad_timestamps(const struct exfat* ef,
+	struct exfat_node* node);
+	
 #endif /* ifndef EXFAT_H_INCLUDED */

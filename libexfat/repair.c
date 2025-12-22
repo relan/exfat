@@ -100,3 +100,14 @@ bool exfat_fix_unknown_entry(struct exfat* ef, struct exfat_node* dir,
 	exfat_errors_fixed++;
 	return true;
 }
+
+bool exfat_fix_bad_timestamps(UNUSED const struct exfat* ef,
+	struct exfat_node* node)
+{
+	/* date & time will be rewritten by exfat_flush_node() */
+	node->is_dirty = true;
+
+	if(node->mtime == 0) exfat_errors_fixed++;
+	if(node->atime == 0) exfat_errors_fixed++;
+	return true;
+}
