@@ -55,6 +55,7 @@ case "$host_os" in
     AC_MSG_RESULT([no])
 	;;
 esac
+AC_C_BIGENDIAN(,, [AC_MSG_ERROR([Unknown endianness])])
 AC_CONFIG_HEADERS([libexfat/config.h])
 AC_CONFIG_FILES([
 	libexfat/Makefile
