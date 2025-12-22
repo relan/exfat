@@ -32,8 +32,6 @@ struct fs_object
 	int (*write)(struct exfat_dev* dev);
 };
 
-extern const struct fs_object* objects[];
-
 int get_sector_bits(void);
 int get_spc_bits(void);
 off_t get_volume_size(void);
@@ -43,7 +41,9 @@ uint64_t get_first_sector(void);
 int get_sector_size(void);
 int get_cluster_size(void);
 
-int mkfs(struct exfat_dev* dev, off_t volume_size);
+int exfat_mkfs(struct exfat_dev* dev, int sector_bits, int spc_bits,
+		const char* volume_label, uint32_t volume_serial,
+		uint64_t first_sector);
 off_t get_position(const struct fs_object* object);
 
 #endif /* ifndef MKFS_MKEXFAT_H_INCLUDED */
