@@ -21,38 +21,53 @@
 */
 
 #include <exfat.h>
+#include <getopt.h>
 #include <stdio.h>
 #include <string.h>
 
 int main(int argc, char* argv[])
 {
-	char** pp;
 	struct exfat ef;
 	int rc = 0;
+	const char* device = NULL;
+	const char* label = NULL;
+	const char* const usage = "Usage: %s [-V] <device> [label]\n";
+	int c;
 
-	for (pp = argv + 1; *pp; pp++)
-		if (strcmp(*pp, "-V") == 0)
+	while ((c = getopt(argc, argv, "V")) != -1)
+	{
+		if (c == 'V')
 		{
 			printf("exfatlabel %s\n", VERSION);
 			puts("Copyright (C) 2011-2023  Andrew Nayenko");
 			return 0;
 		}
 
-	if (argc != 2 && argc != 3)
-	{
-		fprintf(stderr, "Usage: %s [-V] <device> [label]\n", argv[0]);
+		fprintf(stderr, usage, argv[0]);
 		return 1;
 	}
 
-	if (argv[2])
+	if (optind < argc)
+		device = argv[optind++];
+
+	if (optind < argc)
+		label = argv[optind++];
+
+	if (!device || optind < argc)
 	{
-		if (exfat_mount(&ef, argv[1], "") != 0)
+		fprintf(stderr, usage, argv[0]);
+		return 1;
+	}
+
+	if (label)
+	{
+		if (exfat_mount(&ef, device, "") != 0)
 			return 1;
-		rc = (exfat_set_label(&ef, argv[2]) != 0);
+		rc = (exfat_set_label(&ef, label) != 0);
 	}
 	else
 	{
-		if (exfat_mount(&ef, argv[1], "ro") != 0)
+		if (exfat_mount(&ef, device, "ro") != 0)
 			return 1;
 		puts(exfat_get_label(&ef));
 	}
