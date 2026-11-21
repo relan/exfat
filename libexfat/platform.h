@@ -66,6 +66,15 @@
 #define EXFAT_LITTLE_ENDIAN __LITTLE_ENDIAN
 #define EXFAT_BIG_ENDIAN __BIG_ENDIAN
 
+#elif defined(__QNXNTO__)
+
+#define exfat_bswap16(x) __builtin_bswap16(x)
+#define exfat_bswap32(x) __builtin_bswap32(x)
+#define exfat_bswap64(x) __builtin_bswap64(x)
+#define EXFAT_BYTE_ORDER __BYTE_ORDER__
+#define EXFAT_LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
+#define EXFAT_BIG_ENDIAN __ORDER_BIG_ENDIAN__
+
 #else 
 #error Unknown platform
 #endif
