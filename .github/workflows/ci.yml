@@ -1,0 +1,86 @@
+#
+#   ci.yml (22.11.26)
+#   Contiguous Integration configuration.
+#
+#   Free exFAT implementation.
+#   Copyright (C) 2010-2026  Andrew Nayenko
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License along
+#   with this program; if not, write to the Free Software Foundation, Inc.,
+#   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+
+---
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ubuntu-fuse2:
+    name: Ubuntu with FUSE 2
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse-dev
+      - name: Build
+        run: .github/workflows/scripts/build.sh
+      - name: Test
+        run: .github/workflows/scripts/test.sh
+
+  ubuntu-fuse3:
+    name: Ubuntu with FUSE 3
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse3-dev
+      - name: Build
+        run: .github/workflows/scripts/build.sh
+      - name: Test
+        run: .github/workflows/scripts/test.sh
+
+  macos:
+    name: macOS
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install automake macfuse
+      - name: Build
+        run: .github/workflows/scripts/build.sh
+      - name: Test
+        run: .github/workflows/scripts/test.sh
+
+  freebsd:
+    name: FreeBSD
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build and test
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "15.1"
+          usesh: true
+          prepare: pkg install -y autoconf automake fusefs-libs libublio pkgconf
+          run: |
+            .github/workflows/scripts/build.sh
+            .github/workflows/scripts/test.sh
