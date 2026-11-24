@@ -330,6 +330,14 @@ static int parse_file_entries(struct exfat* ef, struct exfat_node* node,
 	if (!check_node(ef, node, exfat_calc_checksum(entries, n), meta1))
 		return -EIO;
 
+	/* It's safe to assume a 0 unix timestamp means an error during
+	   exfat_exfat2unix conversion as time before exFAT epoch cannot be
+	   represented */
+	if(node->mtime == 0 || node->atime == 0) {
+		if(!EXFAT_REPAIR(bad_timestamps, ef, node))
+			return -EIO;
+	}
+
 	return 0;
 }
 
