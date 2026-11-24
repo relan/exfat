@@ -281,12 +281,15 @@ int exfat_mount(struct exfat* ef, const char* spec, const char* options)
 				exfat_get_size(ef->dev));
 	}
 	if ((off_t) le32_to_cpu(ef->sb->cluster_count) * CLUSTER_SIZE(*ef->sb) >
-			exfat_get_size(ef->dev))
+			(le64_to_cpu(ef->sb->sector_count) - le32_to_cpu(ef->sb->cluster_sector_start))
+			* SECTOR_SIZE(*ef->sb))
 	{
-		exfat_error("file system in clusters is larger than device: "
-				"%u * %d > %"PRIu64,
+		exfat_error("file system in clusters is larger than file system in sectors: "
+				"%u * %d > (%"PRIu64" - %d) * %d",
 				le32_to_cpu(ef->sb->cluster_count), CLUSTER_SIZE(*ef->sb),
-				exfat_get_size(ef->dev));
+				le64_to_cpu(ef->sb->sector_count),
+				le32_to_cpu(ef->sb->cluster_sector_start),
+				SECTOR_SIZE(*ef->sb));
 		exfat_free(ef);
 		return -EIO;
 	}
